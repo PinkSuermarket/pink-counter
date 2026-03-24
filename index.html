@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pink Supermarket — Offer Lookup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap');
+  :root {
+    --pink: #e8446a; --pink-light: #fde8ee; --pink-dark: #b5274a;
+    --green: #1a9e6e; --green-light: #e2f5ee;
+    --amber: #d97706; --amber-light: #fef3c7;
+    --gray-50: #f9f8f7; --gray-100: #f0eeec; --gray-200: #e2dfdb;
+    --gray-400: #9e9b96; --gray-600: #5c5955; --gray-900: #1c1a18;
+    --radius: 14px; --shadow: 0 2px 16px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--gray-50);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px; color: var(--gray-900);
+  }
+  header { text-align: center; margin-bottom: 32px; padding-top: 8px; }
+  .store-name { font-size: 22px; font-weight: 600; color: var(--pink); letter-spacing: -0.5px; }
+  .store-sub { font-size: 13px; color: var(--gray-400); margin-top: 3px; letter-spacing: 0.03em; }
+
+  /* PIN screen */
+  #pin-screen {
+    background: white; border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 36px 28px; width: 100%; max-width: 340px; text-align: center;
+  }
+  .pin-title { font-size: 15px; font-weight: 600; color: var(--gray-600); margin-bottom: 20px; }
+  .pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 24px; }
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--gray-200); transition: all 0.15s;
+  }
+  .pin-dot.filled { background: var(--pink); border-color: var(--pink); }
+  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pin-btn {
+    height: 58px; border-radius: 12px; border: 2px solid var(--gray-200);
+    background: white; font-family: 'DM Sans', sans-serif;
+    font-size: 22px; font-weight: 500; color: var(--gray-900);
+    cursor: pointer; transition: all 0.12s;
+  }
+  .pin-btn:hover { border-color: var(--pink); color: var(--pink); }
+  .pin-btn:active { transform: scale(0.94); background: var(--pink-light); }
+  .pin-btn.del { font-size: 16px; color: var(--gray-400); }
+  .pin-error { color: var(--pink); font-size: 13px; margin-top: 12px; min-height: 18px; }
+
+  /* Main app */
+  #app { display: none; width: 100%; max-width: 420px; }
+  .card {
+    background: white; border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 28px 24px;
+    width: 100%;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 600; color: var(--gray-400);
+    margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .input-wrap { display: flex; gap: 10px; }
+  input[type="tel"] {
+    flex: 1; height: 52px; border: 2px solid var(--gray-200);
+    border-radius: 10px; padding: 0 16px; font-size: 20px;
+    font-family: 'DM Mono', monospace; font-weight: 500;
+    color: var(--gray-900); outline: none; transition: border-color 0.15s;
+    letter-spacing: 0.05em;
+  }
+  input[type="tel"]:focus { border-color: var(--pink); }
+  input[type="tel"]::placeholder { font-size: 15px; font-family: 'DM Sans', sans-serif; color: var(--gray-400); letter-spacing: 0; }
+  .btn {
+    height: 52px; padding: 0 22px; border-radius: 10px; border: none;
+    font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--pink); color: white; }
+  .btn-primary:hover { background: var(--pink-dark); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { background: var(--gray-200); color: var(--gray-400); cursor: not-allowed; transform: none; }
+  .btn-redeem {
+    width: 100%; height: 56px; background: var(--green); color: white;
+    border-radius: 12px; font-size: 16px; margin-top: 20px; border: none;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600;
+    transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-redeem:hover { background: #147a55; }
+  .btn-redeem:active { transform: scale(0.98); }
+  .btn-redeem:disabled { background: var(--gray-200); color: var(--gray-400); cursor: not-allowed; }
+
+  #result { margin-top: 20px; }
+  .state-loading {
+    text-align: center; padding: 32px 0; color: var(--gray-400);
+    font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid var(--gray-200);
+    border-top-color: var(--pink); border-radius: 50%;
+    animation: spin 0.7s linear infinite; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .state-not-found { background: var(--gray-100); border-radius: 12px; padding: 20px; text-align: center; }
+  .state-not-found .icon { font-size: 28px; margin-bottom: 8px; }
+  .state-not-found .msg { font-size: 15px; font-weight: 500; color: var(--gray-600); }
+  .state-not-found .sub { font-size: 13px; color: var(--gray-400); margin-top: 4px; }
+
+  .offer-card { border-radius: 12px; overflow: hidden; animation: slideUp 0.25s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .offer-header { padding: 16px 18px; display: flex; align-items: center; gap: 12px; }
+  .offer-header.free-item { background: var(--pink-light); }
+  .offer-header.discount { background: var(--amber-light); }
+  .offer-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .free-item .offer-icon { background: var(--pink); }
+  .discount .offer-icon { background: var(--amber); }
+  .offer-type-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.07em; margin-bottom: 2px;
+  }
+  .free-item .offer-type-label { color: var(--pink-dark); }
+  .discount .offer-type-label { color: #92400e; }
+  .offer-headline { font-size: 17px; font-weight: 600; color: var(--gray-900); line-height: 1.3; }
+  .offer-body {
+    background: white; border: 2px solid; border-top: none;
+    border-radius: 0 0 12px 12px; padding: 16px 18px;
+  }
+  .free-item .offer-body { border-color: #f5c4d0; }
+  .discount .offer-body { border-color: #fcd34d; }
+  .customer-row {
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 14px; margin-bottom: 14px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--gray-100); display: flex; align-items: center;
+    justify-content: center; font-size: 15px; font-weight: 600;
+    color: var(--gray-600); flex-shrink: 0;
+  }
+  .customer-name { font-size: 16px; font-weight: 600; color: var(--gray-900); }
+  .customer-phone { font-size: 12px; color: var(--gray-400); font-family: 'DM Mono', monospace; }
+  .detail-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; padding: 4px 0;
+  }
+  .detail-label { color: var(--gray-400); }
+  .detail-value { font-weight: 600; color: var(--gray-900); text-align: right; max-width: 60%; }
+  .code-badge {
+    font-family: 'DM Mono', monospace; background: var(--gray-100);
+    padding: 2px 8px; border-radius: 6px; font-size: 14px;
+    letter-spacing: 0.1em; color: var(--gray-900);
+  }
+  .staff-input-wrap { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--gray-100); }
+  .staff-label {
+    font-size: 12px; font-weight: 600; color: var(--gray-400);
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;
+  }
+  input[type="text"] {
+    width: 100%; height: 42px; border: 2px solid var(--gray-200);
+    border-radius: 8px; padding: 0 12px; font-size: 14px;
+    font-family: 'DM Sans', sans-serif; outline: none;
+    transition: border-color 0.15s; color: var(--gray-900);
+  }
+  input[type="text"]:focus { border-color: var(--green); }
+  .state-success {
+    background: var(--green-light); border: 2px solid #a7f3d0;
+    border-radius: 12px; padding: 24px 20px; text-align: center; animation: slideUp 0.25s ease;
+  }
+  .state-success .big-check { font-size: 40px; margin-bottom: 10px; }
+  .state-success .title { font-size: 18px; font-weight: 600; color: var(--green); }
+  .state-success .sub { font-size: 14px; color: var(--gray-600); margin-top: 6px; }
+  .state-success .new-lookup {
+    margin-top: 18px; background: white; border: 2px solid var(--gray-200);
+    color: var(--gray-900); width: 100%; height: 46px; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .state-success .new-lookup:hover { border-color: var(--pink); }
+  .state-already {
+    background: #fff7ed; border: 2px solid #fed7aa;
+    border-radius: 12px; padding: 20px; text-align: center;
+  }
+  .state-already .icon { font-size: 28px; margin-bottom: 8px; }
+  .state-already .msg { font-size: 15px; font-weight: 600; color: var(--amber); }
+  .state-already .sub { font-size: 13px; color: var(--gray-600); margin-top: 4px; }
+  footer { margin-top: 32px; font-size: 12px; color: var(--gray-400); text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="store-name">Pink Supermarket</div>
+  <div class="store-sub">Billing Counter — Offer Lookup</div>
+</header>
+
+<!-- PIN Screen -->
+<div id="pin-screen">
+  <div class="pin-title">Enter Staff PIN to continue</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn" onclick="pinPress('0')" style="grid-column:2">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <div class="card">
+    <div class="card-title">Customer Phone Number</div>
+    <div class="input-wrap">
+      <input type="tel" id="phoneInput" placeholder="Enter 10-digit number" maxlength="10" />
+      <button class="btn btn-primary" id="searchBtn" onclick="lookup()">Search</button>
+    </div>
+  </div>
+  <div id="result"></div>
+</div>
+
+<footer>Pink Supermarket Internal Tool &nbsp;·&nbsp; Staff Only</footer>
+
+<script>
+  const API = 'https://gllmdqytlgcozrpsusvt.supabase.co/functions/v1/redemption-lookup';
+  const CORRECT_PIN = '1234'; // ← CHANGE THIS to your preferred PIN
+  let pin = '';
+  let currentOffer = null;
+
+  // ── PIN logic ────────────────────────────────────────────────
+  function pinPress(digit) {
+    if (pin.length >= 4) return;
+    pin += digit;
+    document.getElementById('d' + (pin.length - 1)).classList.add('filled');
+    if (pin.length === 4) setTimeout(checkPin, 150);
+  }
+  function pinDel() {
+    if (!pin.length) return;
+    document.getElementById('d' + (pin.length - 1)).classList.remove('filled');
+    pin = pin.slice(0, -1);
+  }
+  function checkPin() {
+    if (pin === CORRECT_PIN) {
+      document.getElementById('pin-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('phoneInput').focus();
+    } else {
+      document.getElementById('pin-error').textContent = 'Wrong PIN. Try again.';
+      setTimeout(() => {
+        pin = '';
+        for (let i = 0; i < 4; i++) document.getElementById('d' + i).classList.remove('filled');
+        document.getElementById('pin-error').textContent = '';
+      }, 800);
+    }
+  }
+
+  // ── Lookup logic ─────────────────────────────────────────────
+  const phoneInput = document.getElementById('phoneInput');
+  const result = document.getElementById('result');
+  const searchBtn = document.getElementById('searchBtn');
+
+  phoneInput.addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
+  phoneInput.addEventListener('input', () => {
+    phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 10);
+  });
+
+  async function lookup() {
+    const phone = phoneInput.value.trim();
+    if (phone.length < 10) { phoneInput.style.borderColor = 'var(--pink)'; phoneInput.focus(); return; }
+    phoneInput.style.borderColor = '';
+    searchBtn.disabled = true;
+    currentOffer = null;
+    result.innerHTML = `<div class="state-loading"><div class="spinner"></div>Looking up offer...</div>`;
+    try {
+      const res = await fetch(`${API}?action=lookup&phone=${phone}`);
+      const data = await res.json();
+      if (!data.found) {
+        result.innerHTML = `<div class="state-not-found"><div class="icon">🔍</div><div class="msg">No active offer found</div><div class="sub">No WhatsApp offer sent to this number, or already redeemed</div></div>`;
+      } else {
+        currentOffer = data.offer;
+        renderOffer(data.offer, phone);
+      }
+    } catch (e) {
+      result.innerHTML = `<div class="state-not-found"><div class="msg">Connection error. Try again.</div></div>`;
+    }
+    searchBtn.disabled = false;
+  }
+
+  function renderOffer(offer, phone) {
+    const isFreeItem = offer.offer_type === 'free_item';
+    const sentDate = new Date(offer.sent_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    const initials = offer.customer_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const headline = isFreeItem
+      ? `Free <strong>${offer.offer_item}</strong> on this purchase`
+      : `<strong>${offer.discount_percent}% off</strong> on purchase above Rs.${offer.min_purchase_amount}`;
+
+    result.innerHTML = `
+      <div class="offer-card" style="margin-top:20px;">
+        <div class="offer-header ${isFreeItem ? 'free-item' : 'discount'}">
+          <div class="offer-icon">${isFreeItem ? '🎁' : '🏷️'}</div>
+          <div>
+            <div class="offer-type-label">${isFreeItem ? 'Free Item Offer' : 'Discount Offer'}</div>
+            <div class="offer-headline">${headline}</div>
+          </div>
+        </div>
+        <div class="offer-body ${isFreeItem ? 'free-item' : 'discount'}">
+          <div class="customer-row">
+            <div class="avatar">${initials}</div>
+            <div>
+              <div class="customer-name">${offer.customer_name}</div>
+              <div class="customer-phone">${phone}</div>
+            </div>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Offer sent on</span>
+            <span class="detail-value">${sentDate}</span>
+          </div>
+          ${isFreeItem ? `
+          <div class="detail-row">
+            <span class="detail-label">Free item</span>
+            <span class="detail-value">${offer.offer_item}</span>
+          </div>` : `
+          <div class="detail-row">
+            <span class="detail-label">Discount</span>
+            <span class="detail-value">${offer.discount_percent}% off</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Minimum purchase</span>
+            <span class="detail-value">Rs. ${offer.min_purchase_amount}</span>
+          </div>`}
+          ${offer.discount_code ? `
+          <div class="detail-row" style="margin-top:6px;">
+            <span class="detail-label">Coupon code</span>
+            <span class="detail-value"><span class="code-badge">${offer.discount_code}</span></span>
+          </div>` : ''}
+          <div class="staff-input-wrap">
+            <div class="staff-label">Your name (for record)</div>
+            <input type="text" id="staffName" placeholder="e.g. Ravi, Counter 1" />
+          </div>
+          <button class="btn-redeem" onclick="redeem('${offer.id}')">✓ &nbsp;Mark as Redeemed</button>
+        </div>
+      </div>`;
+  }
+
+  async function redeem(id) {
+    const staffName = document.getElementById('staffName')?.value?.trim() || 'counter';
+    const redeemBtn = document.querySelector('.btn-redeem');
+    if (redeemBtn) { redeemBtn.disabled = true; redeemBtn.textContent = 'Processing...'; }
+    try {
+      const res = await fetch(`${API}?action=redeem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, staff_name: staffName }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        result.innerHTML = `
+          <div class="state-success" style="margin-top:20px;">
+            <div class="big-check">✅</div>
+            <div class="title">Offer Redeemed!</div>
+            <div class="sub">Give the customer their ${currentOffer?.offer_type === 'free_item' ? 'free item' : 'discount'}. This offer is now marked as used.</div>
+            <button class="new-lookup" onclick="reset()">Look up another customer</button>
+          </div>`;
+      } else if (data.error === 'Already redeemed') {
+        result.innerHTML = `
+          <div class="state-already" style="margin-top:20px;">
+            <div class="icon">⚠️</div>
+            <div class="msg">Already Redeemed</div>
+            <div class="sub">This offer was already used at another counter. Do not give the offer again.</div>
+          </div>`;
+      }
+    } catch (e) {
+      if (redeemBtn) { redeemBtn.disabled = false; redeemBtn.textContent = '✓  Mark as Redeemed'; }
+    }
+  }
+
+  function reset() {
+    phoneInput.value = '';
+    result.innerHTML = '';
+    currentOffer = null;
+    phoneInput.focus();
+  }
+</script>
+</body>
+</html>
