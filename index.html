@@ -6,190 +6,150 @@
 <title>Pink Supermarket — Marketing Dashboard</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap');
-  :root {
-    --pink: #e8446a; --pink-light: #fde8ee; --pink-dark: #b5274a;
-    --green: #1a9e6e; --green-light: #e2f5ee;
-    --amber: #d97706; --amber-light: #fef3c7;
-    --blue: #2563eb; --blue-light: #eff6ff;
-    --purple: #7c3aed; --purple-light: #f5f3ff;
-    --gray-50: #f9f8f7; --gray-100: #f0eeec; --gray-200: #e2dfdb;
-    --gray-400: #9e9b96; --gray-600: #5c5955; --gray-900: #1c1a18;
-    --radius: 14px; --shadow: 0 2px 16px rgba(0,0,0,0.07);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--gray-50); color: var(--gray-900); min-height: 100vh; }
-
-  /* PIN */
-  #pin-screen {
-    min-height: 100vh; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; padding: 24px;
-  }
-  .pin-logo { font-size: 24px; font-weight: 600; color: var(--pink); margin-bottom: 4px; }
-  .pin-sub { font-size: 13px; color: var(--gray-400); margin-bottom: 32px; }
-  .pin-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 32px 28px; width: 100%; max-width: 320px; text-align: center; }
-  .pin-title { font-size: 14px; font-weight: 600; color: var(--gray-600); margin-bottom: 20px; }
-  .pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 24px; }
-  .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--gray-200); transition: all 0.15s; }
-  .pin-dot.filled { background: var(--pink); border-color: var(--pink); }
-  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .pin-btn { height: 56px; border-radius: 10px; border: 2px solid var(--gray-200); background: white; font-family: 'DM Sans', sans-serif; font-size: 22px; font-weight: 500; color: var(--gray-900); cursor: pointer; transition: all 0.12s; }
-  .pin-btn:hover { border-color: var(--pink); color: var(--pink); }
-  .pin-btn:active { transform: scale(0.94); }
-  .pin-error { color: var(--pink); font-size: 13px; margin-top: 12px; min-height: 18px; }
-
-  /* Layout */
-  #app { display: none; }
-  .topbar {
-    background: white; border-bottom: 1px solid var(--gray-200);
-    padding: 0 24px; height: 56px;
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 10;
-  }
-  .topbar-left { display: flex; align-items: center; gap: 10px; }
-  .topbar-title { font-size: 16px; font-weight: 600; color: var(--pink); }
-  .topbar-sub { font-size: 12px; color: var(--gray-400); }
-  .tab-bar { display: flex; gap: 4px; }
-  .tab { padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--gray-600); transition: all 0.15s; }
-  .tab.active { background: var(--pink-light); color: var(--pink); }
-
-  .page { display: none; padding: 24px; max-width: 960px; margin: 0 auto; }
-  .page.active { display: block; }
-
-  /* Stat cards */
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
-  @media(max-width:640px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
-  .stat-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 20px; }
-  .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-400); margin-bottom: 8px; }
-  .stat-value { font-size: 32px; font-weight: 600; line-height: 1; }
-  .stat-sub { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
-  .stat-pink { color: var(--pink); }
-  .stat-green { color: var(--green); }
-  .stat-amber { color: var(--amber); }
-  .stat-blue { color: var(--blue); }
-
-  /* Date filter */
-  .filter-bar { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .filter-label { font-size: 13px; font-weight: 500; color: var(--gray-600); white-space: nowrap; }
-  input[type="date"] { height: 38px; border: 2px solid var(--gray-200); border-radius: 8px; padding: 0 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--gray-900); outline: none; transition: border-color 0.15s; }
-  input[type="date"]:focus { border-color: var(--pink); }
-  .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; }
-  .quick-btn { height: 34px; padding: 0 12px; border-radius: 8px; border: 2px solid var(--gray-200); background: white; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: var(--gray-600); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-  .quick-btn:hover, .quick-btn.active { border-color: var(--pink); color: var(--pink); background: var(--pink-light); }
-  .btn-search { height: 38px; padding: 0 18px; background: var(--pink); color: white; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-  .btn-search:hover { background: var(--pink-dark); }
-
-  /* Chart */
-  .card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
-  .card-title { font-size: 13px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
-
-  .chart-wrap { display: flex; align-items: flex-end; gap: 6px; height: 120px; }
-  .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; gap: 4px; }
-  .bar { width: 100%; background: var(--pink-light); border-radius: 4px 4px 0 0; min-height: 4px; transition: height 0.4s ease; position: relative; cursor: default; }
-  .bar:hover { background: var(--pink); }
-  .bar-label { font-size: 10px; color: var(--gray-400); text-align: center; white-space: nowrap; }
-  .bar-val { font-size: 11px; font-weight: 600; color: var(--pink); }
-
-  /* Offer split */
-  .split-wrap { display: flex; gap: 14px; margin-bottom: 20px; }
-  .split-card { flex: 1; background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 20px; }
-  .split-num { font-size: 28px; font-weight: 600; margin-top: 6px; }
-  .split-sub { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
-
-  /* Table */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-400); border-bottom: 2px solid var(--gray-100); white-space: nowrap; }
-  td { padding: 11px 12px; border-bottom: 1px solid var(--gray-100); color: var(--gray-900); vertical-align: middle; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--gray-50); }
-  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
-  .badge-free { background: var(--pink-light); color: var(--pink-dark); }
-  .badge-discount { background: var(--amber-light); color: #92400e; }
-  .badge-redeemed { background: var(--green-light); color: var(--green); }
-  .badge-pending { background: var(--gray-100); color: var(--gray-600); }
-  .mono { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--gray-600); }
-
-  /* Lookup page */
-  .lookup-wrap { max-width: 480px; margin: 0 auto; }
-  .lookup-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px 24px; }
-  .input-row { display: flex; gap: 10px; }
-  input[type="tel"] { flex: 1; height: 50px; border: 2px solid var(--gray-200); border-radius: 10px; padding: 0 16px; font-size: 18px; font-family: 'DM Mono', monospace; font-weight: 500; color: var(--gray-900); outline: none; transition: border-color 0.15s; }
-  input[type="tel"]:focus { border-color: var(--pink); }
-  .btn-lookup { height: 50px; padding: 0 22px; background: var(--pink); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-  .btn-lookup:hover { background: var(--pink-dark); }
-  .btn-lookup:disabled { background: var(--gray-200); cursor: not-allowed; }
-  #lookup-result { margin-top: 20px; }
-
-  .offer-found { border-radius: 12px; overflow: hidden; animation: up 0.2s ease; }
-  @keyframes up { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-  .offer-head { padding: 14px 18px; display: flex; align-items: center; gap: 12px; }
-  .offer-head.free { background: var(--pink-light); }
-  .offer-head.disc { background: var(--amber-light); }
-  .offer-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-  .free .offer-icon { background: var(--pink); }
-  .disc .offer-icon { background: var(--amber); }
-  .offer-type { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; }
-  .free .offer-type { color: var(--pink-dark); }
-  .disc .offer-type { color: #92400e; }
-  .offer-hl { font-size: 16px; font-weight: 600; color: var(--gray-900); }
-  .offer-body { background: white; border: 2px solid; border-top: none; border-radius: 0 0 12px 12px; padding: 16px 18px; }
-  .free .offer-body { border-color: #f5c4d0; }
-  .disc .offer-body { border-color: #fcd34d; }
-  .cust-row { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--gray-100); }
-  .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--gray-600); flex-shrink: 0; }
-  .cust-name { font-size: 15px; font-weight: 600; }
-  .cust-phone { font-size: 12px; color: var(--gray-400); font-family: 'DM Mono', monospace; }
-  .drow { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
-  .dlabel { color: var(--gray-400); }
-  .dval { font-weight: 600; }
-  .staff-wrap { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--gray-100); }
-  .staff-lbl { font-size: 12px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
-  input[type="text"] { width: 100%; height: 40px; border: 2px solid var(--gray-200); border-radius: 8px; padding: 0 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.15s; color: var(--gray-900); }
-  input[type="text"]:focus { border-color: var(--green); }
-  .btn-redeem { width: 100%; height: 52px; background: var(--green); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 14px; transition: all 0.15s; }
-  .btn-redeem:hover { background: #147a55; }
-  .btn-redeem:disabled { background: var(--gray-200); color: var(--gray-400); cursor: not-allowed; }
-  .not-found { background: var(--gray-100); border-radius: 12px; padding: 20px; text-align: center; }
-  .not-found .icon { font-size: 28px; margin-bottom: 8px; }
-  .not-found .msg { font-size: 15px; font-weight: 500; color: var(--gray-600); }
-  .not-found .sub { font-size: 13px; color: var(--gray-400); margin-top: 4px; }
-  .state-ok { background: var(--green-light); border: 2px solid #a7f3d0; border-radius: 12px; padding: 24px; text-align: center; }
-  .state-ok .big { font-size: 36px; margin-bottom: 8px; }
-  .state-ok .t { font-size: 17px; font-weight: 600; color: var(--green); }
-  .state-ok .s { font-size: 13px; color: var(--gray-600); margin-top: 4px; }
-  .state-ok .again { margin-top: 16px; background: white; border: 2px solid var(--gray-200); color: var(--gray-900); width: 100%; height: 42px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .state-warn { background: #fff7ed; border: 2px solid #fed7aa; border-radius: 12px; padding: 20px; text-align: center; }
-  .state-warn .msg { font-size: 15px; font-weight: 600; color: var(--amber); }
-  .state-warn .sub { font-size: 13px; color: var(--gray-600); margin-top: 4px; }
-
-  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--gray-200); border-top-color: var(--pink); border-radius: 50%; animation: spin 0.7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-row { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 28px; color: var(--gray-400); font-size: 14px; }
-  .empty { text-align: center; padding: 32px; color: var(--gray-400); font-size: 14px; }
+  :root{--pink:#e8446a;--pink-light:#fde8ee;--pink-dark:#b5274a;--green:#1a9e6e;--green-light:#e2f5ee;--amber:#d97706;--amber-light:#fef3c7;--blue:#2563eb;--blue-light:#eff6ff;--purple:#7c3aed;--gray-50:#f9f8f7;--gray-100:#f0eeec;--gray-200:#e2dfdb;--gray-400:#9e9b96;--gray-600:#5c5955;--gray-900:#1c1a18;--radius:14px;--shadow:0 2px 16px rgba(0,0,0,0.07);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray-900);min-height:100vh;}
+  #pin-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+  .pin-logo{font-size:24px;font-weight:600;color:var(--pink);margin-bottom:4px;}
+  .pin-sub{font-size:13px;color:var(--gray-400);margin-bottom:32px;}
+  .pin-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:32px 28px;width:100%;max-width:320px;text-align:center;}
+  .pin-title{font-size:14px;font-weight:600;color:var(--gray-600);margin-bottom:20px;}
+  .pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:24px;}
+  .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--gray-200);transition:all .15s;}
+  .pin-dot.filled{background:var(--pink);border-color:var(--pink);}
+  .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .pin-btn{height:56px;border-radius:10px;border:2px solid var(--gray-200);background:white;font-family:'DM Sans',sans-serif;font-size:22px;font-weight:500;color:var(--gray-900);cursor:pointer;transition:all .12s;}
+  .pin-btn:hover{border-color:var(--pink);color:var(--pink);}
+  .pin-btn:active{transform:scale(0.94);}
+  .pin-error{color:var(--pink);font-size:13px;margin-top:12px;min-height:18px;}
+  #app{display:none;}
+  .topbar{background:white;border-bottom:1px solid var(--gray-200);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+  .topbar-title{font-size:16px;font-weight:600;color:var(--pink);}
+  .topbar-sub{font-size:12px;color:var(--gray-400);}
+  .tab-bar{display:flex;gap:4px;}
+  .tab{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--gray-600);transition:all .15s;}
+  .tab.active{background:var(--pink-light);color:var(--pink);}
+  .page{display:none;padding:20px 24px;max-width:980px;margin:0 auto;}
+  .page.active{display:block;}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  @media(max-width:640px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+  .stat-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;}
+  .stat-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-400);margin-bottom:6px;}
+  .stat-value{font-size:28px;font-weight:600;line-height:1;}
+  .stat-sub{font-size:12px;color:var(--gray-400);margin-top:3px;}
+  .c-pink{color:var(--pink);}.c-green{color:var(--green);}.c-amber{color:var(--amber);}.c-blue{color:var(--blue);}.c-purple{color:var(--purple);}
+  .filter-bar{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .filter-label{font-size:13px;font-weight:500;color:var(--gray-600);white-space:nowrap;}
+  input[type="date"]{height:36px;border:2px solid var(--gray-200);border-radius:8px;padding:0 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--gray-900);outline:none;transition:border-color .15s;}
+  input[type="date"]:focus{border-color:var(--pink);}
+  .quick-btns{display:flex;gap:6px;flex-wrap:wrap;}
+  .quick-btn{height:32px;padding:0 12px;border-radius:8px;border:2px solid var(--gray-200);background:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--gray-600);cursor:pointer;transition:all .15s;}
+  .quick-btn:hover,.quick-btn.active{border-color:var(--pink);color:var(--pink);background:var(--pink-light);}
+  .btn-apply{height:36px;padding:0 16px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
+  .card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:18px;}
+  .card-title{font-size:12px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;}
+  .chart-wrap{display:flex;align-items:flex-end;gap:5px;height:110px;}
+  .bar-col{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end;gap:3px;}
+  .bar{width:100%;background:var(--pink-light);border-radius:4px 4px 0 0;min-height:4px;transition:height .4s ease;}
+  .bar:hover{background:var(--pink);}
+  .bar-label{font-size:10px;color:var(--gray-400);text-align:center;white-space:nowrap;}
+  .bar-val{font-size:11px;font-weight:600;color:var(--pink);}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;padding:9px 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);border-bottom:2px solid var(--gray-100);white-space:nowrap;}
+  td{padding:10px 12px;border-bottom:1px solid var(--gray-100);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--gray-50);}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;}
+  .badge-free{background:var(--pink-light);color:var(--pink-dark);}
+  .badge-disc{background:var(--amber-light);color:#92400e;}
+  .badge-redeemed{background:var(--green-light);color:var(--green);}
+  .badge-pending{background:var(--gray-100);color:var(--gray-600);}
+  .mono{font-family:'DM Mono',monospace;font-size:12px;color:var(--gray-600);}
+  /* ROI */
+  .roi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  @media(max-width:700px){.roi-grid{grid-template-columns:repeat(2,1fr);}}
+  .roi-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;}
+  .roi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-400);margin-bottom:6px;}
+  .roi-value{font-size:22px;font-weight:600;line-height:1.1;}
+  .roi-sub{font-size:11px;color:var(--gray-400);margin-top:3px;}
+  .section-head{margin:20px 0 10px;}
+  .section-title{font-size:15px;font-weight:600;color:var(--gray-900);}
+  .section-sub{font-size:12px;color:var(--gray-400);margin-top:2px;}
+  .data-note{font-size:12px;color:var(--gray-600);background:var(--amber-light);border-radius:8px;padding:10px 14px;margin-bottom:16px;border-left:3px solid var(--amber);}
+  .profit-pos{color:var(--green);font-weight:600;}
+  .profit-neg{color:var(--pink);font-weight:600;}
+  /* Lookup */
+  .lookup-wrap{max-width:480px;margin:0 auto;}
+  .lookup-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;}
+  .input-row{display:flex;gap:10px;}
+  input[type="tel"]{flex:1;height:50px;border:2px solid var(--gray-200);border-radius:10px;padding:0 16px;font-size:18px;font-family:'DM Mono',monospace;font-weight:500;color:var(--gray-900);outline:none;transition:border-color .15s;}
+  input[type="tel"]:focus{border-color:var(--pink);}
+  .btn-lookup{height:50px;padding:0 20px;background:var(--pink);color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+  .btn-lookup:hover{background:var(--pink-dark);}
+  .btn-lookup:disabled{background:var(--gray-200);cursor:not-allowed;}
+  #lookup-result{margin-top:16px;}
+  .offer-found{border-radius:12px;overflow:hidden;animation:up .2s ease;}
+  @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .offer-head{padding:14px 18px;display:flex;align-items:center;gap:12px;}
+  .offer-head.free{background:var(--pink-light);}
+  .offer-head.disc{background:var(--amber-light);}
+  .offer-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .free .offer-icon{background:var(--pink);}
+  .disc .offer-icon{background:var(--amber);}
+  .offer-type-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;}
+  .free .offer-type-lbl{color:var(--pink-dark);}
+  .disc .offer-type-lbl{color:#92400e;}
+  .offer-hl{font-size:16px;font-weight:600;color:var(--gray-900);}
+  .offer-body{background:white;border:2px solid;border-top:none;border-radius:0 0 12px 12px;padding:16px 18px;}
+  .free .offer-body{border-color:#f5c4d0;}
+  .disc .offer-body{border-color:#fcd34d;}
+  .cust-row{display:flex;align-items:center;gap:10px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--gray-100);}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--gray-600);flex-shrink:0;}
+  .cust-name{font-size:15px;font-weight:600;}
+  .cust-phone{font-size:12px;color:var(--gray-400);font-family:'DM Mono',monospace;}
+  .drow{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
+  .dlabel{color:var(--gray-400);}
+  .dval{font-weight:600;}
+  .staff-wrap{margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-100);}
+  .staff-lbl{font-size:12px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+  input[type="text"]{width:100%;height:40px;border:2px solid var(--gray-200);border-radius:8px;padding:0 12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;color:var(--gray-900);}
+  input[type="text"]:focus{border-color:var(--green);}
+  .btn-redeem{width:100%;height:50px;background:var(--green);color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:12px;transition:all .15s;}
+  .btn-redeem:hover{background:#147a55;}
+  .btn-redeem:disabled{background:var(--gray-200);color:var(--gray-400);cursor:not-allowed;}
+  .not-found{background:var(--gray-100);border-radius:12px;padding:20px;text-align:center;}
+  .not-found .icon{font-size:28px;margin-bottom:8px;}
+  .not-found .msg{font-size:15px;font-weight:500;color:var(--gray-600);}
+  .not-found .sub{font-size:13px;color:var(--gray-400);margin-top:4px;}
+  .state-ok{background:var(--green-light);border:2px solid #a7f3d0;border-radius:12px;padding:24px;text-align:center;}
+  .state-ok .big{font-size:36px;margin-bottom:8px;}
+  .state-ok .t{font-size:17px;font-weight:600;color:var(--green);}
+  .state-ok .s{font-size:13px;color:var(--gray-600);margin-top:4px;}
+  .state-ok .again{margin-top:16px;background:white;border:2px solid var(--gray-200);color:var(--gray-900);width:100%;height:42px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+  .state-warn{background:#fff7ed;border:2px solid #fed7aa;border-radius:12px;padding:20px;text-align:center;}
+  .state-warn .msg{font-size:15px;font-weight:600;color:var(--amber);}
+  .state-warn .sub{font-size:13px;color:var(--gray-600);margin-top:4px;}
+  .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--gray-200);border-top-color:var(--pink);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-row{display:flex;align-items:center;justify-content:center;gap:10px;padding:28px;color:var(--gray-400);font-size:14px;}
+  .empty{text-align:center;padding:28px;color:var(--gray-400);font-size:14px;}
 </style>
 </head>
 <body>
 
-<!-- PIN -->
 <div id="pin-screen">
   <div class="pin-logo">Pink Supermarket</div>
   <div class="pin-sub">Staff Access Only</div>
   <div class="pin-card">
     <div class="pin-title">Enter PIN to continue</div>
     <div class="pin-dots">
-      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
-      <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div><div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
     </div>
     <div class="pin-grid">
-      <button class="pin-btn" onclick="pp('1')">1</button>
-      <button class="pin-btn" onclick="pp('2')">2</button>
-      <button class="pin-btn" onclick="pp('3')">3</button>
-      <button class="pin-btn" onclick="pp('4')">4</button>
-      <button class="pin-btn" onclick="pp('5')">5</button>
-      <button class="pin-btn" onclick="pp('6')">6</button>
-      <button class="pin-btn" onclick="pp('7')">7</button>
-      <button class="pin-btn" onclick="pp('8')">8</button>
-      <button class="pin-btn" onclick="pp('9')">9</button>
+      <button class="pin-btn" onclick="pp('1')">1</button><button class="pin-btn" onclick="pp('2')">2</button><button class="pin-btn" onclick="pp('3')">3</button>
+      <button class="pin-btn" onclick="pp('4')">4</button><button class="pin-btn" onclick="pp('5')">5</button><button class="pin-btn" onclick="pp('6')">6</button>
+      <button class="pin-btn" onclick="pp('7')">7</button><button class="pin-btn" onclick="pp('8')">8</button><button class="pin-btn" onclick="pp('9')">9</button>
       <button class="pin-btn" onclick="pp('0')" style="grid-column:2">0</button>
       <button class="pin-btn" onclick="pd()" style="font-size:16px;color:var(--gray-400)">⌫</button>
     </div>
@@ -197,94 +157,107 @@
   </div>
 </div>
 
-<!-- App -->
 <div id="app">
   <div class="topbar">
-    <div class="topbar-left">
-      <div>
-        <div class="topbar-title">Pink Supermarket</div>
-        <div class="topbar-sub">Marketing Dashboard</div>
-      </div>
-    </div>
+    <div><div class="topbar-title">Pink Supermarket</div><div class="topbar-sub">Marketing Dashboard</div></div>
     <div class="tab-bar">
-      <button class="tab active" onclick="showTab('dashboard')">Dashboard</button>
-      <button class="tab" onclick="showTab('lookup')">Offer Lookup</button>
+      <button class="tab active" onclick="showTab('dashboard',this)">Dashboard</button>
+      <button class="tab" onclick="showTab('roi',this)">ROI Analysis</button>
+      <button class="tab" onclick="showTab('lookup',this)">Offer Lookup</button>
     </div>
   </div>
 
-  <!-- Dashboard page -->
+  <!-- DASHBOARD TAB -->
   <div class="page active" id="page-dashboard">
-
-    <!-- Overall totals -->
-    <div style="padding-top:4px">
-      <div class="stats-grid" id="totals-grid">
-        <div class="stat-card"><div class="stat-label">Total Sent</div><div class="stat-value stat-pink" id="t-sent">—</div><div class="stat-sub">all time</div></div>
-        <div class="stat-card"><div class="stat-label">Redeemed</div><div class="stat-value stat-green" id="t-redeemed">—</div><div class="stat-sub">at counter</div></div>
-        <div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value stat-amber" id="t-failed">—</div><div class="stat-sub">delivery issues</div></div>
-        <div class="stat-card"><div class="stat-label">Remaining</div><div class="stat-value stat-blue" id="t-remaining">—</div><div class="stat-sub">customers to reach</div></div>
+    <div class="stats-grid" style="margin-top:4px">
+      <div class="stat-card"><div class="stat-label">Total Sent</div><div class="stat-value c-pink" id="t-sent">—</div><div class="stat-sub">all time</div></div>
+      <div class="stat-card"><div class="stat-label">Redeemed</div><div class="stat-value c-green" id="t-redeemed">—</div><div class="stat-sub">at counter</div></div>
+      <div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value c-amber" id="t-failed">—</div><div class="stat-sub">delivery issues</div></div>
+      <div class="stat-card"><div class="stat-label">Remaining</div><div class="stat-value c-blue" id="t-remaining">—</div><div class="stat-sub">to reach</div></div>
+    </div>
+    <div class="filter-bar">
+      <span class="filter-label">Date range</span>
+      <input type="date" id="date-from"/><span style="font-size:13px;color:var(--gray-400)">to</span><input type="date" id="date-to"/>
+      <div class="quick-btns">
+        <button class="quick-btn active" onclick="setRange('today',this)">Today</button>
+        <button class="quick-btn" onclick="setRange('7',this)">Last 7 days</button>
+        <button class="quick-btn" onclick="setRange('30',this)">Last 30 days</button>
+        <button class="quick-btn" onclick="setRange('all',this)">All time</button>
       </div>
-
-      <!-- Date filter -->
-      <div class="filter-bar">
-        <span class="filter-label">Date range</span>
-        <input type="date" id="date-from" />
-        <span style="color:var(--gray-400);font-size:13px">to</span>
-        <input type="date" id="date-to" />
-        <div class="quick-btns">
-          <button class="quick-btn active" onclick="setRange('today',this)">Today</button>
-          <button class="quick-btn" onclick="setRange('7',this)">Last 7 days</button>
-          <button class="quick-btn" onclick="setRange('30',this)">Last 30 days</button>
-          <button class="quick-btn" onclick="setRange('all',this)">All time</button>
-        </div>
-        <button class="btn-search" onclick="loadStats()">Apply</button>
-      </div>
-
-      <!-- Range stats -->
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">Sent (range)</div><div class="stat-value stat-pink" id="r-sent">—</div></div>
-        <div class="stat-card"><div class="stat-label">Free item</div><div class="stat-value" style="color:var(--purple)" id="r-free">—</div></div>
-        <div class="stat-card"><div class="stat-label">Discount</div><div class="stat-value stat-amber" id="r-disc">—</div></div>
-        <div class="stat-card"><div class="stat-label">Redeemed</div><div class="stat-value stat-green" id="r-red">—</div></div>
-      </div>
-
-      <!-- Bar chart -->
-      <div class="card">
-        <div class="card-title">Messages sent per day</div>
-        <div class="chart-wrap" id="chart-wrap">
-          <div class="loading-row"><div class="spinner"></div> Loading chart...</div>
-        </div>
-      </div>
-
-      <!-- Recent messages table -->
-      <div class="card">
-        <div class="card-title">Recent messages</div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Phone</th>
-                <th>Offer</th>
-                <th>Sent at</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="msg-table-body">
-              <tr><td colspan="5" class="loading-row"><div class="spinner"></div> Loading...</td></tr>
-            </tbody>
-          </table>
-        </div>
+      <button class="btn-apply" onclick="loadStats()">Apply</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Sent (range)</div><div class="stat-value c-pink" id="r-sent">—</div></div>
+      <div class="stat-card"><div class="stat-label">Free item</div><div class="stat-value c-purple" id="r-free">—</div></div>
+      <div class="stat-card"><div class="stat-label">Discount</div><div class="stat-value c-amber" id="r-disc">—</div></div>
+      <div class="stat-card"><div class="stat-label">Redeemed</div><div class="stat-value c-green" id="r-red">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Messages sent per day</div>
+      <div class="chart-wrap" id="chart-wrap"><div class="loading-row"><div class="spinner"></div> Loading...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Recent messages</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Customer</th><th>Phone</th><th>Offer</th><th>Sent at</th><th>Status</th></tr></thead>
+          <tbody id="msg-tbody"><tr><td colspan="5"><div class="loading-row"><div class="spinner"></div></div></td></tr></tbody>
+        </table>
       </div>
     </div>
   </div>
 
-  <!-- Lookup page -->
+  <!-- ROI TAB -->
+  <div class="page" id="page-roi">
+    <div class="data-note" style="margin-top:4px">
+      ⚠️ Transaction data has a 1-day sync delay. Today's purchases will appear tomorrow. Purchase value = total billing amount after message was sent.
+    </div>
+
+    <div class="roi-grid" id="roi-kpi">
+      <div class="roi-card"><div class="roi-label">Redeemed customers</div><div class="roi-value c-pink" id="k-redeemed">—</div><div class="roi-sub">came to counter</div></div>
+      <div class="roi-card"><div class="roi-label">Purchased after offer</div><div class="roi-value c-green" id="k-purchased">—</div><div class="roi-sub">confirmed purchases</div></div>
+      <div class="roi-card"><div class="roi-label">Total purchase value</div><div class="roi-value c-blue" id="k-purchase-val">—</div><div class="roi-sub">redeemed customers</div></div>
+      <div class="roi-card"><div class="roi-label">Net revenue</div><div class="roi-value" id="k-net">—</div><div class="roi-sub">after offer cost deducted</div></div>
+      <div class="roi-card"><div class="roi-label">Free item cost</div><div class="roi-value c-amber" id="k-free-cost">—</div><div class="roi-sub">at your purchase price</div></div>
+      <div class="roi-card"><div class="roi-label">Discount given</div><div class="roi-value c-amber" id="k-disc-cost">—</div><div class="roi-sub">total amount deducted</div></div>
+      <div class="roi-card"><div class="roi-label">Avg basket size</div><div class="roi-value c-purple" id="k-basket">—</div><div class="roi-sub">per redeemed visit</div></div>
+      <div class="roi-card"><div class="roi-label">Organic returnees</div><div class="roi-value c-blue" id="k-organic">—</div><div class="roi-sub">came back without redeeming</div></div>
+    </div>
+
+    <div class="section-head">
+      <div class="section-title">Redeemed customers — purchase detail</div>
+      <div class="section-sub">Only customers who redeemed the offer at billing counter</div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Customer</th><th>Offer</th><th>Redeemed on</th><th>Purchases</th><th>Total bill</th><th>Cost given</th><th>Net revenue</th></tr></thead>
+          <tbody id="roi-tbody"><tr><td colspan="7"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <div class="section-title">Organic returnees — offer not redeemed</div>
+      <div class="section-sub">Received WhatsApp → came back and purchased → did not claim the offer</div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Customer</th><th>Phone</th><th>Offer type</th><th>Msg sent</th><th>Purchases</th><th>Total bill</th></tr></thead>
+          <tbody id="organic-tbody"><tr><td colspan="6"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOOKUP TAB -->
   <div class="page" id="page-lookup">
     <div class="lookup-wrap">
       <div class="lookup-card">
-        <div class="card-title" style="margin-bottom:14px">Customer Offer Lookup</div>
+        <div class="card-title" style="margin-bottom:12px">Customer Offer Lookup</div>
         <div class="input-row">
-          <input type="tel" id="phoneInput" placeholder="10-digit number" maxlength="10" />
+          <input type="tel" id="phoneInput" placeholder="10-digit number" maxlength="10"/>
           <button class="btn-lookup" id="lookupBtn" onclick="doLookup()">Search</button>
         </div>
       </div>
@@ -294,246 +267,196 @@
 </div>
 
 <script>
-const API = 'https://gllmdqytlgcozrpsusvt.supabase.co/functions/v1/dashboard-api';
-const PIN = '1107'; // 2190 change this
-let pin = '';
-let currentOffer = null;
+const API='https://gllmdqytlgcozrpsusvt.supabase.co/functions/v1/dashboard-api';
+const PIN='1107';
+let pin='',currentOffer=null;
 
-// ── PIN ──────────────────────────────────────────────────────────────────────
-function pp(d) {
-  if (pin.length >= 4) return;
-  pin += d;
-  document.getElementById('d' + (pin.length - 1)).classList.add('filled');
-  if (pin.length === 4) setTimeout(checkPin, 150);
+function pp(d){if(pin.length>=4)return;pin+=d;document.getElementById('d'+(pin.length-1)).classList.add('filled');if(pin.length===4)setTimeout(checkPin,150);}
+function pd(){if(!pin.length)return;document.getElementById('d'+(pin.length-1)).classList.remove('filled');pin=pin.slice(0,-1);}
+function checkPin(){
+  if(pin===PIN){document.getElementById('pin-screen').style.display='none';document.getElementById('app').style.display='block';init();}
+  else{document.getElementById('pin-err').textContent='Wrong PIN. Try again.';setTimeout(()=>{pin='';for(let i=0;i<4;i++)document.getElementById('d'+i).classList.remove('filled');document.getElementById('pin-err').textContent='';},800);}
 }
-function pd() {
-  if (!pin.length) return;
-  document.getElementById('d' + (pin.length - 1)).classList.remove('filled');
-  pin = pin.slice(0, -1);
+
+function showTab(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('page-'+name).classList.add('active');
+  if(name==='roi')loadROI();
 }
-function checkPin() {
-  if (pin === PIN) {
-    document.getElementById('pin-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    init();
+
+function today(){return new Date().toISOString().slice(0,10);}
+function daysAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);}
+function fmtDate(s){return new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
+function fmtDT(s){return new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
+function rs(v){return '₹'+Math.round(v).toLocaleString('en-IN');}
+
+function setRange(r,btn){
+  document.querySelectorAll('.quick-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  const f=document.getElementById('date-from'),t=document.getElementById('date-to');
+  if(r==='today'){f.value=today();t.value=today();}
+  else if(r==='all'){f.value='2026-01-01';t.value=today();}
+  else{f.value=daysAgo(parseInt(r));t.value=today();}
+  loadStats();
+}
+
+async function init(){
+  document.getElementById('date-from').value=today();
+  document.getElementById('date-to').value=today();
+  loadTotals();loadStats();
+  document.getElementById('phoneInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLookup();});
+  document.getElementById('phoneInput').addEventListener('input',()=>{document.getElementById('phoneInput').value=document.getElementById('phoneInput').value.replace(/\D/g,'').slice(0,10);});
+}
+
+async function loadTotals(){
+  const d=await(await fetch(`${API}?action=totals`)).json();
+  document.getElementById('t-sent').textContent=d.total_sent?.toLocaleString()||'—';
+  document.getElementById('t-redeemed').textContent=d.total_redeemed?.toLocaleString()||'—';
+  document.getElementById('t-failed').textContent=d.total_failed?.toLocaleString()||'—';
+  document.getElementById('t-remaining').textContent=d.remaining?.toLocaleString()||'—';
+}
+
+async function loadStats(){
+  const from=document.getElementById('date-from').value,to=document.getElementById('date-to').value;
+  if(!from||!to)return;
+  document.getElementById('chart-wrap').innerHTML='<div class="loading-row"><div class="spinner"></div> Loading...</div>';
+  document.getElementById('msg-tbody').innerHTML='<tr><td colspan="5"><div class="loading-row"><div class="spinner"></div></div></td></tr>';
+  const d=await(await fetch(`${API}?action=stats&from=${from}&to=${to}`)).json();
+  document.getElementById('r-sent').textContent=d.sent||'0';
+  document.getElementById('r-free').textContent=d.free_item||'0';
+  document.getElementById('r-disc').textContent=d.discount||'0';
+  document.getElementById('r-red').textContent=d.redeemed||'0';
+  renderChart(d.byDay||{});renderTable(d.recent||[]);
+}
+
+function renderChart(byDay){
+  const entries=Object.entries(byDay).sort(([a],[b])=>a.localeCompare(b));
+  if(!entries.length){document.getElementById('chart-wrap').innerHTML='<div class="empty">No data for this range</div>';return;}
+  const max=Math.max(...entries.map(([,v])=>v),1);
+  document.getElementById('chart-wrap').innerHTML=entries.map(([day,val])=>{
+    const pct=Math.round((val/max)*100);
+    const lbl=new Date(day+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+    return `<div class="bar-col"><div class="bar-val">${val}</div><div class="bar" style="height:${Math.max(pct,4)}%"></div><div class="bar-label">${lbl}</div></div>`;
+  }).join('');
+}
+
+function renderTable(rows){
+  if(!rows.length){document.getElementById('msg-tbody').innerHTML='<tr><td colspan="5" class="empty">No messages in this range</td></tr>';return;}
+  document.getElementById('msg-tbody').innerHTML=rows.map(r=>`<tr>
+    <td><strong>${r.customer}</strong></td><td class="mono">${r.phone}</td>
+    <td>${r.offer_type==='free_item'?'<span class="badge badge-free">Free item</span>':'<span class="badge badge-disc">Discount</span>'}</td>
+    <td style="color:var(--gray-400);font-size:12px">${fmtDT(r.sent_at)}</td>
+    <td>${r.redeemed?'<span class="badge badge-redeemed">Redeemed</span>':'<span class="badge badge-pending">Sent</span>'}</td>
+  </tr>`).join('');
+}
+
+async function loadROI(){
+  document.getElementById('roi-tbody').innerHTML='<tr><td colspan="7"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>';
+  document.getElementById('organic-tbody').innerHTML='<tr><td colspan="6"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>';
+  const d=await(await fetch(`${API}?action=roi`)).json();
+  const s=d.summary;
+
+  document.getElementById('k-redeemed').textContent=s.total_redeemed_customers;
+  document.getElementById('k-purchased').textContent=s.redeemed_with_purchase;
+  document.getElementById('k-purchase-val').innerHTML=rs(s.total_purchase_value);
+  const netEl=document.getElementById('k-net');
+  netEl.innerHTML=rs(Math.abs(s.net_revenue));
+  netEl.className='roi-value '+(s.net_revenue>=0?'profit-pos':'profit-neg');
+  document.getElementById('k-free-cost').innerHTML=rs(s.total_free_item_cost);
+  document.getElementById('k-disc-cost').innerHTML=rs(s.total_discount_given);
+  document.getElementById('k-basket').innerHTML=s.avg_basket>0?rs(s.avg_basket):'—';
+  document.getElementById('k-organic').textContent=s.organic_customers;
+
+  // Redeemed table
+  if(!d.redeemed?.length){
+    document.getElementById('roi-tbody').innerHTML='<tr><td colspan="7" class="empty">No redeemed customers yet — check back after purchases sync</td></tr>';
   } else {
-    document.getElementById('pin-err').textContent = 'Wrong PIN. Try again.';
-    setTimeout(() => {
-      pin = '';
-      for (let i = 0; i < 4; i++) document.getElementById('d' + i).classList.remove('filled');
-      document.getElementById('pin-err').textContent = '';
-    }, 800);
+    document.getElementById('roi-tbody').innerHTML=d.redeemed.map(r=>{
+      const isFree=r.offer_type==='free_item';
+      const offerBadge=isFree?`<span class="badge badge-free">Free: ${r.offer_item||'—'}</span>`:`<span class="badge badge-disc">Disc: ${r.discount_percent}%</span>`;
+      const costGiven=isFree?parseFloat(r.free_item_cost||0):parseFloat(r.discount_amount_given||0);
+      const hasPurchase=r.purchase_count>0;
+      const netClass=r.net_revenue>=0?'profit-pos':'profit-neg';
+      return `<tr>
+        <td><strong>${r.customer_name}</strong><div class="mono">${r.phone_number}</div></td>
+        <td>${offerBadge}</td>
+        <td style="font-size:12px;color:var(--gray-400)">${fmtDate(r.redeemed_date)}</td>
+        <td style="text-align:center;font-weight:600">${hasPurchase?r.purchase_count:'<span style="color:var(--gray-400)">0</span>'}</td>
+        <td>${hasPurchase?rs(r.total_purchase_value):'<span style="color:var(--gray-400)">—</span>'}</td>
+        <td>${costGiven>0?rs(costGiven):'<span style="color:var(--gray-400)">—</span>'}</td>
+        <td class="${hasPurchase?netClass:''}">${hasPurchase?rs(r.net_revenue):'<span style="color:var(--gray-400)">—</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Organic table
+  if(!d.organic?.length){
+    document.getElementById('organic-tbody').innerHTML='<tr><td colspan="6" class="empty">No organic returnees yet — data syncs with 1-day delay</td></tr>';
+  } else {
+    document.getElementById('organic-tbody').innerHTML=d.organic.map(r=>`<tr>
+      <td><strong>${r.customer_name}</strong></td>
+      <td class="mono">${r.phone_number}</td>
+      <td>${r.offer_type==='free_item'?'<span class="badge badge-free">Free item</span>':'<span class="badge badge-disc">Discount</span>'}</td>
+      <td style="font-size:12px;color:var(--gray-400)">${fmtDate(r.msg_sent_date)}</td>
+      <td style="text-align:center;font-weight:600">${r.purchase_count}</td>
+      <td>${rs(r.total_purchase_value)}</td>
+    </tr>`).join('');
   }
 }
 
-// ── Tabs ─────────────────────────────────────────────────────────────────────
-function showTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('page-' + name).classList.add('active');
-}
-
-// ── Date helpers ─────────────────────────────────────────────────────────────
-function today() { return new Date().toISOString().slice(0, 10); }
-function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
-
-function setRange(r, btn) {
-  document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const f = document.getElementById('date-from');
-  const t = document.getElementById('date-to');
-  if (r === 'today') { f.value = today(); t.value = today(); }
-  else if (r === 'all') { f.value = '2026-01-01'; t.value = today(); }
-  else { f.value = daysAgo(parseInt(r)); t.value = today(); }
-  loadStats();
-}
-
-// ── Init ─────────────────────────────────────────────────────────────────────
-function init() {
-  document.getElementById('date-from').value = today();
-  document.getElementById('date-to').value = today();
-  loadTotals();
-  loadStats();
-
-  document.getElementById('phoneInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLookup(); });
-  document.getElementById('phoneInput').addEventListener('input', () => {
-    document.getElementById('phoneInput').value = document.getElementById('phoneInput').value.replace(/\D/g,'').slice(0,10);
-  });
-}
-
-// ── Load overall totals ───────────────────────────────────────────────────────
-async function loadTotals() {
-  const res = await fetch(`${API}?action=totals`);
-  const d = await res.json();
-  document.getElementById('t-sent').textContent      = d.total_sent?.toLocaleString() ?? '—';
-  document.getElementById('t-redeemed').textContent  = d.total_redeemed?.toLocaleString() ?? '—';
-  document.getElementById('t-failed').textContent    = d.total_failed?.toLocaleString() ?? '—';
-  document.getElementById('t-remaining').textContent = d.remaining?.toLocaleString() ?? '—';
-}
-
-// ── Load range stats ──────────────────────────────────────────────────────────
-async function loadStats() {
-  const from = document.getElementById('date-from').value;
-  const to   = document.getElementById('date-to').value;
-  if (!from || !to) return;
-
-  document.getElementById('chart-wrap').innerHTML = '<div class="loading-row"><div class="spinner"></div> Loading...</div>';
-  document.getElementById('msg-table-body').innerHTML = '<tr><td colspan="5"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>';
-
-  const res = await fetch(`${API}?action=stats&from=${from}&to=${to}`);
-  const d = await res.json();
-
-  document.getElementById('r-sent').textContent = d.sent ?? '—';
-  document.getElementById('r-free').textContent = d.free_item ?? '—';
-  document.getElementById('r-disc').textContent = d.discount ?? '—';
-  document.getElementById('r-red').textContent  = d.redeemed ?? '—';
-
-  renderChart(d.byDay ?? {});
-  renderTable(d.recent ?? []);
-}
-
-// ── Bar chart ────────────────────────────────────────────────────────────────
-function renderChart(byDay) {
-  const entries = Object.entries(byDay).sort(([a],[b]) => a.localeCompare(b));
-  if (!entries.length) {
-    document.getElementById('chart-wrap').innerHTML = '<div class="empty">No data for this range</div>';
+async function doLookup(){
+  const phone=document.getElementById('phoneInput').value.trim();
+  if(phone.length<10)return;
+  const btn=document.getElementById('lookupBtn');
+  btn.disabled=true;currentOffer=null;
+  document.getElementById('lookup-result').innerHTML='<div class="loading-row"><div class="spinner"></div> Looking up...</div>';
+  const d=await(await fetch(`${API}?action=lookup&phone=${phone}`)).json();
+  btn.disabled=false;
+  if(!d.found){
+    document.getElementById('lookup-result').innerHTML=`<div class="not-found"><div class="icon">🔍</div><div class="msg">No active offer found</div><div class="sub">No offer sent, or already redeemed</div></div>`;
     return;
   }
-  const max = Math.max(...entries.map(([,v]) => v), 1);
-  const html = entries.map(([day, val]) => {
-    const pct = Math.round((val / max) * 100);
-    const label = new Date(day + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short' });
-    return `<div class="bar-col">
-      <div class="bar-val">${val}</div>
-      <div class="bar" style="height:${Math.max(pct,4)}%" title="${day}: ${val} messages"></div>
-      <div class="bar-label">${label}</div>
-    </div>`;
-  }).join('');
-  document.getElementById('chart-wrap').innerHTML = html;
-}
-
-// ── Messages table ────────────────────────────────────────────────────────────
-function renderTable(rows) {
-  if (!rows.length) {
-    document.getElementById('msg-table-body').innerHTML = '<tr><td colspan="5" class="empty">No messages in this range</td></tr>';
-    return;
-  }
-  const html = rows.map(r => {
-    const date = new Date(r.sent_at).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-    const offerBadge = r.offer_type === 'free_item'
-      ? '<span class="badge badge-free">Free item</span>'
-      : '<span class="badge badge-discount">Discount</span>';
-    const statusBadge = r.redeemed
-      ? '<span class="badge badge-redeemed">Redeemed</span>'
-      : '<span class="badge badge-pending">Sent</span>';
-    return `<tr>
-      <td><strong>${r.customer}</strong></td>
-      <td class="mono">${r.phone}</td>
-      <td>${offerBadge}</td>
-      <td style="color:var(--gray-400);font-size:12px">${date}</td>
-      <td>${statusBadge}</td>
-    </tr>`;
-  }).join('');
-  document.getElementById('msg-table-body').innerHTML = html;
-}
-
-// ── Offer Lookup ─────────────────────────────────────────────────────────────
-async function doLookup() {
-  const phone = document.getElementById('phoneInput').value.trim();
-  if (phone.length < 10) return;
-
-  const btn = document.getElementById('lookupBtn');
-  btn.disabled = true;
-  currentOffer = null;
-  document.getElementById('lookup-result').innerHTML = '<div class="loading-row"><div class="spinner"></div> Looking up...</div>';
-
-  const res = await fetch(`${API}?action=lookup&phone=${phone}`);
-  const d = await res.json();
-  btn.disabled = false;
-
-  if (!d.found) {
-    document.getElementById('lookup-result').innerHTML = `
-      <div class="not-found" style="margin-top:16px">
-        <div class="icon">🔍</div>
-        <div class="msg">No active offer found</div>
-        <div class="sub">No offer sent to this number, or already redeemed</div>
-      </div>`;
-    return;
-  }
-
-  currentOffer = d.offer;
-  const o = d.offer;
-  const isFree = o.offer_type === 'free_item';
-  const initials = o.customer_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const sentDate = new Date(o.sent_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
-  const hl = isFree
-    ? `Free <strong>${o.offer_item}</strong> on purchase above Rs.${o.min_purchase_amount}`
-    : `<strong>${o.discount_percent}% off</strong> on purchase above Rs.${o.min_purchase_amount}`;
-
-  document.getElementById('lookup-result').innerHTML = `
-    <div class="offer-found" style="margin-top:16px">
+  currentOffer=d.offer;
+  const o=d.offer,isFree=o.offer_type==='free_item';
+  const initials=o.customer_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const hl=isFree?`Free <strong>${o.offer_item}</strong> on purchase above Rs.${o.min_purchase_amount}`:`<strong>${o.discount_percent}% off</strong> on purchase above Rs.${o.min_purchase_amount}`;
+  document.getElementById('lookup-result').innerHTML=`
+    <div class="offer-found">
       <div class="offer-head ${isFree?'free':'disc'}">
         <div class="offer-icon">${isFree?'🎁':'🏷️'}</div>
-        <div>
-          <div class="offer-type">${isFree?'Free Item Offer':'Discount Offer'}</div>
-          <div class="offer-hl">${hl}</div>
-        </div>
+        <div><div class="offer-type-lbl">${isFree?'Free Item Offer':'Discount Offer'}</div><div class="offer-hl">${hl}</div></div>
       </div>
       <div class="offer-body ${isFree?'free':'disc'}">
         <div class="cust-row">
           <div class="avatar">${initials}</div>
           <div><div class="cust-name">${o.customer_name}</div><div class="cust-phone">${phone}</div></div>
         </div>
-        <div class="drow"><span class="dlabel">Sent on</span><span class="dval">${sentDate}</span></div>
-        ${isFree
-          ? `<div class="drow"><span class="dlabel">Free item</span><span class="dval">${o.offer_item}</span></div>`
-          : `<div class="drow"><span class="dlabel">Discount</span><span class="dval">${o.discount_percent}% off</span></div>`}
+        <div class="drow"><span class="dlabel">Sent on</span><span class="dval">${fmtDate(o.sent_at)}</span></div>
+        ${isFree?`<div class="drow"><span class="dlabel">Free item</span><span class="dval">${o.offer_item}</span></div>`:`<div class="drow"><span class="dlabel">Discount</span><span class="dval">${o.discount_percent}% off</span></div>`}
         <div class="drow"><span class="dlabel">Min purchase</span><span class="dval">Rs. ${o.min_purchase_amount}</span></div>
-        <div class="staff-wrap">
-          <div class="staff-lbl">Your name</div>
-          <input type="text" id="staffName" placeholder="e.g. Ravi, Counter 1" />
-        </div>
-        <button class="btn-redeem" onclick="doRedeem('${o.id}')">✓ &nbsp;Mark as Redeemed</button>
+        <div class="staff-wrap"><div class="staff-lbl">Your name</div><input type="text" id="staffName" placeholder="e.g. Ravi, Counter 1"/></div>
+        <button class="btn-redeem" onclick="doRedeem('${o.id}')">✓  Mark as Redeemed</button>
       </div>
     </div>`;
 }
 
-async function doRedeem(id) {
-  const staffName = document.getElementById('staffName')?.value?.trim() || 'counter';
-  const btn = document.querySelector('.btn-redeem');
-  if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
-
-  const res = await fetch(`${API}?action=redeem`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, staff_name: staffName }),
-  });
-  const d = await res.json();
-
-  if (d.success) {
-    document.getElementById('lookup-result').innerHTML = `
-      <div class="state-ok" style="margin-top:16px">
-        <div class="big">✅</div>
-        <div class="t">Offer Redeemed!</div>
-        <div class="s">Give the customer their ${currentOffer?.offer_type === 'free_item' ? 'free item' : 'discount'}. Marked as used.</div>
-        <button class="again" onclick="resetLookup()">Look up another customer</button>
-      </div>`;
+async function doRedeem(id){
+  const staffName=document.getElementById('staffName')?.value?.trim()||'counter';
+  const btn=document.querySelector('.btn-redeem');
+  if(btn){btn.disabled=true;btn.textContent='Processing...';}
+  const d=await(await fetch(`${API}?action=redeem`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,staff_name:staffName})})).json();
+  if(d.success){
+    document.getElementById('lookup-result').innerHTML=`<div class="state-ok"><div class="big">✅</div><div class="t">Offer Redeemed!</div><div class="s">Give the customer their ${currentOffer?.offer_type==='free_item'?'free item':'discount'}. Marked as used.</div><button class="again" onclick="resetLookup()">Look up another customer</button></div>`;
     loadTotals();
-  } else if (d.error === 'Already redeemed') {
-    document.getElementById('lookup-result').innerHTML = `
-      <div class="state-warn" style="margin-top:16px">
-        <div style="font-size:28px;margin-bottom:8px">⚠️</div>
-        <div class="msg">Already Redeemed</div>
-        <div class="sub">This offer was already used. Do not give the offer again.</div>
-      </div>`;
+  } else if(d.error==='Already redeemed'){
+    document.getElementById('lookup-result').innerHTML=`<div class="state-warn"><div style="font-size:28px;margin-bottom:8px">⚠️</div><div class="msg">Already Redeemed</div><div class="sub">This offer was already used. Do not give the offer again.</div></div>`;
   }
 }
 
-function resetLookup() {
-  document.getElementById('phoneInput').value = '';
-  document.getElementById('lookup-result').innerHTML = '';
-  currentOffer = null;
+function resetLookup(){
+  document.getElementById('phoneInput').value='';
+  document.getElementById('lookup-result').innerHTML='';
+  currentOffer=null;
   document.getElementById('phoneInput').focus();
 }
 </script>
