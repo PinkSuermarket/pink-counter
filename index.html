@@ -29,7 +29,7 @@
   .tab-bar{display:flex;gap:4px;}
   .tab{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--gray-600);transition:all .15s;}
   .tab.active{background:var(--pink-light);color:var(--pink);}
-  .page{display:none;padding:20px 24px;max-width:980px;margin:0 auto;}
+  .page{display:none;padding:20px 24px;max-width:1060px;margin:0 auto;}
   .page.active{display:block;}
   .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
   @media(max-width:640px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
@@ -40,7 +40,7 @@
   .c-pink{color:var(--pink);}.c-green{color:var(--green);}.c-amber{color:var(--amber);}.c-blue{color:var(--blue);}.c-purple{color:var(--purple);}
   .filter-bar{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .filter-label{font-size:13px;font-weight:500;color:var(--gray-600);white-space:nowrap;}
-  input[type="date"]{height:36px;border:2px solid var(--gray-200);border-radius:8px;padding:0 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--gray-900);outline:none;transition:border-color .15s;}
+  input[type="date"]{height:36px;border:2px solid var(--gray-200);border-radius:8px;padding:0 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--gray-900);outline:none;}
   input[type="date"]:focus{border-color:var(--pink);}
   .quick-btns{display:flex;gap:6px;flex-wrap:wrap;}
   .quick-btn{height:32px;padding:0 12px;border-radius:8px;border:2px solid var(--gray-200);background:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--gray-600);cursor:pointer;transition:all .15s;}
@@ -79,6 +79,8 @@
   .data-note{font-size:12px;color:var(--gray-600);background:var(--amber-light);border-radius:8px;padding:10px 14px;margin-bottom:16px;border-left:3px solid var(--amber);}
   .profit-pos{color:var(--green);font-weight:600;}
   .profit-neg{color:var(--pink);font-weight:600;}
+  .profit-cell-pos{color:var(--green);font-weight:600;}
+  .profit-cell-neg{color:var(--pink);font-weight:600;}
   /* Lookup */
   .lookup-wrap{max-width:480px;margin:0 auto;}
   .lookup-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;}
@@ -134,6 +136,7 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .loading-row{display:flex;align-items:center;justify-content:center;gap:10px;padding:28px;color:var(--gray-400);font-size:14px;}
   .empty{text-align:center;padding:28px;color:var(--gray-400);font-size:14px;}
+  .tooltip-head{font-size:11px;color:var(--gray-400);margin-bottom:2px;}
 </style>
 </head>
 <body>
@@ -167,7 +170,7 @@
     </div>
   </div>
 
-  <!-- DASHBOARD TAB -->
+  <!-- DASHBOARD -->
   <div class="page active" id="page-dashboard">
     <div class="stats-grid" style="margin-top:4px">
       <div class="stat-card"><div class="stat-label">Total Sent</div><div class="stat-value c-pink" id="t-sent">—</div><div class="stat-sub">all time</div></div>
@@ -207,51 +210,69 @@
     </div>
   </div>
 
-  <!-- ROI TAB -->
+  <!-- ROI -->
   <div class="page" id="page-roi">
     <div class="data-note" style="margin-top:4px">
-      ⚠️ Transaction data has a 1-day sync delay. Today's purchases will appear tomorrow. Purchase value = total billing amount after message was sent.
+      ⚠️ Transaction data has a 1-day sync delay. Profit = actual (sale price − cost price) × quantity for each line item, minus any offer cost given.
     </div>
 
-    <div class="roi-grid" id="roi-kpi">
+    <div class="roi-grid">
       <div class="roi-card"><div class="roi-label">Redeemed customers</div><div class="roi-value c-pink" id="k-redeemed">—</div><div class="roi-sub">came to counter</div></div>
       <div class="roi-card"><div class="roi-label">Purchased after offer</div><div class="roi-value c-green" id="k-purchased">—</div><div class="roi-sub">confirmed purchases</div></div>
-      <div class="roi-card"><div class="roi-label">Total purchase value</div><div class="roi-value c-blue" id="k-purchase-val">—</div><div class="roi-sub">redeemed customers</div></div>
-      <div class="roi-card"><div class="roi-label">Net revenue</div><div class="roi-value" id="k-net">—</div><div class="roi-sub">after offer cost deducted</div></div>
+      <div class="roi-card"><div class="roi-label">Total purchase value</div><div class="roi-value c-blue" id="k-purchase-val">—</div><div class="roi-sub">total bills collected</div></div>
+      <div class="roi-card"><div class="roi-label">Gross profit</div><div class="roi-value c-purple" id="k-gross">—</div><div class="roi-sub">(sale − cost) × qty</div></div>
       <div class="roi-card"><div class="roi-label">Free item cost</div><div class="roi-value c-amber" id="k-free-cost">—</div><div class="roi-sub">at your purchase price</div></div>
-      <div class="roi-card"><div class="roi-label">Discount given</div><div class="roi-value c-amber" id="k-disc-cost">—</div><div class="roi-sub">total amount deducted</div></div>
-      <div class="roi-card"><div class="roi-label">Avg basket size</div><div class="roi-value c-purple" id="k-basket">—</div><div class="roi-sub">per redeemed visit</div></div>
-      <div class="roi-card"><div class="roi-label">Organic returnees</div><div class="roi-value c-blue" id="k-organic">—</div><div class="roi-sub">came back without redeeming</div></div>
+      <div class="roi-card"><div class="roi-label">Discount given</div><div class="roi-value c-amber" id="k-disc-cost">—</div><div class="roi-sub">total rupees deducted</div></div>
+      <div class="roi-card"><div class="roi-label">Net profit</div><div class="roi-value" id="k-net">—</div><div class="roi-sub">gross − offer cost</div></div>
+      <div class="roi-card"><div class="roi-label">Avg basket size</div><div class="roi-value c-blue" id="k-basket">—</div><div class="roi-sub">per redeemed visit</div></div>
     </div>
 
+    <!-- Redeemed customers table -->
     <div class="section-head">
-      <div class="section-title">Redeemed customers — purchase detail</div>
-      <div class="section-sub">Only customers who redeemed the offer at billing counter</div>
+      <div class="section-title">Redeemed customers — real profit per bill</div>
+      <div class="section-sub">Profit = (sale price − cost price) × qty for each item in the bill, minus offer cost given</div>
     </div>
     <div class="card" style="padding:0;overflow:hidden;">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Customer</th><th>Offer</th><th>Redeemed on</th><th>Purchases</th><th>Total bill</th><th>Cost given</th><th>Net revenue</th></tr></thead>
-          <tbody id="roi-tbody"><tr><td colspan="7"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr></tbody>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Offer given</th>
+              <th>Redeemed</th>
+              <th>Bill total</th>
+              <th>Gross profit</th>
+              <th>Offer cost</th>
+              <th>Net profit</th>
+            </tr>
+          </thead>
+          <tbody id="roi-tbody">
+            <tr><td colspan="7"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>
+          </tbody>
         </table>
       </div>
     </div>
 
+    <!-- Organic returnees -->
     <div class="section-head">
-      <div class="section-title">Organic returnees — offer not redeemed</div>
-      <div class="section-sub">Received WhatsApp → came back and purchased → did not claim the offer</div>
+      <div class="section-title">Organic returnees — no offer redeemed</div>
+      <div class="section-sub">Got the WhatsApp → came back and purchased → did not claim the offer (pure profit, no offer cost)</div>
     </div>
     <div class="card" style="padding:0;overflow:hidden;">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Customer</th><th>Phone</th><th>Offer type</th><th>Msg sent</th><th>Purchases</th><th>Total bill</th></tr></thead>
-          <tbody id="organic-tbody"><tr><td colspan="6"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr></tbody>
+          <thead>
+            <tr><th>Customer</th><th>Phone</th><th>Offer type</th><th>Msg sent</th><th>Bill total</th><th>Gross profit</th></tr>
+          </thead>
+          <tbody id="organic-tbody">
+            <tr><td colspan="6"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>
+          </tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <!-- LOOKUP TAB -->
+  <!-- LOOKUP -->
   <div class="page" id="page-lookup">
     <div class="lookup-wrap">
       <div class="lookup-card">
@@ -277,19 +298,23 @@ function checkPin(){
   if(pin===PIN){document.getElementById('pin-screen').style.display='none';document.getElementById('app').style.display='block';init();}
   else{document.getElementById('pin-err').textContent='Wrong PIN. Try again.';setTimeout(()=>{pin='';for(let i=0;i<4;i++)document.getElementById('d'+i).classList.remove('filled');document.getElementById('pin-err').textContent='';},800);}
 }
-
 function showTab(name,btn){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');document.getElementById('page-'+name).classList.add('active');
   if(name==='roi')loadROI();
 }
-
 function today(){return new Date().toISOString().slice(0,10);}
 function daysAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);}
 function fmtDate(s){return new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
 function fmtDT(s){return new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
-function rs(v){return '₹'+Math.round(v).toLocaleString('en-IN');}
+function rs(v){return '₹'+Math.abs(Math.round(parseFloat(v))).toLocaleString('en-IN');}
+function profitCell(v){
+  const n=parseFloat(v);
+  const cls=n>=0?'profit-cell-pos':'profit-cell-neg';
+  const sign=n>=0?'':'-';
+  return `<span class="${cls}">${sign}₹${Math.abs(Math.round(n)).toLocaleString('en-IN')}</span>`;
+}
 
 function setRange(r,btn){
   document.querySelectorAll('.quick-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
@@ -359,32 +384,37 @@ async function loadROI(){
   document.getElementById('k-redeemed').textContent=s.total_redeemed_customers;
   document.getElementById('k-purchased').textContent=s.redeemed_with_purchase;
   document.getElementById('k-purchase-val').innerHTML=rs(s.total_purchase_value);
-  const netEl=document.getElementById('k-net');
-  netEl.innerHTML=rs(Math.abs(s.net_revenue));
-  netEl.className='roi-value '+(s.net_revenue>=0?'profit-pos':'profit-neg');
+  document.getElementById('k-gross').innerHTML=rs(s.total_gross_profit);
   document.getElementById('k-free-cost').innerHTML=rs(s.total_free_item_cost);
   document.getElementById('k-disc-cost').innerHTML=rs(s.total_discount_given);
   document.getElementById('k-basket').innerHTML=s.avg_basket>0?rs(s.avg_basket):'—';
-  document.getElementById('k-organic').textContent=s.organic_customers;
+  const netEl=document.getElementById('k-net');
+  const net=parseFloat(s.total_net_profit);
+  netEl.innerHTML=(net<0?'-':'')+rs(Math.abs(net));
+  netEl.className='roi-value '+(net>=0?'profit-pos':'profit-neg');
 
   // Redeemed table
   if(!d.redeemed?.length){
-    document.getElementById('roi-tbody').innerHTML='<tr><td colspan="7" class="empty">No redeemed customers yet — check back after purchases sync</td></tr>';
+    document.getElementById('roi-tbody').innerHTML='<tr><td colspan="7" class="empty">No redeemed customers yet</td></tr>';
   } else {
     document.getElementById('roi-tbody').innerHTML=d.redeemed.map(r=>{
       const isFree=r.offer_type==='free_item';
-      const offerBadge=isFree?`<span class="badge badge-free">Free: ${r.offer_item||'—'}</span>`:`<span class="badge badge-disc">Disc: ${r.discount_percent}%</span>`;
-      const costGiven=isFree?parseFloat(r.free_item_cost||0):parseFloat(r.discount_amount_given||0);
+      const offerBadge=isFree
+        ?`<span class="badge badge-free">Free: ${r.offer_item||'—'}</span>`
+        :`<span class="badge badge-disc">${r.discount_percent}% off</span>`;
+      const offerCost=isFree?parseFloat(r.free_item_cost||0):parseFloat(r.discount_amount_given||0);
       const hasPurchase=r.purchase_count>0;
-      const netClass=r.net_revenue>=0?'profit-pos':'profit-neg';
       return `<tr>
-        <td><strong>${r.customer_name}</strong><div class="mono">${r.phone_number}</div></td>
+        <td>
+          <strong>${r.customer_name}</strong>
+          <div class="mono" style="margin-top:2px">${r.phone_number}</div>
+        </td>
         <td>${offerBadge}</td>
         <td style="font-size:12px;color:var(--gray-400)">${fmtDate(r.redeemed_date)}</td>
-        <td style="text-align:center;font-weight:600">${hasPurchase?r.purchase_count:'<span style="color:var(--gray-400)">0</span>'}</td>
-        <td>${hasPurchase?rs(r.total_purchase_value):'<span style="color:var(--gray-400)">—</span>'}</td>
-        <td>${costGiven>0?rs(costGiven):'<span style="color:var(--gray-400)">—</span>'}</td>
-        <td class="${hasPurchase?netClass:''}">${hasPurchase?rs(r.net_revenue):'<span style="color:var(--gray-400)">—</span>'}</td>
+        <td>${hasPurchase?rs(r.total_purchase_value):'<span style="color:var(--gray-400)">No purchase yet</span>'}</td>
+        <td>${hasPurchase?profitCell(r.gross_profit):'<span style="color:var(--gray-400)">—</span>'}</td>
+        <td style="color:var(--amber);font-weight:600">${offerCost>0?rs(offerCost):'<span style="color:var(--gray-400)">—</span>'}</td>
+        <td>${hasPurchase?profitCell(r.net_profit):'<span style="color:var(--gray-400)">—</span>'}</td>
       </tr>`;
     }).join('');
   }
@@ -398,8 +428,8 @@ async function loadROI(){
       <td class="mono">${r.phone_number}</td>
       <td>${r.offer_type==='free_item'?'<span class="badge badge-free">Free item</span>':'<span class="badge badge-disc">Discount</span>'}</td>
       <td style="font-size:12px;color:var(--gray-400)">${fmtDate(r.msg_sent_date)}</td>
-      <td style="text-align:center;font-weight:600">${r.purchase_count}</td>
       <td>${rs(r.total_purchase_value)}</td>
+      <td>${profitCell(r.gross_profit)}</td>
     </tr>`).join('');
   }
 }
