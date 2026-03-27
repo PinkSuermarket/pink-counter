@@ -3,34 +3,47 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pink Supermarket — Marketing Dashboard</title>
+<title>Pink Supermarket — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap');
   :root{--pink:#e8446a;--pink-light:#fde8ee;--pink-dark:#b5274a;--green:#1a9e6e;--green-light:#e2f5ee;--amber:#d97706;--amber-light:#fef3c7;--blue:#2563eb;--blue-light:#eff6ff;--purple:#7c3aed;--gray-50:#f9f8f7;--gray-100:#f0eeec;--gray-200:#e2dfdb;--gray-400:#9e9b96;--gray-600:#5c5955;--gray-900:#1c1a18;--radius:14px;--shadow:0 2px 16px rgba(0,0,0,0.07);}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray-900);min-height:100vh;}
-  #pin-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
-  .pin-logo{font-size:24px;font-weight:600;color:var(--pink);margin-bottom:4px;}
-  .pin-sub{font-size:13px;color:var(--gray-400);margin-bottom:32px;}
-  .pin-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:32px 28px;width:100%;max-width:320px;text-align:center;}
-  .pin-title{font-size:14px;font-weight:600;color:var(--gray-600);margin-bottom:20px;}
-  .pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:24px;}
-  .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--gray-200);transition:all .15s;}
-  .pin-dot.filled{background:var(--pink);border-color:var(--pink);}
-  .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-  .pin-btn{height:56px;border-radius:10px;border:2px solid var(--gray-200);background:white;font-family:'DM Sans',sans-serif;font-size:22px;font-weight:500;color:var(--gray-900);cursor:pointer;transition:all .12s;}
-  .pin-btn:hover{border-color:var(--pink);color:var(--pink);}
-  .pin-btn:active{transform:scale(0.94);}
-  .pin-error{color:var(--pink);font-size:13px;margin-top:12px;min-height:18px;}
+
+  /* LOGIN SCREEN */
+  #login-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+  .login-logo{font-size:26px;font-weight:600;color:var(--pink);margin-bottom:4px;}
+  .login-sub{font-size:13px;color:var(--gray-400);margin-bottom:40px;}
+  .login-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:36px 32px;width:100%;max-width:360px;text-align:center;}
+  .login-title{font-size:16px;font-weight:600;color:var(--gray-900);margin-bottom:6px;}
+  .login-desc{font-size:13px;color:var(--gray-400);margin-bottom:28px;line-height:1.5;}
+  .google-btn{width:100%;height:52px;background:white;border:2px solid var(--gray-200);border-radius:10px;display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;color:var(--gray-900);transition:all .15s;}
+  .google-btn:hover{border-color:var(--gray-400);background:var(--gray-50);}
+  .google-btn:active{transform:scale(0.98);}
+  .google-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .google-icon{width:20px;height:20px;flex-shrink:0;}
+  .login-error{margin-top:16px;padding:12px;background:#fff0f0;border:1px solid #fca5a5;border-radius:8px;font-size:13px;color:#dc2626;display:none;}
+  .login-spinner{display:none;margin-top:16px;font-size:13px;color:var(--gray-400);}
+
+  /* APP */
   #app{display:none;}
   .topbar{background:white;border-bottom:1px solid var(--gray-200);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+  .topbar-left{display:flex;align-items:center;gap:12px;}
   .topbar-title{font-size:16px;font-weight:600;color:var(--pink);}
   .topbar-sub{font-size:12px;color:var(--gray-400);}
+  .user-info{display:flex;align-items:center;gap:8px;}
+  .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--pink-light);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--pink);}
+  .user-name{font-size:13px;font-weight:500;color:var(--gray-600);}
+  .sign-out-btn{height:30px;padding:0 12px;background:var(--gray-100);border:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--gray-600);cursor:pointer;margin-left:8px;}
+  .sign-out-btn:hover{background:var(--gray-200);}
   .tab-bar{display:flex;gap:4px;}
   .tab{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--gray-600);transition:all .15s;}
   .tab.active{background:var(--pink-light);color:var(--pink);}
   .page{display:none;padding:20px 24px;max-width:1060px;margin:0 auto;}
   .page.active{display:block;}
+
+  /* Stats */
   .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
   @media(max-width:640px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
   .stat-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;}
@@ -79,8 +92,6 @@
   .data-note{font-size:12px;color:var(--gray-600);background:var(--amber-light);border-radius:8px;padding:10px 14px;margin-bottom:16px;border-left:3px solid var(--amber);}
   .profit-pos{color:var(--green);font-weight:600;}
   .profit-neg{color:var(--pink);font-weight:600;}
-  .profit-cell-pos{color:var(--green);font-weight:600;}
-  .profit-cell-neg{color:var(--pink);font-weight:600;}
   /* Lookup */
   .lookup-wrap{max-width:480px;margin:0 auto;}
   .lookup-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;}
@@ -136,37 +147,48 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .loading-row{display:flex;align-items:center;justify-content:center;gap:10px;padding:28px;color:var(--gray-400);font-size:14px;}
   .empty{text-align:center;padding:28px;color:var(--gray-400);font-size:14px;}
-  .tooltip-head{font-size:11px;color:var(--gray-400);margin-bottom:2px;}
 </style>
 </head>
 <body>
 
-<div id="pin-screen">
-  <div class="pin-logo">Pink Supermarket</div>
-  <div class="pin-sub">Staff Access Only</div>
-  <div class="pin-card">
-    <div class="pin-title">Enter PIN to continue</div>
-    <div class="pin-dots">
-      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div><div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
-    </div>
-    <div class="pin-grid">
-      <button class="pin-btn" onclick="pp('1')">1</button><button class="pin-btn" onclick="pp('2')">2</button><button class="pin-btn" onclick="pp('3')">3</button>
-      <button class="pin-btn" onclick="pp('4')">4</button><button class="pin-btn" onclick="pp('5')">5</button><button class="pin-btn" onclick="pp('6')">6</button>
-      <button class="pin-btn" onclick="pp('7')">7</button><button class="pin-btn" onclick="pp('8')">8</button><button class="pin-btn" onclick="pp('9')">9</button>
-      <button class="pin-btn" onclick="pp('0')" style="grid-column:2">0</button>
-      <button class="pin-btn" onclick="pd()" style="font-size:16px;color:var(--gray-400)">⌫</button>
-    </div>
-    <div class="pin-error" id="pin-err"></div>
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo">Pink Supermarket</div>
+  <div class="login-sub">Admin Panel</div>
+  <div class="login-card">
+    <div class="login-title">Sign in to continue</div>
+    <div class="login-desc">Use your authorised Google account to access the dashboard. Only approved accounts can sign in.</div>
+    <button class="google-btn" id="google-btn" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Sign in with Google
+    </button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-spinner" id="login-spinner"><div class="spinner" style="display:inline-block;margin-right:8px"></div> Signing in...</div>
   </div>
 </div>
 
+<!-- APP -->
 <div id="app">
   <div class="topbar">
-    <div><div class="topbar-title">Pink Supermarket</div><div class="topbar-sub">Marketing Dashboard</div></div>
-    <div class="tab-bar">
-      <button class="tab active" onclick="showTab('dashboard',this)">Dashboard</button>
-      <button class="tab" onclick="showTab('roi',this)">ROI Analysis</button>
-      <button class="tab" onclick="showTab('lookup',this)">Offer Lookup</button>
+    <div class="topbar-left">
+      <div><div class="topbar-title">Pink Supermarket</div><div class="topbar-sub">Marketing Dashboard</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">P</div>
+        <span class="user-name" id="user-name">Loading...</span>
+        <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+      </div>
+      <div class="tab-bar">
+        <button class="tab active" onclick="showTab('dashboard',this)">Dashboard</button>
+        <button class="tab" onclick="showTab('roi',this)">ROI Analysis</button>
+        <button class="tab" onclick="showTab('lookup',this)">Offer Lookup</button>
+      </div>
     </div>
   </div>
 
@@ -212,10 +234,7 @@
 
   <!-- ROI -->
   <div class="page" id="page-roi">
-    <div class="data-note" style="margin-top:4px">
-      ⚠️ Transaction data has a 1-day sync delay. Profit = actual (sale price − cost price) × quantity for each line item, minus any offer cost given.
-    </div>
-
+    <div class="data-note" style="margin-top:4px">⚠️ Transaction data has a 1-day sync delay. Profit = (sale price − cost price) × qty per line item, minus offer cost given.</div>
     <div class="roi-grid">
       <div class="roi-card"><div class="roi-label">Redeemed customers</div><div class="roi-value c-pink" id="k-redeemed">—</div><div class="roi-sub">came to counter</div></div>
       <div class="roi-card"><div class="roi-label">Purchased after offer</div><div class="roi-value c-green" id="k-purchased">—</div><div class="roi-sub">confirmed purchases</div></div>
@@ -226,50 +245,16 @@
       <div class="roi-card"><div class="roi-label">Net profit</div><div class="roi-value" id="k-net">—</div><div class="roi-sub">gross − offer cost</div></div>
       <div class="roi-card"><div class="roi-label">Avg basket size</div><div class="roi-value c-blue" id="k-basket">—</div><div class="roi-sub">per redeemed visit</div></div>
     </div>
-
-    <!-- Redeemed customers table -->
-    <div class="section-head">
-      <div class="section-title">Redeemed customers — real profit per bill</div>
-      <div class="section-sub">Profit = (sale price − cost price) × qty for each item in the bill, minus offer cost given</div>
-    </div>
-    <div class="card" style="padding:0;overflow:hidden;">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Offer given</th>
-              <th>Redeemed</th>
-              <th>Bill total</th>
-              <th>Gross profit</th>
-              <th>Offer cost</th>
-              <th>Net profit</th>
-            </tr>
-          </thead>
-          <tbody id="roi-tbody">
-            <tr><td colspan="7"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Organic returnees -->
-    <div class="section-head">
-      <div class="section-title">Organic returnees — no offer redeemed</div>
-      <div class="section-sub">Got the WhatsApp → came back and purchased → did not claim the offer (pure profit, no offer cost)</div>
-    </div>
-    <div class="card" style="padding:0;overflow:hidden;">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Customer</th><th>Phone</th><th>Offer type</th><th>Msg sent</th><th>Bill total</th><th>Gross profit</th></tr>
-          </thead>
-          <tbody id="organic-tbody">
-            <tr><td colspan="6"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <div class="section-head"><div class="section-title">Redeemed customers — real profit per bill</div><div class="section-sub">Profit = (sale price − cost price) × qty for each item, minus offer cost given</div></div>
+    <div class="card" style="padding:0;overflow:hidden;"><div class="table-wrap"><table>
+      <thead><tr><th>Customer</th><th>Offer given</th><th>Redeemed</th><th>Bill total</th><th>Gross profit</th><th>Offer cost</th><th>Net profit</th></tr></thead>
+      <tbody id="roi-tbody"><tr><td colspan="7"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr></tbody>
+    </table></div></div>
+    <div class="section-head"><div class="section-title">Organic returnees — no offer redeemed</div><div class="section-sub">Got WhatsApp → came back and purchased → did not claim the offer</div></div>
+    <div class="card" style="padding:0;overflow:hidden;"><div class="table-wrap"><table>
+      <thead><tr><th>Customer</th><th>Phone</th><th>Offer type</th><th>Msg sent</th><th>Bill total</th><th>Gross profit</th></tr></thead>
+      <tbody id="organic-tbody"><tr><td colspan="6"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr></tbody>
+    </table></div></div>
   </div>
 
   <!-- LOOKUP -->
@@ -288,86 +273,199 @@
 </div>
 
 <script>
-const API='https://gllmdqytlgcozrpsusvt.supabase.co/functions/v1/dashboard-api';
-const PIN='1107';
-let pin='',currentOffer=null;
+// ── Supabase config — anon key is SAFE to expose in HTML (it's public by design)
+// The actual security comes from:
+// 1. Google OAuth — only pinksupermarket@gmail.com can sign in
+// 2. verify-access edge function checks allowed emails table in DB
+// 3. dashboard-api edge function also checks allowed emails on every request
+const SUPABASE_URL = 'https://gllmdqytlgcozrpsusvt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
+const API = SUPABASE_URL + '/functions/v1/dashboard-api';
 
-function pp(d){if(pin.length>=4)return;pin+=d;document.getElementById('d'+(pin.length-1)).classList.add('filled');if(pin.length===4)setTimeout(checkPin,150);}
-function pd(){if(!pin.length)return;document.getElementById('d'+(pin.length-1)).classList.remove('filled');pin=pin.slice(0,-1);}
-function checkPin(){
-  if(pin===PIN){document.getElementById('pin-screen').style.display='none';document.getElementById('app').style.display='block';init();}
-  else{document.getElementById('pin-err').textContent='Wrong PIN. Try again.';setTimeout(()=>{pin='';for(let i=0;i<4;i++)document.getElementById('d'+i).classList.remove('filled');document.getElementById('pin-err').textContent='';},800);}
-}
-function showTab(name,btn){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  btn.classList.add('active');document.getElementById('page-'+name).classList.add('active');
-  if(name==='roi')loadROI();
-}
-function today(){return new Date().toISOString().slice(0,10);}
-function daysAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);}
-function fmtDate(s){return new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
-function fmtDT(s){return new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
-function rs(v){return '₹'+Math.abs(Math.round(parseFloat(v))).toLocaleString('en-IN');}
-function profitCell(v){
-  const n=parseFloat(v);
-  const cls=n>=0?'profit-cell-pos':'profit-cell-neg';
-  const sign=n>=0?'':'-';
-  return `<span class="${cls}">${sign}₹${Math.abs(Math.round(n)).toLocaleString('en-IN')}</span>`;
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let session = null;
+let currentOffer = null;
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function signInWithGoogle() {
+  const btn = document.getElementById('google-btn');
+  const spinner = document.getElementById('login-spinner');
+  const errEl = document.getElementById('login-error');
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  errEl.style.display = 'none';
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.href,
+      queryParams: { prompt: 'select_account' }
+    }
+  });
+
+  if (error) {
+    errEl.textContent = 'Sign-in failed: ' + error.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+  // On success, browser redirects to Google — no more code runs here
 }
 
-function setRange(r,btn){
-  document.querySelectorAll('.quick-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-  const f=document.getElementById('date-from'),t=document.getElementById('date-to');
-  if(r==='today'){f.value=today();t.value=today();}
-  else if(r==='all'){f.value='2026-01-01';t.value=today();}
-  else{f.value=daysAgo(parseInt(r));t.value=today();}
+async function signOut() {
+  await supabase.auth.signOut();
+  session = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+async function checkAccess(accessToken) {
+  // Ask our edge function if this user is allowed
+  const res = await fetch(SUPABASE_URL + '/functions/v1/verify-access', {
+    headers: { 'Authorization': 'Bearer ' + accessToken }
+  });
+  const data = await res.json();
+  return data.allowed === true;
+}
+
+async function initApp(sess) {
+  session = sess;
+
+  // Verify this user is allowed (email checked server-side)
+  const allowed = await checkAccess(sess.access_token);
+  if (!allowed) {
+    await supabase.auth.signOut();
+    const errEl = document.getElementById('login-error');
+    errEl.textContent = 'Access denied. This account is not authorised to access this panel.';
+    errEl.style.display = 'block';
+    document.getElementById('google-btn').disabled = false;
+    document.getElementById('login-spinner').style.display = 'none';
+    return;
+  }
+
+  // Show app
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  // Set user info in topbar
+  const name = sess.user.user_metadata?.full_name || sess.user.email || 'Admin';
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name').textContent = name.split(' ')[0];
+
+  // Init dashboard
+  document.getElementById('date-from').value = today();
+  document.getElementById('date-to').value = today();
+  loadTotals();
+  loadStats();
+  document.getElementById('phoneInput').addEventListener('keydown', e => { if(e.key==='Enter') doLookup(); });
+  document.getElementById('phoneInput').addEventListener('input', () => {
+    document.getElementById('phoneInput').value = document.getElementById('phoneInput').value.replace(/\D/g,'').slice(0,10);
+  });
+}
+
+// Helper to get auth header
+function authHeader() {
+  return session ? { 'Authorization': 'Bearer ' + session.access_token } : {};
+}
+
+// Check for existing session on load
+supabase.auth.getSession().then(({ data: { session: sess } }) => {
+  if (sess) {
+    initApp(sess);
+  }
+});
+
+// Listen for auth changes (OAuth redirect callback)
+supabase.auth.onAuthStateChange((event, sess) => {
+  if (event === 'SIGNED_IN' && sess) {
+    initApp(sess);
+  } else if (event === 'SIGNED_OUT') {
+    session = null;
+  }
+});
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('page-'+name).classList.add('active');
+  if (name === 'roi') loadROI();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function today() { return new Date().toISOString().slice(0,10); }
+function daysAgo(n) { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
+function fmtDate(s) { return new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short'}); }
+function fmtDT(s) { return new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+function rs(v) { return '₹'+Math.abs(Math.round(parseFloat(v))).toLocaleString('en-IN'); }
+function profitCell(v) {
+  const n = parseFloat(v);
+  const cls = n >= 0 ? 'profit-pos' : 'profit-neg';
+  return `<span class="${cls}">${n<0?'-':''}₹${Math.abs(Math.round(n)).toLocaleString('en-IN')}</span>`;
+}
+
+function setRange(r, btn) {
+  document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const f = document.getElementById('date-from'), t = document.getElementById('date-to');
+  if (r==='today') { f.value=today(); t.value=today(); }
+  else if (r==='all') { f.value='2026-01-01'; t.value=today(); }
+  else { f.value=daysAgo(parseInt(r)); t.value=today(); }
   loadStats();
 }
 
-async function init(){
-  document.getElementById('date-from').value=today();
-  document.getElementById('date-to').value=today();
-  loadTotals();loadStats();
-  document.getElementById('phoneInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLookup();});
-  document.getElementById('phoneInput').addEventListener('input',()=>{document.getElementById('phoneInput').value=document.getElementById('phoneInput').value.replace(/\D/g,'').slice(0,10);});
+async function apiFetch(url) {
+  const res = await fetch(url, { headers: authHeader() });
+  if (res.status === 401) { signOut(); return null; }
+  return res.json();
 }
 
-async function loadTotals(){
-  const d=await(await fetch(`${API}?action=totals`)).json();
-  document.getElementById('t-sent').textContent=d.total_sent?.toLocaleString()||'—';
-  document.getElementById('t-redeemed').textContent=d.total_redeemed?.toLocaleString()||'—';
-  document.getElementById('t-failed').textContent=d.total_failed?.toLocaleString()||'—';
-  document.getElementById('t-remaining').textContent=d.remaining?.toLocaleString()||'—';
+async function apiPost(url, body) {
+  const res = await fetch(url, { method:'POST', headers: { 'Content-Type':'application/json', ...authHeader() }, body: JSON.stringify(body) });
+  if (res.status === 401) { signOut(); return null; }
+  return res.json();
 }
 
-async function loadStats(){
-  const from=document.getElementById('date-from').value,to=document.getElementById('date-to').value;
-  if(!from||!to)return;
-  document.getElementById('chart-wrap').innerHTML='<div class="loading-row"><div class="spinner"></div> Loading...</div>';
-  document.getElementById('msg-tbody').innerHTML='<tr><td colspan="5"><div class="loading-row"><div class="spinner"></div></div></td></tr>';
-  const d=await(await fetch(`${API}?action=stats&from=${from}&to=${to}`)).json();
-  document.getElementById('r-sent').textContent=d.sent||'0';
-  document.getElementById('r-free').textContent=d.free_item||'0';
-  document.getElementById('r-disc').textContent=d.discount||'0';
-  document.getElementById('r-red').textContent=d.redeemed||'0';
-  renderChart(d.byDay||{});renderTable(d.recent||[]);
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+async function loadTotals() {
+  const d = await apiFetch(`${API}?action=totals`);
+  if (!d) return;
+  document.getElementById('t-sent').textContent = d.total_sent?.toLocaleString() || '—';
+  document.getElementById('t-redeemed').textContent = d.total_redeemed?.toLocaleString() || '—';
+  document.getElementById('t-failed').textContent = d.total_failed?.toLocaleString() || '—';
+  document.getElementById('t-remaining').textContent = d.remaining?.toLocaleString() || '—';
 }
 
-function renderChart(byDay){
-  const entries=Object.entries(byDay).sort(([a],[b])=>a.localeCompare(b));
-  if(!entries.length){document.getElementById('chart-wrap').innerHTML='<div class="empty">No data for this range</div>';return;}
-  const max=Math.max(...entries.map(([,v])=>v),1);
-  document.getElementById('chart-wrap').innerHTML=entries.map(([day,val])=>{
-    const pct=Math.round((val/max)*100);
-    const lbl=new Date(day+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+async function loadStats() {
+  const from = document.getElementById('date-from').value, to = document.getElementById('date-to').value;
+  if (!from || !to) return;
+  document.getElementById('chart-wrap').innerHTML = '<div class="loading-row"><div class="spinner"></div> Loading...</div>';
+  document.getElementById('msg-tbody').innerHTML = '<tr><td colspan="5"><div class="loading-row"><div class="spinner"></div></div></td></tr>';
+  const d = await apiFetch(`${API}?action=stats&from=${from}&to=${to}`);
+  if (!d) return;
+  document.getElementById('r-sent').textContent = d.sent||'0';
+  document.getElementById('r-free').textContent = d.free_item||'0';
+  document.getElementById('r-disc').textContent = d.discount||'0';
+  document.getElementById('r-red').textContent = d.redeemed||'0';
+  renderChart(d.byDay||{}); renderTable(d.recent||[]);
+}
+
+function renderChart(byDay) {
+  const entries = Object.entries(byDay).sort(([a],[b]) => a.localeCompare(b));
+  if (!entries.length) { document.getElementById('chart-wrap').innerHTML='<div class="empty">No data</div>'; return; }
+  const max = Math.max(...entries.map(([,v]) => v), 1);
+  document.getElementById('chart-wrap').innerHTML = entries.map(([day,val]) => {
+    const pct = Math.round((val/max)*100);
+    const lbl = new Date(day+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
     return `<div class="bar-col"><div class="bar-val">${val}</div><div class="bar" style="height:${Math.max(pct,4)}%"></div><div class="bar-label">${lbl}</div></div>`;
   }).join('');
 }
 
-function renderTable(rows){
-  if(!rows.length){document.getElementById('msg-tbody').innerHTML='<tr><td colspan="5" class="empty">No messages in this range</td></tr>';return;}
-  document.getElementById('msg-tbody').innerHTML=rows.map(r=>`<tr>
+function renderTable(rows) {
+  if (!rows.length) { document.getElementById('msg-tbody').innerHTML='<tr><td colspan="5" class="empty">No messages</td></tr>'; return; }
+  document.getElementById('msg-tbody').innerHTML = rows.map(r => `<tr>
     <td><strong>${r.customer}</strong></td><td class="mono">${r.phone}</td>
     <td>${r.offer_type==='free_item'?'<span class="badge badge-free">Free item</span>':'<span class="badge badge-disc">Discount</span>'}</td>
     <td style="color:var(--gray-400);font-size:12px">${fmtDT(r.sent_at)}</td>
@@ -375,40 +473,36 @@ function renderTable(rows){
   </tr>`).join('');
 }
 
-async function loadROI(){
-  document.getElementById('roi-tbody').innerHTML='<tr><td colspan="7"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>';
-  document.getElementById('organic-tbody').innerHTML='<tr><td colspan="6"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>';
-  const d=await(await fetch(`${API}?action=roi`)).json();
-  const s=d.summary;
+// ── ROI ───────────────────────────────────────────────────────────────────────
+async function loadROI() {
+  document.getElementById('roi-tbody').innerHTML = '<tr><td colspan="7"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>';
+  document.getElementById('organic-tbody').innerHTML = '<tr><td colspan="6"><div class="loading-row"><div class="spinner"></div> Loading...</div></td></tr>';
+  const d = await apiFetch(`${API}?action=roi`);
+  if (!d) return;
+  const s = d.summary;
+  document.getElementById('k-redeemed').textContent = s.total_redeemed_customers;
+  document.getElementById('k-purchased').textContent = s.redeemed_with_purchase;
+  document.getElementById('k-purchase-val').innerHTML = rs(s.total_purchase_value);
+  document.getElementById('k-gross').innerHTML = rs(s.total_gross_profit);
+  document.getElementById('k-free-cost').innerHTML = rs(s.total_free_item_cost);
+  document.getElementById('k-disc-cost').innerHTML = rs(s.total_discount_given);
+  document.getElementById('k-basket').innerHTML = s.avg_basket > 0 ? rs(s.avg_basket) : '—';
+  const netEl = document.getElementById('k-net');
+  const net = parseFloat(s.total_net_profit);
+  netEl.innerHTML = (net<0?'-':'') + rs(Math.abs(net));
+  netEl.className = 'roi-value ' + (net>=0?'profit-pos':'profit-neg');
 
-  document.getElementById('k-redeemed').textContent=s.total_redeemed_customers;
-  document.getElementById('k-purchased').textContent=s.redeemed_with_purchase;
-  document.getElementById('k-purchase-val').innerHTML=rs(s.total_purchase_value);
-  document.getElementById('k-gross').innerHTML=rs(s.total_gross_profit);
-  document.getElementById('k-free-cost').innerHTML=rs(s.total_free_item_cost);
-  document.getElementById('k-disc-cost').innerHTML=rs(s.total_discount_given);
-  document.getElementById('k-basket').innerHTML=s.avg_basket>0?rs(s.avg_basket):'—';
-  const netEl=document.getElementById('k-net');
-  const net=parseFloat(s.total_net_profit);
-  netEl.innerHTML=(net<0?'-':'')+rs(Math.abs(net));
-  netEl.className='roi-value '+(net>=0?'profit-pos':'profit-neg');
-
-  // Redeemed table
-  if(!d.redeemed?.length){
-    document.getElementById('roi-tbody').innerHTML='<tr><td colspan="7" class="empty">No redeemed customers yet</td></tr>';
+  if (!d.redeemed?.length) {
+    document.getElementById('roi-tbody').innerHTML = '<tr><td colspan="7" class="empty">No redeemed customers yet</td></tr>';
   } else {
-    document.getElementById('roi-tbody').innerHTML=d.redeemed.map(r=>{
-      const isFree=r.offer_type==='free_item';
-      const offerBadge=isFree
-        ?`<span class="badge badge-free">Free: ${r.offer_item||'—'}</span>`
-        :`<span class="badge badge-disc">${r.discount_percent}% off</span>`;
-      const offerCost=isFree?parseFloat(r.free_item_cost||0):parseFloat(r.discount_amount_given||0);
-      const hasPurchase=r.purchase_count>0;
+    document.getElementById('roi-tbody').innerHTML = d.redeemed.map(r => {
+      const isFree = r.offer_type==='free_item';
+      const offerBadge = isFree ? `<span class="badge badge-free">Free: ${r.offer_item||'—'}</span>` : `<span class="badge badge-disc">${r.discount_percent}% off</span>`;
+      const offerCost = isFree ? parseFloat(r.free_item_cost||0) : parseFloat(r.discount_amount_given||0);
+      const hasPurchase = r.purchase_count > 0;
+      const netClass = r.net_profit >= 0 ? 'profit-pos' : 'profit-neg';
       return `<tr>
-        <td>
-          <strong>${r.customer_name}</strong>
-          <div class="mono" style="margin-top:2px">${r.phone_number}</div>
-        </td>
+        <td><strong>${r.customer_name}</strong><div class="mono" style="margin-top:2px">${r.phone_number}</div></td>
         <td>${offerBadge}</td>
         <td style="font-size:12px;color:var(--gray-400)">${fmtDate(r.redeemed_date)}</td>
         <td>${hasPurchase?rs(r.total_purchase_value):'<span style="color:var(--gray-400)">No purchase yet</span>'}</td>
@@ -419,11 +513,10 @@ async function loadROI(){
     }).join('');
   }
 
-  // Organic table
-  if(!d.organic?.length){
-    document.getElementById('organic-tbody').innerHTML='<tr><td colspan="6" class="empty">No organic returnees yet — data syncs with 1-day delay</td></tr>';
+  if (!d.organic?.length) {
+    document.getElementById('organic-tbody').innerHTML = '<tr><td colspan="6" class="empty">No organic returnees yet</td></tr>';
   } else {
-    document.getElementById('organic-tbody').innerHTML=d.organic.map(r=>`<tr>
+    document.getElementById('organic-tbody').innerHTML = d.organic.map(r => `<tr>
       <td><strong>${r.customer_name}</strong></td>
       <td class="mono">${r.phone_number}</td>
       <td>${r.offer_type==='free_item'?'<span class="badge badge-free">Free item</span>':'<span class="badge badge-disc">Discount</span>'}</td>
@@ -434,23 +527,24 @@ async function loadROI(){
   }
 }
 
-async function doLookup(){
-  const phone=document.getElementById('phoneInput').value.trim();
-  if(phone.length<10)return;
-  const btn=document.getElementById('lookupBtn');
-  btn.disabled=true;currentOffer=null;
-  document.getElementById('lookup-result').innerHTML='<div class="loading-row"><div class="spinner"></div> Looking up...</div>';
-  const d=await(await fetch(`${API}?action=lookup&phone=${phone}`)).json();
-  btn.disabled=false;
-  if(!d.found){
-    document.getElementById('lookup-result').innerHTML=`<div class="not-found"><div class="icon">🔍</div><div class="msg">No active offer found</div><div class="sub">No offer sent, or already redeemed</div></div>`;
+// ── LOOKUP ────────────────────────────────────────────────────────────────────
+async function doLookup() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  if (phone.length < 10) return;
+  const btn = document.getElementById('lookupBtn');
+  btn.disabled = true; currentOffer = null;
+  document.getElementById('lookup-result').innerHTML = '<div class="loading-row"><div class="spinner"></div> Looking up...</div>';
+  const d = await apiFetch(`${API}?action=lookup&phone=${phone}`);
+  btn.disabled = false;
+  if (!d || !d.found) {
+    document.getElementById('lookup-result').innerHTML = `<div class="not-found"><div class="icon">🔍</div><div class="msg">No active offer found</div><div class="sub">No offer sent, or already redeemed</div></div>`;
     return;
   }
-  currentOffer=d.offer;
-  const o=d.offer,isFree=o.offer_type==='free_item';
-  const initials=o.customer_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const hl=isFree?`Free <strong>${o.offer_item}</strong> on purchase above Rs.${o.min_purchase_amount}`:`<strong>${o.discount_percent}% off</strong> on purchase above Rs.${o.min_purchase_amount}`;
-  document.getElementById('lookup-result').innerHTML=`
+  currentOffer = d.offer;
+  const o = d.offer, isFree = o.offer_type==='free_item';
+  const initials = o.customer_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const hl = isFree ? `Free <strong>${o.offer_item}</strong> on purchase above Rs.${o.min_purchase_amount}` : `<strong>${o.discount_percent}% off</strong> on purchase above Rs.${o.min_purchase_amount}`;
+  document.getElementById('lookup-result').innerHTML = `
     <div class="offer-found">
       <div class="offer-head ${isFree?'free':'disc'}">
         <div class="offer-icon">${isFree?'🎁':'🏷️'}</div>
@@ -470,23 +564,24 @@ async function doLookup(){
     </div>`;
 }
 
-async function doRedeem(id){
-  const staffName=document.getElementById('staffName')?.value?.trim()||'counter';
-  const btn=document.querySelector('.btn-redeem');
-  if(btn){btn.disabled=true;btn.textContent='Processing...';}
-  const d=await(await fetch(`${API}?action=redeem`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,staff_name:staffName})})).json();
-  if(d.success){
-    document.getElementById('lookup-result').innerHTML=`<div class="state-ok"><div class="big">✅</div><div class="t">Offer Redeemed!</div><div class="s">Give the customer their ${currentOffer?.offer_type==='free_item'?'free item':'discount'}. Marked as used.</div><button class="again" onclick="resetLookup()">Look up another customer</button></div>`;
+async function doRedeem(id) {
+  const staffName = document.getElementById('staffName')?.value?.trim() || 'counter';
+  const btn = document.querySelector('.btn-redeem');
+  if (btn) { btn.disabled=true; btn.textContent='Processing...'; }
+  const d = await apiPost(`${API}?action=redeem`, { id, staff_name: staffName });
+  if (!d) return;
+  if (d.success) {
+    document.getElementById('lookup-result').innerHTML = `<div class="state-ok"><div class="big">✅</div><div class="t">Offer Redeemed!</div><div class="s">Give the customer their ${currentOffer?.offer_type==='free_item'?'free item':'discount'}. Marked as used.</div><button class="again" onclick="resetLookup()">Look up another customer</button></div>`;
     loadTotals();
-  } else if(d.error==='Already redeemed'){
-    document.getElementById('lookup-result').innerHTML=`<div class="state-warn"><div style="font-size:28px;margin-bottom:8px">⚠️</div><div class="msg">Already Redeemed</div><div class="sub">This offer was already used. Do not give the offer again.</div></div>`;
+  } else if (d.error==='Already redeemed') {
+    document.getElementById('lookup-result').innerHTML = `<div class="state-warn"><div style="font-size:28px;margin-bottom:8px">⚠️</div><div class="msg">Already Redeemed</div><div class="sub">This offer was already used. Do not give the offer again.</div></div>`;
   }
 }
 
-function resetLookup(){
-  document.getElementById('phoneInput').value='';
-  document.getElementById('lookup-result').innerHTML='';
-  currentOffer=null;
+function resetLookup() {
+  document.getElementById('phoneInput').value = '';
+  document.getElementById('lookup-result').innerHTML = '';
+  currentOffer = null;
   document.getElementById('phoneInput').focus();
 }
 </script>
