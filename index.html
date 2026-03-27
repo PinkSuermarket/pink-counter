@@ -278,7 +278,8 @@ tr:hover td{background:var(--g50);}
       <span style="font-size:13px;color:var(--g400)">to</span>
       <input type="date" id="pl-to">
       <div class="qbtns">
-        <button class="qbtn on" onclick="setPLR('today',this)">Today</button>
+        <button class="qbtn" onclick="setPLR('today',this)">Today</button>
+        <button class="qbtn on" onclick="setPLR('yesterday',this)">Yesterday</button>
         <button class="qbtn" onclick="setPLR('7',this)">7 days</button>
         <button class="qbtn" onclick="setPLR('30',this)">30 days</button>
         <button class="qbtn" onclick="setPLR('mtd',this)">This month</button>
@@ -295,7 +296,7 @@ tr:hover td{background:var(--g50);}
       <div class="card-title">Day-wise profit</div>
       <div class="bar-chart" id="pl-chart"><div class="lrow"><div class="sp"></div></div></div>
     </div>
-    <div class="note" style="margin-bottom:14px">⚠️ Gross profit = (sale price − purchase price) × qty. Items with no purchase price on record are excluded. Data syncs with 1-day delay.</div>
+    <div class="note" style="margin-bottom:14px">⚠️ <strong>Revenue</strong> = sale price × qty per line item at time of invoice. <strong>Gross profit</strong> = (sale price − current purchase price) × qty. Items with no purchase cost on record are excluded from profit (but included in revenue). Data syncs with 1-day delay — use Yesterday as the most reliable view.</div>
     <div class="sh"><div><div class="sh-title">Top 30 items by profit</div><div class="sh-sub">Sorted by gross profit descending</div></div></div>
     <div class="card" style="padding:0;overflow:hidden;"><div class="tw"><table>
       <thead><tr><th>#</th><th>Item</th><th>Category</th><th>Qty sold</th><th>Revenue ₹</th><th>COGS ₹</th><th>Gross Profit ₹</th><th>Margin %</th></tr></thead>
@@ -448,7 +449,7 @@ function gotoTab(name, btn) {
 // ── DATE INIT ─────────────────────────────────────────────────────────────────
 function initDates() {
   ['d-from','d-to'].forEach(id => document.getElementById(id).value = today());
-  ['pl-from','pl-to'].forEach(id => document.getElementById(id).value = today());
+  document.getElementById('pl-from').value = ago(1); document.getElementById('pl-to').value = ago(1);
   ['mk-from','mk-to'].forEach(id => document.getElementById(id).value = today());
 }
 
@@ -464,8 +465,9 @@ function setPLR(r,btn) {
   document.querySelectorAll('#page-pl .qbtn').forEach(b=>b.classList.remove('on')); btn.classList.add('on');
   const f=document.getElementById('pl-from'), t=document.getElementById('pl-to');
   if(r==='today'){f.value=today();t.value=today();}
-  else if(r==='mtd'){f.value=mtd();t.value=today();}
-  else{f.value=ago(parseInt(r));t.value=today();}
+  else if(r==='yesterday'){f.value=ago(1);t.value=ago(1);}
+  else if(r==='mtd'){f.value=mtd();t.value=ago(1);}
+  else{f.value=ago(parseInt(r));t.value=ago(1);}
   loadPL();
 }
 function setMKR(r,btn) {
