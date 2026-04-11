@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Pink Supermarket — Orders</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap');
+:root{
+  --pink:#e8446a;--pink-l:#fde8ee;--pink-d:#b5274a;
+  --green:#1a9e6e;--green-l:#e2f5ee;
+  --amber:#d97706;--amber-l:#fef3c7;
+  --red:#dc2626;--red-l:#fef2f2;
+  --blue:#2563eb;--blue-l:#eff6ff;
+  --g50:#f9f8f7;--g100:#f0eeec;--g200:#e2dfdb;--g300:#ccc9c3;
+  --g400:#9e9b96;--g600:#5c5955;--g900:#1c1a18;
+  --r:14px;--sh:0 2px 16px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);min-height:100vh;}
+
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.login-logo{font-size:24px;font-weight:600;color:var(--pink);margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--g400);margin-bottom:32px;}
+.login-card{background:white;border-radius:var(--r);box-shadow:var(--sh);padding:32px 28px;width:100%;max-width:340px;}
+.login-title{font-size:15px;font-weight:600;margin-bottom:20px;text-align:center;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.field input{width:100%;height:44px;border:2px solid var(--g200);border-radius:10px;padding:0 14px;font-family:'DM Mono',monospace;font-size:14px;outline:none;color:var(--g900);}
+.field input:focus{border-color:var(--pink);}
+.login-btn{width:100%;height:46px;background:var(--pink);color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;}
+.login-btn:disabled{opacity:.5;cursor:not-allowed;}
+.login-err{margin-top:12px;padding:10px;background:var(--red-l);border:1px solid #fca5a5;border-radius:8px;font-size:13px;color:var(--red);display:none;text-align:center;}
+
+/* APP */
+#app{display:none;}
+.topbar{background:white;border-bottom:1px solid var(--g200);height:50px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-brand{font-size:14px;font-weight:600;color:var(--pink);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.worker-chip{font-size:12px;color:var(--g600);font-weight:500;}
+.so-btn{height:28px;padding:0 10px;background:var(--g100);border:none;border-radius:6px;font-size:12px;font-weight:500;color:var(--g600);cursor:pointer;}
+
+/* SCREENS */
+.screen{display:none;padding:14px 16px;max-width:700px;margin:0 auto;}
+.screen.on{display:block;}
+
+/* BREADCRUMB */
+.breadcrumb{display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.bc-item{font-size:13px;color:var(--g400);cursor:pointer;}
+.bc-item:hover{color:var(--pink);}
+.bc-item.active{color:var(--g900);font-weight:600;cursor:default;}
+.bc-sep{font-size:12px;color:var(--g300);}
+
+/* TODAY SCREEN */
+.today-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.today-date{font-size:13px;color:var(--g400);}
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--g400);margin:16px 0 8px;}
+
+.sup-card{background:white;border-radius:var(--r);box-shadow:var(--sh);padding:14px 16px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:12px;border:2px solid transparent;transition:border-color .15s;}
+.sup-card:hover{border-color:var(--g200);}
+.sup-card.needs-order{border-color:var(--red);background:var(--red-l);}
+.sup-card.done{border-color:var(--green);background:var(--green-l);cursor:default;opacity:.8;}
+.sup-avatar{width:40px;height:40px;border-radius:10px;background:var(--pink-l);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--pink);flex-shrink:0;letter-spacing:-.5px;}
+.sup-avatar.red{background:var(--red-l);color:var(--red);}
+.sup-avatar.green{background:var(--green-l);color:var(--green);}
+.sup-info{flex:1;min-width:0;}
+.sup-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sup-meta{font-size:12px;color:var(--g400);margin-top:2px;}
+.sup-badge{flex-shrink:0;}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
+.b-red{background:var(--red);color:white;}
+.b-green{background:var(--green);color:white;}
+.b-amber{background:var(--amber-l);color:var(--amber);}
+.b-gray{background:var(--g100);color:var(--g600);}
+.b-blue{background:var(--blue-l);color:var(--blue);}
+.b-visit{background:#f5f3ff;color:#7c3aed;}
+.arrow{font-size:18px;color:var(--g300);flex-shrink:0;}
+
+/* BRAND SCREEN */
+.brand-card{background:white;border-radius:var(--r);box-shadow:var(--sh);padding:12px 16px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border:2px solid transparent;transition:border-color .15s;}
+.brand-card:hover{border-color:var(--pink);}
+.brand-name{font-size:14px;font-weight:600;}
+.brand-meta{font-size:12px;color:var(--g400);margin-top:2px;}
+.brand-right{display:flex;align-items:center;gap:8px;}
+
+/* ORDER SCREEN */
+.order-header{background:white;border-radius:var(--r);box-shadow:var(--sh);padding:14px 16px;margin-bottom:12px;}
+.order-sup-name{font-size:15px;font-weight:600;}
+.order-meta{font-size:12px;color:var(--g400);margin-top:3px;}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.stat-box{background:var(--g50);border-radius:8px;padding:8px 10px;text-align:center;}
+.stat-val{font-size:18px;font-weight:600;}
+.stat-lbl{font-size:10px;color:var(--g400);margin-top:1px;}
+
+/* ITEM TABLE */
+.item-card{background:white;border-radius:10px;box-shadow:var(--sh);margin-bottom:8px;overflow:hidden;}
+.item-card.oos{border-left:4px solid var(--red);}
+.item-card.ok{border-left:4px solid var(--g200);}
+.item-row{padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;}
+.item-name{font-size:13px;font-weight:600;}
+.item-sub{font-size:11px;color:var(--g400);margin-top:2px;}
+.item-sub span{display:inline-block;margin-right:8px;}
+.item-sub .oos-tag{color:var(--red);font-weight:600;}
+.qty-ctrl{display:flex;align-items:center;gap:0;border:2px solid var(--g200);border-radius:8px;overflow:hidden;}
+.qbtn{width:32px;height:36px;border:none;background:var(--g50);cursor:pointer;font-size:18px;color:var(--g600);display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;}
+.qbtn:hover{background:var(--g200);}
+.qinp{width:50px;height:36px;border:none;border-left:2px solid var(--g200);border-right:2px solid var(--g200);text-align:center;font-size:14px;font-weight:600;font-family:'DM Mono',monospace;color:var(--g900);background:white;outline:none;}
+.pack-hint{font-size:10px;color:var(--g400);text-align:center;margin-top:3px;}
+
+/* SUBMIT BAR */
+.submit-bar{background:white;border-top:1px solid var(--g200);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;bottom:0;}
+.submit-total{font-size:13px;color:var(--g600);}
+.submit-total strong{font-size:16px;color:var(--g900);}
+.submit-btn{height:44px;padding:0 24px;background:var(--pink);color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed;}
+.wa-btn{height:44px;padding:0 16px;background:#25D366;color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+
+/* SPINNER / EMPTY */
+.lrow{display:flex;align-items:center;justify-content:center;gap:8px;padding:32px;color:var(--g400);font-size:13px;}
+.sp{display:inline-block;width:16px;height:16px;border:2px solid var(--g200);border-top-color:var(--pink);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:32px;color:var(--g400);font-size:13px;}
+.note{font-size:12px;color:var(--g600);background:var(--amber-l);border-radius:8px;padding:10px 14px;margin-bottom:12px;border-left:3px solid var(--amber);}
+
+@media(max-width:480px){.stat-row{grid-template-columns:repeat(3,1fr);}.submit-bar{flex-wrap:wrap;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo">🛒 Pink Supermarket</div>
+  <div class="login-sub">Worker Order Portal</div>
+  <div class="login-card">
+    <div class="login-title">Sign in</div>
+    <div class="field"><label>Username</label><input type="text" id="l-user" placeholder="username" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" id="l-pass" placeholder="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="login-btn" id="l-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-err" id="l-err">Incorrect username or password</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-brand">🛒 Orders</div>
+    <div class="topbar-right">
+      <span class="worker-chip" id="worker-name"></span>
+      <button class="so-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 1: TODAY'S SUPPLIERS -->
+  <div class="screen on" id="s-today">
+    <div class="today-head">
+      <div style="font-size:16px;font-weight:600;">Today's Orders</div>
+      <div class="today-date" id="today-date"></div>
+    </div>
+    <div id="today-body"><div class="lrow"><div class="sp"></div> Loading suppliers...</div></div>
+  </div>
+
+  <!-- SCREEN 2: BRANDS -->
+  <div class="screen" id="s-brands">
+    <div class="breadcrumb">
+      <span class="bc-item" onclick="goToday()">Today</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-item active" id="bc-sup"></span>
+    </div>
+    <div id="brands-body"><div class="lrow"><div class="sp"></div></div></div>
+  </div>
+
+  <!-- SCREEN 3: ORDER FORM -->
+  <div class="screen" id="s-order">
+    <div class="breadcrumb">
+      <span class="bc-item" onclick="goToday()">Today</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-item" id="bc-sup2" onclick="goBrands()"></span>
+      <span class="bc-sep">›</span>
+      <span class="bc-item active" id="bc-brand"></span>
+    </div>
+    <div class="order-header">
+      <div class="order-sup-name" id="ord-sup-name"></div>
+      <div class="order-meta" id="ord-meta"></div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-val c-red" id="ord-oos">—</div><div class="stat-lbl">Out of stock</div></div>
+        <div class="stat-box"><div class="stat-val" id="ord-items">—</div><div class="stat-lbl">Items to order</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--pink)" id="ord-total">₹0</div><div class="stat-lbl">Order value</div></div>
+      </div>
+    </div>
+    <div id="order-body"></div>
+    <div style="height:80px"></div><!-- spacer for submit bar -->
+  </div>
+
+  <!-- SUBMIT BAR (shown on order screen) -->
+  <div class="submit-bar" id="submit-bar" style="display:none">
+    <div class="submit-total">Total: <strong id="sb-total">₹0</strong></div>
+    <div style="display:flex;gap:8px">
+      <button class="wa-btn" id="wa-btn" onclick="sendWA()">💬 WhatsApp</button>
+      <button class="submit-btn" id="sub-btn" onclick="submitOrder()">Submit Order</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdobG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
+const H = () => ({apikey: SB_ANON, 'Content-Type': 'application/json'});
+
+let worker = null;  // {id, username, full_name}
+let currentSupplier = null;
+let currentBrand = null;
+let orderItems = [];  // all items for current supplier+brand
+let sessionId = null;
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const u = document.getElementById('l-user').value.trim().toLowerCase();
+  const p = document.getElementById('l-pass').value;
+  const err = document.getElementById('l-err');
+  const btn = document.getElementById('l-btn');
+  err.style.display='none'; btn.disabled=true; btn.textContent='Signing in...';
+
+  // Hash password
+  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p));
+  const hash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+
+  const r = await fetch(`${SB_URL}/rest/v1/worker_users?username=eq.${encodeURIComponent(u)}&password_hash=eq.${hash}&is_active=eq.true&select=id,username,full_name`, {headers:{apikey:SB_ANON}});
+  const data = await r.json();
+
+  if (!data || !data.length) {
+    err.style.display='block'; btn.disabled=false; btn.textContent='Sign in'; return;
+  }
+  worker = data[0];
+  localStorage.setItem('worker', JSON.stringify(worker));
+  showApp();
+}
+
+function doLogout() {
+  worker = null; localStorage.removeItem('worker');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('worker-name').textContent = worker.full_name || worker.username;
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  loadToday();
+}
+
+// Check saved session
+const saved = localStorage.getItem('worker');
+if (saved) { try { worker = JSON.parse(saved); showApp(); } catch{} }
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const fmtINR = n => '₹' + Math.round(Number(n||0)).toLocaleString('en-IN');
+const fmtDate = s => s ? new Date(s).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) : '—';
+const DAYS = {1:'Mon',2:'Tue',3:'Wed',4:'Thu',5:'Fri',6:'Sat',7:'Sun'};
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  document.getElementById('submit-bar').style.display = id==='s-order' ? 'flex' : 'none';
+  window.scrollTo(0,0);
+}
+
+// ── SCREEN 1: TODAY ───────────────────────────────────────────────────────────
+async function loadToday() {
+  document.getElementById('today-body').innerHTML = '<div class="lrow"><div class="sp"></div> Loading...</div>';
+  const r = await fetch(`${SB_URL}/rest/v1/v_today_suppliers`, {headers:{apikey:SB_ANON}});
+  const sups = await r.json();
+  // Fetch logos separately (not in view)
+  const lr = await fetch(`${SB_URL}/rest/v1/suppliers?select=id,logo_url&is_active=eq.true`, {headers:{apikey:SB_ANON}});
+  const logos = await lr.json();
+  const logoMap = {};
+  logos.forEach(l => { if(l.logo_url) logoMap[l.id] = l.logo_url; });
+  sups.forEach(s => { s.logo_url = logoMap[s.supplier_id] || null; });
+
+  if (!sups.length) {
+    document.getElementById('today-body').innerHTML = '<div class="empty">No suppliers configured yet.<br>Ask admin to set up suppliers.</div>';
+    return;
+  }
+
+  // Separate today's visitors from upcoming
+  const today   = sups.filter(s => s.days_until_visit === 0 || s.days_until_visit === 7);
+  const upcoming = sups.filter(s => s.days_until_visit > 0 && s.days_until_visit < 7);
+
+  let html = '';
+
+  // TODAY section
+  if (today.length) {
+    html += '<div class="section-label">Visiting today</div>';
+    html += today.map(s => supplierCard(s, true)).join('');
+  }
+
+  // UPCOMING section
+  if (upcoming.length) {
+    html += '<div class="section-label">Upcoming this week</div>';
+    html += upcoming.map(s => supplierCard(s, false)).join('');
+  }
+
+  document.getElementById('today-body').innerHTML = html;
+}
+
+function supplierCard(s, isToday) {
+  const done      = s.order_status === 'submitted' || s.order_status === 'sent';
+  const needsOrd  = isToday && !done;
+  const initials  = s.supplier_name.split(' ').map(w=>w[0]).join('').slice(0,3);
+  const avatarCls = done ? 'green' : needsOrd ? 'red' : '';
+  const cardCls   = done ? 'done' : needsOrd ? 'needs-order' : '';
+  const badge     = done
+    ? '<span class="badge b-green">✓ Order submitted</span>'
+    : needsOrd
+    ? '<span class="badge b-red">Order needed</span>'
+    : `<span class="badge b-visit">In ${s.days_until_visit}d</span>`;
+  const brands = (s.brands||[]).join(', ') || 'Multiple brands';
+  const onclick = done ? '' : `onclick="goSupplier(${JSON.stringify(s).replace(/"/g,'&quot;')})"`;
+
+  // Avatar: logo image or initials
+  const avatar = s.logo_url
+    ? `<img src="${s.logo_url}" style="width:40px;height:40px;object-fit:contain;border-radius:10px;border:1px solid var(--g200);background:white;" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
+      + `<div class="sup-avatar ${avatarCls}" style="display:none">${initials}</div>`
+    : `<div class="sup-avatar ${avatarCls}">${initials}</div>`;
+
+  return `<div class="sup-card ${cardCls}" ${onclick}>
+    <div style="flex-shrink:0">${avatar}</div>
+    <div class="sup-info">
+      <div class="sup-name">${s.supplier_name}</div>
+      <div class="sup-meta">${brands} · ${s.total_items||0} items</div>
+    </div>
+    <div class="sup-badge">${badge}</div>
+    ${done ? '' : '<div class="arrow">›</div>'}
+  </div>`;
+}
+
+// ── SCREEN 2: BRANDS ──────────────────────────────────────────────────────────
+async function goSupplier(sup) {
+  currentSupplier = sup;
+  document.getElementById('bc-sup').textContent  = sup.supplier_name;
+  document.getElementById('bc-sup2').textContent = sup.supplier_name;
+  showScreen('s-brands');
+  document.getElementById('brands-body').innerHTML = '<div class="lrow"><div class="sp"></div></div>';
+
+  // Get distinct brands for this supplier from supplier_items
+  const r = await fetch(`${SB_URL}/rest/v1/supplier_items?supplier_id=eq.${sup.supplier_id}&is_active=eq.true&select=brand,category_id`, {headers:{apikey:SB_ANON}});
+  const items = await r.json();
+
+  // Group by brand
+  const brands = {};
+  items.forEach(i => {
+    if (!brands[i.brand]) brands[i.brand] = {brand: i.brand, count: 0};
+    brands[i.brand].count++;
+  });
+
+  const brandList = Object.values(brands).sort((a,b)=>a.brand.localeCompare(b.brand));
+
+  if (!brandList.length) {
+    document.getElementById('brands-body').innerHTML = '<div class="empty">No items found. Ask admin to re-scan this supplier.</div>';
+    return;
+  }
+
+  // If only one brand, go directly to order screen
+  if (brandList.length === 1) {
+    goBrand(brandList[0].brand);
+    return;
+  }
+
+  document.getElementById('brands-body').innerHTML = brandList.map(b => `
+    <div class="brand-card" onclick="goBrand('${b.brand.replace(/'/g,"\\'")}')">
+      <div>
+        <div class="brand-name">${b.brand}</div>
+        <div class="brand-meta">${b.count} items</div>
+      </div>
+      <div class="brand-right">
+        <div class="arrow">›</div>
+      </div>
+    </div>`).join('');
+}
+
+function goBrands() {
+  if (currentSupplier) goSupplier(currentSupplier);
+}
+
+// ── SCREEN 3: ORDER FORM ─────────────────────────────────────────────────────
+async function goBrand(brand) {
+  currentBrand = brand;
+  document.getElementById('bc-brand').textContent = brand;
+  showScreen('s-order');
+  document.getElementById('ord-sup-name').textContent = currentSupplier.supplier_name;
+  document.getElementById('order-body').innerHTML = '<div class="lrow"><div class="sp"></div> Loading live stock...</div>';
+  updateStats([]);
+
+  // Load live reorder data for this supplier+brand
+  const r = await fetch(`${SB_URL}/rest/v1/v_reorder_now?supplier_id=eq.${currentSupplier.supplier_id}&brand=eq.${encodeURIComponent(brand)}&order=order_value.desc`, {headers:{apikey:SB_ANON}});
+  const data = await r.json();
+
+  if (!data.length) {
+    document.getElementById('order-body').innerHTML = '<div class="empty">No items found for this brand.</div>';
+    return;
+  }
+
+  // Build editable order items
+  orderItems = data.map(d => ({...d, edit_qty: d.order_qty || 0}));
+
+  const nextVisit = new Date(currentSupplier.next_visit_date);
+  document.getElementById('ord-meta').textContent =
+    `Next delivery: ${nextVisit.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}  ·  Cover: ${data[0]?.total_cover_days||'—'} days  ·  Avg: ${data[0]?.avg_months||3}m`;
+
+  renderOrderItems();
+}
+
+function renderOrderItems() {
+  const needsOrder = orderItems.filter(i => i.order_qty > 0);
+  const stocked    = orderItems.filter(i => i.order_qty === 0 && !i.is_out_of_stock);
+
+  let html = '';
+
+  if (needsOrder.length) {
+    html += `<div class="section-label">Needs reorder (${needsOrder.length})</div>`;
+    html += needsOrder.map(item => itemCard(item)).join('');
+  }
+
+  if (stocked.length) {
+    html += `<div class="section-label" style="margin-top:${needsOrder.length?'8px':'0'}">Well stocked — add if needed</div>`;
+    html += stocked.map(item => itemCard(item)).join('');
+  }
+
+  document.getElementById('order-body').innerHTML = html || '<div class="empty">No items</div>';
+  updateStats(orderItems);
+}
+
+function itemCard(item) {
+  const oos      = item.is_out_of_stock;
+  const step     = item.order_type === 'box' ? (item.units_per_pack||1) : 1;
+  const boxes    = item.order_type === 'box' && item.edit_qty > 0
+    ? Math.ceil(item.edit_qty / (item.units_per_pack||1)) : 0;
+  const hint     = item.order_type === 'box'
+    ? (item.edit_qty > 0 ? `${boxes} ${item.pack_label||'box'} · ${item.edit_qty} units` : `${item.units_per_pack||1} units per ${item.pack_label||'box'}`)
+    : 'loose';
+  const oos_tag  = oos ? `<span class="oos-tag">⚠ Out of stock</span>` : '';
+
+  // Formula breakdown
+  const dailyAvg   = Number(item.avg_daily_sales||0);
+  const coverDays  = Number(item.total_cover_days||0);
+  const target     = Number(item.target_stock||0);
+  const stock      = Number(item.current_stock||0);
+  const needed     = Number(item.needed_qty||0);
+  const daysLeft   = Number(item.days_stock_left||0) >= 999 ? '∞' : Number(item.days_stock_left||0).toFixed(0);
+  const weekAvg    = Number(item.avg_weekly_sales||0).toFixed(1);
+
+  // Colour the days-left badge
+  const dlNum = Number(item.days_stock_left||0);
+  const dlCol  = dlNum <= 3 ? 'var(--red)' : dlNum <= 7 ? 'var(--amber)' : 'var(--green)';
+
+  const formulaHtml = `
+    <div style="margin-top:8px;padding:8px 10px;background:var(--g50);border-radius:8px;font-size:11px;color:var(--g600);line-height:1.8;border:1px solid var(--g100)">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <span>📊 <strong style="color:var(--g900)">${weekAvg}/wk</strong> avg sales</span>
+        <span>·</span>
+        <span>📦 Stock: <strong style="color:${oos?'var(--red)':'var(--g900)'}">${stock}</strong></span>
+        <span>·</span>
+        <span>⏱ Days left: <strong style="color:${dlCol}">${daysLeft}d</strong></span>
+      </div>
+      <div style="margin-top:4px;color:var(--g400)">
+        Target = ${dailyAvg.toFixed(2)}/day × ${coverDays}d cover = <strong style="color:var(--blue)">${target.toFixed(0)} units</strong>
+        → Need <strong style="color:var(--pink)">${needed.toFixed(0)}</strong> more
+        ${item.order_type==='box' ? `→ Round to <strong>${item.units_per_pack||1}-unit ${item.pack_label||'box'}</strong>` : ''}
+      </div>
+    </div>`;
+
+  return `<div class="item-card ${oos?'oos':'ok'}" id="ic-${item.item_id}">
+    <div class="item-row">
+      <div style="flex:1;min-width:0">
+        <div class="item-name">${item.item_name} ${oos_tag}</div>
+        <div class="item-sub">
+          <span>₹${Number(item.purchase_price||0).toFixed(2)}/unit</span>
+          ${item.edit_qty > 0 ? `<span style="color:var(--pink);font-weight:600">= ₹${Math.round(item.edit_qty*Number(item.purchase_price||0)).toLocaleString('en-IN')}</span>` : ''}
+        </div>
+      </div>
+      <div style="flex-shrink:0;margin-left:10px">
+        <div class="qty-ctrl">
+          <button class="qbtn" onclick="changeQty(${item.item_id},-${step})">−</button>
+          <input class="qinp" type="number" min="0" step="${step}" value="${item.edit_qty}"
+            id="qi-${item.item_id}"
+            onchange="setQty(${item.item_id},this.value)"
+            oninput="setQty(${item.item_id},this.value)">
+          <button class="qbtn" onclick="changeQty(${item.item_id},${step})">+</button>
+        </div>
+        <div class="pack-hint" id="ph-${item.item_id}">${hint}</div>
+      </div>
+    </div>
+    ${formulaHtml}
+  </div>`;
+}
+
+function changeQty(itemId, delta) {
+  const item = orderItems.find(i=>i.item_id===itemId);
+  if (!item) return;
+  item.edit_qty = Math.max(0, item.edit_qty + delta);
+  const inp = document.getElementById(`qi-${itemId}`);
+  if (inp) inp.value = item.edit_qty;
+  updateHint(item);
+  updateStats(orderItems);
+}
+
+function setQty(itemId, val) {
+  const item = orderItems.find(i=>i.item_id===itemId);
+  if (!item) return;
+  item.edit_qty = Math.max(0, parseInt(val)||0);
+  updateHint(item);
+  updateStats(orderItems);
+}
+
+function updateHint(item) {
+  const ph = document.getElementById(`ph-${item.item_id}`);
+  if (!ph) return;
+  if (item.order_type === 'box') {
+    const boxes = item.edit_qty > 0 ? Math.ceil(item.edit_qty/(item.units_per_pack||1)) : 0;
+    ph.textContent = item.edit_qty > 0
+      ? `${boxes} ${item.pack_label||'box'} · ${item.edit_qty} units`
+      : `${item.units_per_pack||1} units per ${item.pack_label||'box'}`;
+  }
+  // Update line total display inside the card
+  const ic = document.getElementById(`ic-${item.item_id}`);
+  if (!ic) return;
+  const subEl = ic.querySelector('.item-sub');
+  if (!subEl) return;
+  const price = Number(item.purchase_price||0);
+  const lineTotal = item.edit_qty * price;
+  const spans = subEl.querySelectorAll('span');
+  if (spans.length >= 2) {
+    spans[1].textContent = item.edit_qty > 0 ? `= ₹${Math.round(lineTotal).toLocaleString('en-IN')}` : '';
+    spans[1].style.color = item.edit_qty > 0 ? 'var(--pink)' : '';
+    spans[1].style.fontWeight = item.edit_qty > 0 ? '600' : '';
+  }
+}
+
+function updateStats(items) {
+  const ordered  = items.filter(i=>i.edit_qty>0);
+  const oos      = items.filter(i=>i.is_out_of_stock && i.edit_qty>0).length;
+  const total    = ordered.reduce((s,i)=>s+i.edit_qty*Number(i.purchase_price||0),0);
+  document.getElementById('ord-oos').textContent   = items.filter(i=>i.is_out_of_stock).length;
+  document.getElementById('ord-items').textContent = ordered.length;
+  document.getElementById('ord-total').textContent = fmtINR(total);
+  document.getElementById('sb-total').textContent  = fmtINR(total);
+}
+
+// ── SUBMIT ORDER ──────────────────────────────────────────────────────────────
+async function submitOrder() {
+  const ordered = orderItems.filter(i=>i.edit_qty>0);
+  if (!ordered.length) { alert('No items in order. Add quantities first.'); return; }
+
+  const btn = document.getElementById('sub-btn');
+  btn.disabled=true; btn.textContent='Submitting...';
+
+  const poNum = `PO-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*900)+100}`;
+  const total = ordered.reduce((s,i)=>s+i.edit_qty*Number(i.purchase_price||0),0);
+
+  // Upsert order session
+  const sr = await fetch(`${SB_URL}/rest/v1/order_sessions`, {
+    method:'POST',
+    headers:{apikey:SB_ANON,'Content-Type':'application/json','Prefer':'return=representation,resolution=merge-duplicates'},
+    body:JSON.stringify({
+      session_date: new Date().toISOString().slice(0,10),
+      supplier_id:  currentSupplier.supplier_id,
+      supplier_name: currentSupplier.supplier_name,
+      submitted_by:  worker.full_name || worker.username,
+      status:       'submitted',
+      total_items:  ordered.length,
+      total_value:  Math.round(total),
+      po_number:    poNum,
+      submitted_at: new Date().toISOString()
+    })
+  });
+  const session = await sr.json();
+  sessionId = Array.isArray(session) ? session[0]?.id : session?.id;
+
+  // Insert line items
+  if (sessionId) {
+    await fetch(`${SB_URL}/rest/v1/order_session_items`, {
+      method:'POST',
+      headers:{apikey:SB_ANON,'Content-Type':'application/json'},
+      body:JSON.stringify(ordered.map(i=>({
+        session_id:    sessionId,
+        item_id:       i.item_id,
+        item_name:     i.item_name,
+        brand:         currentBrand,
+        current_stock: i.current_stock,
+        daily_avg:     i.avg_daily_sales,
+        suggested_qty: i.order_qty,
+        ordered_qty:   i.edit_qty,
+        units_per_pack: i.units_per_pack||1,
+        order_type:    i.order_type||'unit',
+        pack_label:    i.pack_label||'box',
+        purchase_price: i.purchase_price,
+        line_total:    Math.round(i.edit_qty*Number(i.purchase_price||0))
+      })))
+    });
+  }
+
+  btn.textContent='✓ Submitted!';
+  setTimeout(()=>{ btn.disabled=false; btn.textContent='Submit Order'; }, 2000);
+
+  // Show success and go back to today
+  alert(`Order submitted!\n${poNum}\n${ordered.length} items · ${fmtINR(total)}`);
+  goToday();
+}
+
+function sendWA() {
+  const ordered = orderItems.filter(i=>i.edit_qty>0);
+  if (!ordered.length) { alert('Add quantities first'); return; }
+  const total = ordered.reduce((s,i)=>s+i.edit_qty*Number(i.purchase_price||0),0);
+  const lines = ordered.map((it,idx)=>{
+    const qty = it.order_type==='box'
+      ? `${Math.ceil(it.edit_qty/(it.units_per_pack||1))} ${it.pack_label||'box'} (${it.edit_qty} units)`
+      : `${it.edit_qty} units`;
+    return `${idx+1}. ${it.item_name}\n   ${qty} · ${fmtINR(it.edit_qty*Number(it.purchase_price||0))}`;
+  }).join('\n');
+  const delivery = new Date(currentSupplier.next_visit_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+  const msg = `*Pink Supermarket — Purchase Order*\n\nSupplier: ${currentSupplier.supplier_name}\nBrand: ${currentBrand}\nDate: ${new Date().toLocaleDateString('en-IN')}\nDelivery: ${delivery}\n\n${lines}\n\n*Total: ${fmtINR(total)}*\n\nPlease confirm. 🙏`;
+  const num = (currentSupplier.whatsapp_number||'').replace(/\D/g,'');
+  window.open(`https://wa.me/91${num}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function goToday() {
+  currentSupplier=null; currentBrand=null; orderItems=[];
+  showScreen('s-today');
+  loadToday();
+}
+</script>
+</body>
+</html>
