@@ -294,8 +294,15 @@ tr:hover td{background:var(--g50);}
     </div>
 
     <!-- Brand Logo Upload -->
-    <div class="sh" style="margin-top:24px"><div><div class="sh-title">Brand logos</div><div class="sh-sub">Shown on worker dashboard brand cards</div></div></div>
+    <div class="sh" style="margin-top:24px"><div><div class="sh-title">Brand logos</div><div class="sh-sub">Upload logo for each brand — shown on worker order screen</div></div></div>
     <div class="card">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+        <input type="text" id="bl-manual-search" placeholder="Search brand to add (e.g. BRITANNIA, DOVE)…"
+          oninput="addBrandManually()"
+          style="flex:1;min-width:200px;height:34px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+        <span style="font-size:12px;color:var(--g400)">Click + to add brand</span>
+      </div>
+      <div id="bl-manual-results" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px"></div>
       <div id="brand-logo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px">
         <div class="lrow"><div class="sp"></div></div>
       </div>
@@ -1042,7 +1049,7 @@ async function uploadBrandLogo(brandId, brandName, input) {
 }
 
 async function syncBrandNames() {
-  // Pull all distinct brands from supplier_items and ensure brand_logos rows exist
+  // Pull brands from supplier_items if any exist, else show search to add manually
   const r = await fetch(`${SB_URL}/rest/v1/supplier_items?select=brand&is_active=eq.true`, {headers:{apikey:SB_ANON,...hdr()}});
   const items = await r.json();
   const brands = [...new Set(items.map(i=>i.brand).filter(Boolean))];
@@ -1053,6 +1060,32 @@ async function syncBrandNames() {
       body:JSON.stringify({brand_name:b})
     });
   }
+  loadBrandLogos();
+}
+
+async function addBrandManually() {
+  const q = document.getElementById('bl-manual-search').value.trim();
+  if (q.length < 2) return;
+  const r = await fetch(`${SB_URL}/rest/v1/kb_item_categories?item_category_name=ilike.*${encodeURIComponent(q)}*&select=item_category_name&limit=8`, {headers:{apikey:SB_ANON,...hdr()}});
+  const cats = await r.json();
+  const res = document.getElementById('bl-manual-results');
+  if (!cats.length) { res.innerHTML='<span style="font-size:12px;color:var(--g400)">No brands found</span>'; return; }
+  res.innerHTML = cats.map(c=>`
+    <button onclick="addBrandLogo('${c.item_category_name.replace(/'/g,"\\'")}')"
+      style="height:28px;padding:0 12px;border:2px solid var(--g200);border-radius:20px;background:white;
+             font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--g600);cursor:pointer;margin:2px">
+      + ${c.item_category_name}
+    </button>`).join('');
+}
+
+async function addBrandLogo(brandName) {
+  await fetch(`${SB_URL}/rest/v1/brand_logos`, {
+    method:'POST',
+    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates'},
+    body:JSON.stringify({brand_name:brandName})
+  });
+  document.getElementById('bl-manual-search').value = '';
+  document.getElementById('bl-manual-results').innerHTML = '';
   loadBrandLogos();
 }
 
