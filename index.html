@@ -263,7 +263,7 @@ tr:hover td{background:var(--g50);}
     <div class="sh"><div><div class="sh-title">Active suppliers</div><div class="sh-sub" id="ra-count">Loading...</div></div><button onclick="loadReorderAdmin()" style="height:32px;padding:0 14px;background:var(--g100);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">↻ Refresh</button></div>
     <div class="card" style="padding:0;overflow:hidden;">
       <div class="tw"><table>
-        <thead><tr><th>Logo</th><th>Supplier</th><th>Brands</th><th>Visit day</th><th>Cover days</th><th>Items</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Supplier</th><th>Brands</th><th>Visit day</th><th>Cover days</th><th>Items</th><th>Actions</th></tr></thead>
         <tbody id="ra-tbody"><tr><td colspan="7"><div class="lrow"><div class="sp"></div> Loading...</div></td></tr></tbody>
       </table></div>
     </div>
@@ -616,18 +616,11 @@ async function loadReorderAdmin() {
   items.forEach(i => { itemCounts[i.supplier_id] = (itemCounts[i.supplier_id]||0)+1; });
 
   document.getElementById('ra-count').textContent = `${sups.length} active suppliers`;
-  document.getElementById('ra-tbody').innerHTML = sups.length ? sups.map(s => {
-    const logoHtml = s.logo_url
-      ? `<img src="${s.logo_url}" style="width:36px;height:36px;object-fit:contain;border-radius:6px;border:1px solid var(--g200);">`
-      : `<div style="width:36px;height:36px;border-radius:6px;border:2px dashed var(--g200);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--g400);text-align:center;cursor:pointer" onclick="triggerLogoUpload(${s.id})">logo</div>`;
-    return `<tr>
+  document.getElementById('ra-tbody').innerHTML = sups.length ? sups.map(s => `<tr>
     <td>
-      <label style="cursor:pointer" title="Upload logo">
-        ${logoHtml}
-        <input type="file" accept="image/*" style="display:none" onchange="uploadLogo(${s.id}, this)">
-      </label>
+      <div style="font-size:13px;font-weight:600">${s.supplier_name}</div>
+      <div style="font-size:11px;color:var(--g400)">${s.whatsapp_number||''}</div>
     </td>
-    <td><strong style="font-size:12px">${s.supplier_name}</strong></td>
     <td style="font-size:11px;color:var(--g600)">${(s.brands||[]).join(', ')||'—'}</td>
     <td><span class="badge b-blue">${(s.visit_days||[]).map(d=>DAYS_MAP[d]).join(', ')}</span></td>
     <td class="mono">${s.cover_weeks*7} days</td>
@@ -636,7 +629,7 @@ async function loadReorderAdmin() {
       <button onclick="reOnboard(${s.id},'${s.supplier_name.replace(/'/g,"\\'")}')" style="height:26px;padding:0 8px;border:2px solid var(--blue);border-radius:6px;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer">↻ Re-scan</button>
       <button onclick="toggleSupplier(${s.id},false)" style="height:26px;padding:0 8px;border:2px solid var(--g200);border-radius:6px;background:var(--g100);color:var(--g600);font-size:11px;cursor:pointer">Disable</button>
     </td>
-  </tr>`;}).join('') : '<tr><td colspan="8" class="empty">No suppliers yet. Add one above.</td></tr>';
+  </tr>`).join('') : '<tr><td colspan="6" class="empty">No suppliers yet. Add one above.</td></tr>';
 
   loadWorkerUsers();
   populateSupplierSelect();
@@ -1231,35 +1224,6 @@ async function saveAllItems() {
   }
 }
 
-// ── LOGO UPLOAD ────────────────────────────────────────────────────────────────
-async function uploadLogo(supplierId, input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { alert('Image too large. Max 2MB.'); return; }
-
-  const ext  = file.name.split('.').pop().toLowerCase();
-  const path = `logos/supplier_${supplierId}.${ext}`;
-
-  // Upload to Supabase Storage
-  const up = await fetch(`${SB_URL}/storage/v1/object/supplier-logos/${path}`, {
-    method: 'POST',
-    headers: { apikey: SB_ANON, ...hdr(), 'Content-Type': file.type, 'x-upsert': 'true' },
-    body: file
-  });
-
-  if (!up.ok) { alert('Upload failed. Try again.'); return; }
-
-  const logoUrl = `${SB_URL}/storage/v1/object/public/supplier-logos/${path}?t=${Date.now()}`;
-
-  // Save URL to suppliers table
-  await fetch(`${SB_URL}/rest/v1/suppliers?id=eq.${supplierId}`, {
-    method: 'PATCH',
-    headers: { apikey: SB_ANON, ...hdr(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ logo_url: logoUrl })
-  });
-
-  loadReorderAdmin();
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lu-phone').addEventListener('keydown', e => { if(e.key==='Enter') doLookup(); });
