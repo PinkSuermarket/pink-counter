@@ -415,15 +415,27 @@ async function doLogin() {
   const p = document.getElementById('l-pass').value;
   const err = document.getElementById('l-err');
   const btn = document.getElementById('l-btn');
-  if (!u || !p) { err.style.display='block'; err.textContent='Enter username and password'; btn.disabled=false; btn.textContent='Sign in'; return; }
+  if (!u || !p) {
+    err.style.display='block'; err.textContent='Enter username and password';
+    return;
+  }
   err.style.display='none'; btn.disabled=true; btn.textContent='Signing in...';
   try {
-    // Use RPC function (SECURITY DEFINER — bypasses anon restrictions)
-    const r = await fetch(`${SB_URL}/rest/v1/rpc/worker_login`, {
-      method: 'POST',
-      headers: H,
-      body: JSON.stringify({p_username: u, p_password: p})
+    // Hash password in browser with SHA-256
+    const hashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p));
+    const hash = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
+
+    // Direct table query — anon SELECT granted, match username + hash
+    const url = `${SB_URL}/rest/v1/worker_users?select=id,username,full_name&is_active=eq.true&username=eq.${encodeURIComponent(u)}&password_hash=eq.${hash}`;
+    const r = await fetch(url, {
+      headers: { 'apikey': SB_ANON, 'Authorization': 'Bearer ' + SB_ANON }
     });
+
+    if (!r.ok) {
+      err.textContent = 'Server error ' + r.status + '. Try again.';
+      err.style.display='block'; btn.disabled=false; btn.textContent='Sign in'; return;
+    }
+
     const d = await r.json();
     if (!d || !d.length) {
       err.textContent = 'Incorrect username or password';
@@ -433,7 +445,8 @@ async function doLogin() {
     localStorage.setItem('pk_worker', JSON.stringify(worker));
     startApp();
   } catch(e) {
-    err.textContent = 'Connection error. Try again.';
+    console.error('Login error:', e);
+    err.textContent = 'Connection error: ' + e.message;
     err.style.display='block'; btn.disabled=false; btn.textContent='Sign in';
   }
 }
