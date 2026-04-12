@@ -657,20 +657,20 @@ async function goSupplier(sup) {
   // Fetch brands + their reorder status + logos
   const [itemsR, reorderR, logoR] = await Promise.all([
     fetch(`${SB_URL}/rest/v1/supplier_items?supplier_id=eq.${sup.supplier_id}&is_active=eq.true&select=brand`, {headers:H}),
-    fetch(`${SB_URL}/rest/v1/v_reorder_now?supplier_id=eq.${sup.supplier_id}&select=brand,needs_order,is_out_of_stock,order_value`, {headers:H}),
+    fetch(`${SB_URL}/rest/v1/rpc/get_supplier_reorder`, {method:'POST', headers:HP, body:JSON.stringify({p_supplier_id:sup.supplier_id})}),
     fetch(`${SB_URL}/rest/v1/brand_logos?select=brand_name,logo_url`, {headers:H})
   ]);
   const items   = await itemsR.json();
-  const reorder = await reorderR.json();
-  const logos   = await logoR.json();
+  const reorder = await reorderR.json().catch(()=>[]);
+  const logos   = await logoR.json().catch(()=>[]);
 
   // Group brands
   const brandMap = {};
-  items.forEach(i=>{
+  (Array.isArray(items)?items:[]).forEach(i=>{
     if(!brandMap[i.brand]) brandMap[i.brand]={brand:i.brand,items:0,needsOrder:0,oos:0,orderValue:0};
     brandMap[i.brand].items++;
   });
-  reorder.forEach(r=>{
+  (Array.isArray(reorder)?reorder:[]).forEach(r=>{
     if(!brandMap[r.brand]) return;
     if(r.needs_order) { brandMap[r.brand].needsOrder++; brandMap[r.brand].orderValue+=Number(r.order_value||0); }
     if(r.is_out_of_stock) brandMap[r.brand].oos++;
@@ -722,17 +722,15 @@ async function goBrand(brand) {
   document.getElementById('submit-bar').classList.add('visible');
 
   // Fetch live reorder data for this supplier + brand
-  const r = await fetch(
-    `${SB_URL}/rest/v1/v_reorder_now?supplier_id=eq.${currentSup.supplier_id}&brand=eq.${encodeURIComponent(currentBrand)}&order=is_out_of_stock.desc,order_value.desc`,
-    {headers:H}
-  );
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/get_brand_order_items`, {method:'POST', headers:HP, body:JSON.stringify({p_supplier_id:currentSup.supplier_id, p_brand:currentBrand})});
   const data = await r.json();
 
-  if (!data.length) {
+  const dataArr = Array.isArray(data) ? data : [];
+  if (!dataArr.length) {
     document.getElementById('order-body').innerHTML='<div class="empty">No items found for this brand.</div>'; return;
   }
 
-  orderItems = data.map(d=>({...d, edit_qty: d.order_qty||0}));
+  orderItems = dataArr.map(d=>({...d, edit_qty: d.order_qty||0}));
   renderOrder();
 }
 
