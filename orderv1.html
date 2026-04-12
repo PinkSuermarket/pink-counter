@@ -361,6 +361,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
         </div>
         <div class="date-strip-pill" id="strip-badge">Loading...</div>
       </div>
+      <div id="week-strip"></div>
       <div id="sup-body"><div class="lrow"><div class="sp"></div></div></div>
     </div>
 
@@ -396,12 +397,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
 
 <script>
 const SB_URL  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
-const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdobG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
+const SB_ANON = 'sb_publishable_unOW9_eUhaPki59JWbccgA_Pg4nflGS';
 // GET requests — no Content-Type
 const H = {
   'apikey': SB_ANON,
   'Authorization': 'Bearer ' + SB_ANON
 };
+
 // POST/PATCH requests
 const HP = {
   'apikey': SB_ANON,
@@ -459,6 +461,7 @@ function startApp() {
   const now = new Date();
   document.getElementById('strip-day').textContent = now.toLocaleDateString('en-IN',{weekday:'long'});
   document.getElementById('strip-date').textContent = now.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  renderWeekStrip([]);
   loadSuppliers();
 }
 const saved = localStorage.getItem('pk_worker');
@@ -501,6 +504,39 @@ function updateTopbar() {
   if (cur==='s-suppliers') { title.textContent='Today\'s Orders'; sub.textContent=''; }
   else if (cur==='s-brands') { title.textContent=currentSup?.supplier_name||'Brands'; sub.textContent='Select a brand to order'; }
   else if (cur==='s-order') { title.textContent=currentBrand||'Order'; sub.textContent=currentSup?.supplier_name||''; }
+}
+
+
+function renderWeekStrip(sups) {
+  const DNAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const now = new Date();
+  const todayISO = now.getDay() === 0 ? 7 : now.getDay();
+  const daySupMap = {};
+  sups.forEach(s => {
+    (s.visit_days || []).forEach(vd => {
+      const d = Number(vd);
+      if (!daySupMap[d]) daySupMap[d] = [];
+      daySupMap[d].push(s);
+    });
+  });
+  let html = '<div style="display:flex;gap:3px;margin-bottom:14px">';
+  for (let d = 1; d <= 7; d++) {
+    const daySups   = daySupMap[d] || [];
+    const isToday   = d === todayISO;
+    const hasSup    = daySups.length > 0;
+    const hasUrgent = daySups.some(s => s.reorder?.needsOrder > 0 && !s.session);
+    const isDone    = hasSup && daySups.every(s => s.session);
+    const dotColor  = !hasSup ? 'transparent' : isDone ? '#1a9e6e' : hasUrgent ? '#dc2626' : '#d97706';
+    const bg        = isToday ? 'var(--pink)' : hasSup ? 'var(--g200)' : 'var(--g100)';
+    const textColor = isToday ? 'white' : hasSup ? 'var(--g900)' : 'var(--g400)';
+    html += `<div style="flex:1;text-align:center;padding:7px 2px;border-radius:10px;background:${bg}">
+      <div style="font-size:11px;font-weight:600;color:${textColor}">${DNAMES[d-1]}</div>
+      <div style="width:5px;height:5px;border-radius:50%;background:${dotColor};margin:4px auto 0"></div>
+    </div>`;
+  }
+  html += '</div>';
+  const el = document.getElementById('week-strip');
+  if (el) el.innerHTML = html;
 }
 
 // ── SCREEN 1: SUPPLIERS ───────────────────────────────────────────────────────
@@ -554,40 +590,8 @@ async function loadSuppliers() {
 
   let html = '';
 
-  // ── WEEK STRIP ──
-  const DNAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const now = new Date();
-  // JS getDay(): 0=Sun,1=Mon..6=Sat → convert to ISO: 1=Mon..7=Sun
-  const todayISO = now.getDay() === 0 ? 7 : now.getDay();
-
-  // Build a map: ISO day number → suppliers visiting that day
-  // visit_days comes from Postgres array — may be numbers or strings, cast both
-  const daySupMap = {};
-  sups.forEach(s => {
-    (s.visit_days || []).forEach(vd => {
-      const d = Number(vd);
-      if (!daySupMap[d]) daySupMap[d] = [];
-      daySupMap[d].push(s);
-    });
-  });
-
-  let weekHtml = '<div style="display:flex;gap:3px;margin-bottom:14px">';
-  for (let d = 1; d <= 7; d++) {
-    const daySups   = daySupMap[d] || [];
-    const isToday   = d === todayISO;
-    const hasSup    = daySups.length > 0;
-    const hasUrgent = daySups.some(s => s.reorder?.needsOrder > 0 && !s.session);
-    const isDone    = hasSup && daySups.every(s => s.session);
-    const dotColor  = !hasSup ? 'transparent' : isDone ? '#1a9e6e' : hasUrgent ? '#dc2626' : '#d97706';
-    const bg        = isToday ? 'var(--pink)' : hasSup ? 'var(--g200)' : 'var(--g100)';
-    const textColor = isToday ? 'white' : hasSup ? 'var(--g900)' : 'var(--g400)';
-    weekHtml += `<div style="flex:1;text-align:center;padding:7px 2px;border-radius:10px;background:${bg}">
-      <div style="font-size:11px;font-weight:600;color:${textColor}">${DNAMES[d-1]}</div>
-      <div style="width:5px;height:5px;border-radius:50%;background:${dotColor};margin:4px auto 0"></div>
-    </div>`;
-  }
-  weekHtml += '</div>';
-  html += weekHtml;
+  // Update week strip now that we have supplier data
+  renderWeekStrip(sups);
 
   if (todaySups.length) {
     html += '<div class="sec-label">Today</div>';
