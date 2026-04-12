@@ -271,6 +271,14 @@ tr:hover td{background:var(--g50);}
       </table></div>
     </div>
 
+    <!-- Brand Logo Upload -->
+    <div class="sh" style="margin-top:24px"><div><div class="sh-title">Brand logos</div><div class="sh-sub">Shown on worker dashboard brand cards</div></div></div>
+    <div class="card">
+      <div id="brand-logo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px">
+        <div class="lrow"><div class="sp"></div></div>
+      </div>
+    </div>
+
     <!-- Item Config per Supplier -->
     <div class="sh" style="margin-top:24px"><div><div class="sh-title">Item settings</div><div class="sh-sub">Set min order qty and unit type per item per supplier</div></div></div>
     <div class="card">
@@ -603,6 +611,7 @@ async function loadReorderAdmin() {
 
   loadWorkerUsers();
   populateSupplierSelect();
+  syncBrandNames();
 }
 
 async function searchSuppliers() {
@@ -715,6 +724,7 @@ async function toggleWorker(id, active) {
   });
   loadWorkerUsers();
   populateSupplierSelect();
+  syncBrandNames();
 }
 
 // ── INVENTORY ─────────────────────────────────────────────────────────────────
@@ -900,6 +910,70 @@ async function doRedeem(id) {
 }
 function resetLookup() { document.getElementById('lu-phone').value=''; document.getElementById('lu-result').innerHTML=''; }
 
+
+
+// ── BRAND LOGOS ───────────────────────────────────────────────────────────────
+async function loadBrandLogos() {
+  const r = await fetch(`${SB_URL}/rest/v1/brand_logos?select=id,brand_name,logo_url&order=brand_name`, {headers:{apikey:SB_ANON,...hdr()}});
+  const brands = await r.json();
+  const grid = document.getElementById('brand-logo-grid');
+  if (!grid) return;
+  if (!brands.length) { grid.innerHTML='<div style="font-size:12px;color:var(--g400)">No brands yet. Add suppliers and their items will appear here.</div>'; return; }
+
+  grid.innerHTML = brands.map(b => {
+    const slug = b.brand_name.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+    const logoHtml = b.logo_url
+      ? `<img src="${b.logo_url}?t=${Date.now()}" style="width:60px;height:60px;object-fit:contain;border-radius:10px;border:1px solid var(--g200);display:block;margin:0 auto 8px">`
+      : `<div style="width:60px;height:60px;border-radius:10px;border:2px dashed var(--g200);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--g400);text-align:center;margin:0 auto 8px;padding:4px">${b.brand_name.split(' ').map(w=>w[0]).join('').slice(0,3)}</div>`;
+    return `<div style="text-align:center">
+      <label style="cursor:pointer;display:block" title="Upload logo for ${b.brand_name}">
+        ${logoHtml}
+        <div style="font-size:11px;font-weight:600;color:var(--g900);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${b.brand_name}">${b.brand_name}</div>
+        <div style="font-size:10px;color:var(--pink);font-weight:600">+ Upload logo</div>
+        <input type="file" accept="image/*" style="display:none" onchange="uploadBrandLogo(${b.id}, '${b.brand_name.replace(/'/g,"\\'")}', this)">
+      </label>
+    </div>`;
+  }).join('');
+}
+
+async function uploadBrandLogo(brandId, brandName, input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2*1024*1024) { alert('Image too large. Max 2MB.'); return; }
+  const ext  = file.name.split('.').pop().toLowerCase();
+  const slug = brandName.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  const path = `logos/${slug}.${ext}`;
+
+  const up = await fetch(`${SB_URL}/storage/v1/object/brand-logos/${path}`, {
+    method:'POST',
+    headers:{apikey:SB_ANON,...hdr(),'Content-Type':file.type,'x-upsert':'true'},
+    body:file
+  });
+  if (!up.ok) { alert('Upload failed'); return; }
+
+  const logoUrl = `${SB_URL}/storage/v1/object/public/brand-logos/${path}`;
+  await fetch(`${SB_URL}/rest/v1/brand_logos?id=eq.${brandId}`, {
+    method:'PATCH',
+    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
+    body:JSON.stringify({logo_url:logoUrl})
+  });
+  loadBrandLogos();
+}
+
+async function syncBrandNames() {
+  // Pull all distinct brands from supplier_items and ensure brand_logos rows exist
+  const r = await fetch(`${SB_URL}/rest/v1/supplier_items?select=brand&is_active=eq.true`, {headers:{apikey:SB_ANON,...hdr()}});
+  const items = await r.json();
+  const brands = [...new Set(items.map(i=>i.brand).filter(Boolean))];
+  for (const b of brands) {
+    await fetch(`${SB_URL}/rest/v1/brand_logos`, {
+      method:'POST',
+      headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates'},
+      body:JSON.stringify({brand_name:b})
+    });
+  }
+  loadBrandLogos();
+}
 
 // ── ITEM CONFIG ───────────────────────────────────────────────────────────────
 const UNIT_OPTS = ['unit','box','bag','kg','g','ml','l','dozen','carton','strip','piece','pack','can','bottle','jar','pouch','sachet','roll'];
