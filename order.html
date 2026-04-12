@@ -543,10 +543,9 @@ function renderWeekStrip(sups) {
 async function loadSuppliers() {
   document.getElementById('sup-body').innerHTML='<div class="lrow"><div class="sp"></div></div>';
 
-  const [supR, sessR, reorderR] = await Promise.all([
-    fetch(`${SB_URL}/rest/v1/v_today_suppliers`, {headers:H}),
-    fetch(`${SB_URL}/rest/v1/order_sessions?session_date=eq.${new Date().toISOString().slice(0,10)}&select=supplier_id,status,total_value`, {headers:H}),
-    fetch(`${SB_URL}/rest/v1/v_reorder_now?select=supplier_id,needs_order,is_out_of_stock`, {headers:H})
+  const [supR, sessR] = await Promise.all([
+    fetch(`${SB_URL}/rest/v1/rpc/get_today_suppliers`, {method:'POST', headers:HP, body:'{}'}),
+    fetch(`${SB_URL}/rest/v1/order_sessions?session_date=eq.${new Date().toISOString().slice(0,10)}&select=supplier_id,status,total_value`, {headers:H})
   ]);
 
   // Check for auth errors
@@ -556,22 +555,30 @@ async function loadSuppliers() {
     return;
   }
 
-  const sups      = await supR.json();
-  const sess      = await sessR.json();
-  const reorderData = await reorderR.json();
+  // Fetch reorder data separately — don't let it block the page if it fails
+  let reorderR = {ok:true};
+  const reorderRaw = await fetch(`${SB_URL}/rest/v1/rpc/get_reorder_summary`, {method:'POST', headers:HP, body:'{}'}).catch(()=>null);
+
+  const sups        = await supR.json();
+  const sess        = await sessR.json().catch(()=>[]);
+  const reorderData = (reorderRaw && reorderRaw.ok) ? await reorderRaw.json().catch(()=>[]) : [];
 
   if (!Array.isArray(sups)) {
     document.getElementById('sup-body').innerHTML=`<div class="empty">Error loading data.<br><small style="font-size:11px;color:var(--g400)">${JSON.stringify(sups)}</small><br><br><button onclick="loadSuppliers()" style="margin-top:8px;padding:8px 20px;background:var(--pink);color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer">↻ Retry</button></div>`;
     return;
   }
 
-  const sessMap = {}; sess.forEach(s=>sessMap[s.supplier_id]=s);
+  const sessMap = {};
+  if (Array.isArray(sess)) sess.forEach(s=>sessMap[s.supplier_id]=s);
+
   const reorderMap = {};
-  reorderData.forEach(r=>{
-    if(!reorderMap[r.supplier_id]) reorderMap[r.supplier_id]={needsOrder:0,oos:0};
-    if(r.needs_order) reorderMap[r.supplier_id].needsOrder++;
-    if(r.is_out_of_stock) reorderMap[r.supplier_id].oos++;
-  });
+  if (Array.isArray(reorderData)) {
+    reorderData.forEach(r=>{
+      if(!reorderMap[r.supplier_id]) reorderMap[r.supplier_id]={needsOrder:0,oos:0};
+      if(r.needs_order) reorderMap[r.supplier_id].needsOrder++;
+      if(r.is_out_of_stock) reorderMap[r.supplier_id].oos++;
+    });
+  }
 
   sups.forEach(s=>{
     s.session = sessMap[s.supplier_id]||null;
