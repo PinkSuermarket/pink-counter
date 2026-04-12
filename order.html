@@ -397,7 +397,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
 <script>
 const SB_URL  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
 const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdobG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
-const H = {apikey: SB_ANON};
+const H = {
+  'apikey': SB_ANON,
+  'Authorization': 'Bearer ' + SB_ANON,
+  'Content-Type': 'application/json'
+};
 
 let worker = null;
 let currentSup = null;
@@ -414,10 +418,10 @@ async function doLogin() {
   if (!u || !p) { err.style.display='block'; err.textContent='Enter username and password'; btn.disabled=false; btn.textContent='Sign in'; return; }
   err.style.display='none'; btn.disabled=true; btn.textContent='Signing in...';
   try {
-    // Use RPC function (SECURITY DEFINER — bypasses RLS, safe)
+    // Use RPC function (SECURITY DEFINER — bypasses anon restrictions)
     const r = await fetch(`${SB_URL}/rest/v1/rpc/worker_login`, {
       method: 'POST',
-      headers: {...H, 'Content-Type': 'application/json'},
+      headers: H,
       body: JSON.stringify({p_username: u, p_password: p})
     });
     const d = await r.json();
@@ -840,7 +844,7 @@ async function submitOrder() {
 
   const sr = await fetch(`${SB_URL}/rest/v1/order_sessions`, {
     method:'POST',
-    headers:{...H,'Content-Type':'application/json','Prefer':'return=representation,resolution=merge-duplicates'},
+    headers:{...H,'Prefer':'return=representation,resolution=merge-duplicates'},
     body:JSON.stringify({
       session_date:today, supplier_id:currentSup.supplier_id,
       supplier_name:currentSup.supplier_name, submitted_by:worker.full_name||worker.username,
@@ -855,7 +859,7 @@ async function submitOrder() {
   if (sessId) {
     await fetch(`${SB_URL}/rest/v1/order_session_items`,{
       method:'POST',
-      headers:{...H,'Content-Type':'application/json'},
+      headers:{...H},
       body:JSON.stringify(ordered.map(i=>({
         session_id:sessId, item_id:i.item_id, item_name:i.item_name, brand:currentBrand,
         current_stock:i.current_stock, daily_avg:i.avg_daily_sales,

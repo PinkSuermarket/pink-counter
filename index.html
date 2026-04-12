@@ -208,31 +208,53 @@ tr:hover td{background:var(--g50);}
   <div class="page" id="page-reorder">
     <div class="note">Add suppliers from your purchase history. Set visit day and stock cover. Worker app uses this config to generate live orders.</div>
 
-    <!-- Add New Supplier -->
+    <!-- Add New Supplier — Brand-first flow -->
     <div class="card">
       <div class="card-title">Add supplier</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-        <div style="flex:1;min-width:180px">
-          <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Search supplier name</div>
-          <input type="text" id="ra-search" placeholder="e.g. KALVI TRADERS" oninput="searchSuppliers()" style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
-          <div id="ra-search-results" style="margin-top:4px;border:2px solid var(--g200);border-radius:8px;display:none;background:white;max-height:180px;overflow-y:auto;"></div>
+      <div class="note" style="margin-bottom:14px">Search by <strong>brand name</strong> (e.g. BRITANNIA, MR GOLD) → select which supplier brings it → set visit day.</div>
+      
+      <!-- Step 1: Brand search -->
+      <div id="ra-step1">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Search brand / category</div>
+            <input type="text" id="ra-brand-search" placeholder="e.g. BRITANNIA, MR GOLD, HAIR CARE…"
+              oninput="searchBrands()"
+              style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+          </div>
         </div>
-        <div style="min-width:130px">
-          <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Visit day</div>
-          <select id="ra-day" style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
-            <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
-            <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="7">Sunday</option>
-          </select>
+        <div id="ra-brand-results" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- Step 2: Supplier selection (shown after brand pick) -->
+      <div id="ra-step2" style="display:none;margin-top:14px;padding-top:14px;border-top:2px solid var(--g100)">
+        <div style="font-size:12px;font-weight:600;color:var(--g600);margin-bottom:8px">
+          Suppliers who bring <span id="ra-selected-brand" style="color:var(--pink)"></span>:
         </div>
-        <div style="min-width:110px">
-          <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Stock cover days</div>
-          <input type="number" id="ra-cover" value="15" min="7" max="30" style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none;">
+        <div id="ra-supplier-list" style="margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div style="min-width:130px">
+            <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Visit day</div>
+            <select id="ra-day" style="height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+              <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+              <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="7">Sunday</option>
+            </select>
+          </div>
+          <div style="min-width:110px">
+            <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Cover days</div>
+            <input type="number" id="ra-cover" value="15" min="7" max="30"
+              style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none;">
+          </div>
+          <div style="min-width:80px">
+            <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Avg months</div>
+            <input type="number" id="ra-avgmo" value="3" min="1" max="6"
+              style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none;">
+          </div>
+          <button onclick="addSupplier()" id="ra-add-btn"
+            style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;opacity:.5;" disabled>
+            + Add & Onboard
+          </button>
         </div>
-        <div style="min-width:90px">
-          <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Avg months</div>
-          <input type="number" id="ra-avgmo" value="3" min="1" max="6" style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none;">
-        </div>
-        <button onclick="addSupplier()" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">+ Add & Onboard</button>
       </div>
       <div id="ra-add-status" style="margin-top:10px;font-size:13px;display:none;"></div>
     </div>
@@ -614,25 +636,84 @@ async function loadReorderAdmin() {
   syncBrandNames();
 }
 
-async function searchSuppliers() {
-  const q = document.getElementById('ra-search').value.trim();
-  const res = document.getElementById('ra-search-results');
-  if (q.length < 2) { res.style.display='none'; return; }
-  // Search kb_names for purchase suppliers
-  const r = await fetch(`${SB_URL}/rest/v1/kb_names?full_name=ilike.*${encodeURIComponent(q)}*&name_type=eq.2&select=name_id,full_name,phone_number&limit=8`, {headers:{apikey:SB_ANON,...hdr()}});
-  const names = await r.json();
-  if (!names.length) { res.innerHTML='<div style="padding:8px 12px;font-size:12px;color:var(--g400)">No suppliers found</div>'; res.style.display='block'; return; }
-  res.style.display='block';
-  res.innerHTML = names.map(n=>`<div onclick="pickSupplier('${n.full_name.replace(/'/g,"\\'")}')" style="padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--g100)" onmouseover="this.style.background='var(--g50)'" onmouseout="this.style.background='white'">${n.full_name} <span style="font-size:11px;color:var(--g400)">${n.phone_number||''}</span></div>`).join('');
+let raSelectedSupplier = null;
+
+async function searchBrands() {
+  const q = document.getElementById('ra-brand-search').value.trim();
+  const res = document.getElementById('ra-brand-results');
+  if (q.length < 2) { res.innerHTML=''; return; }
+
+  // Search distinct brands/categories from purchase history
+  const r = await fetch(
+    `${SB_URL}/rest/v1/kb_item_categories?item_category_name=ilike.*${encodeURIComponent(q)}*&select=item_category_id,item_category_name&limit=10`,
+    {headers:{apikey:SB_ANON,...hdr()}}
+  );
+  const cats = await r.json();
+  if (!cats.length) {
+    res.innerHTML='<div style="padding:8px;font-size:12px;color:var(--g400)">No brands found. Try a different search.</div>';
+    return;
+  }
+  res.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
+    cats.map(c=>`<button onclick="pickBrand('${c.item_category_name.replace(/'/g,"\\'")}','${c.item_category_id}')"
+      style="height:30px;padding:0 12px;border:2px solid var(--g200);border-radius:20px;background:white;
+             font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--g600);cursor:pointer;">
+      ${c.item_category_name}
+    </button>`).join('') + '</div>';
 }
 
-function pickSupplier(name) {
-  document.getElementById('ra-search').value = name;
-  document.getElementById('ra-search-results').style.display='none';
+async function pickBrand(brandName, catId) {
+  document.getElementById('ra-brand-search').value = brandName;
+  document.getElementById('ra-brand-results').innerHTML = '';
+  document.getElementById('ra-selected-brand').textContent = brandName;
+  document.getElementById('ra-step2').style.display = 'block';
+  document.getElementById('ra-supplier-list').innerHTML = '<div class="lrow" style="padding:12px"><div class="sp"></div> Finding suppliers...</div>';
+  raSelectedSupplier = null;
+  document.getElementById('ra-add-btn').disabled = true;
+  document.getElementById('ra-add-btn').style.opacity = '.5';
+
+  // Find suppliers who have bought this category in last 6 months
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/get_suppliers_for_brand`, {
+    method: 'POST',
+    headers: {apikey: SB_ANON, ...hdr(), 'Content-Type': 'application/json'},
+    body: JSON.stringify({p_category_id: parseInt(catId)})
+  });
+  const suppliers = await r.json();
+
+  if (!suppliers || !suppliers.length) {
+    document.getElementById('ra-supplier-list').innerHTML =
+      '<div style="font-size:12px;color:var(--g400)">No suppliers found for this brand in last 6 months.</div>';
+    return;
+  }
+  document.getElementById('ra-supplier-list').innerHTML = suppliers.map(s =>
+    `<div onclick="pickRASupplier(${JSON.stringify(s).replace(/"/g,'&quot;')})"
+      id="ra-sup-${s.name_id}"
+      style="padding:10px 14px;border:2px solid var(--g200);border-radius:10px;cursor:pointer;margin-bottom:6px;
+             display:flex;align-items:center;justify-content:space-between;transition:.15s"
+      onmouseover="this.style.borderColor='var(--pink)'" onmouseout="if(!this.classList.contains('selected'))this.style.borderColor='var(--g200)'">
+      <div>
+        <div style="font-size:13px;font-weight:600">${s.supplier_name}</div>
+        <div style="font-size:11px;color:var(--g400)">${s.phone_number||'—'} · ${s.order_count} orders · ₹${Math.round(s.total_value).toLocaleString('en-IN')}</div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--green)">Select →</div>
+    </div>`
+  ).join('');
+}
+
+function pickRASupplier(sup) {
+  raSelectedSupplier = sup;
+  // highlight selection
+  document.querySelectorAll('[id^="ra-sup-"]').forEach(el => {
+    el.style.borderColor = 'var(--g200)'; el.classList.remove('selected');
+  });
+  const el = document.getElementById(`ra-sup-${sup.name_id}`);
+  if (el) { el.style.borderColor = 'var(--pink)'; el.style.background = 'var(--pink-l)'; el.classList.add('selected'); }
+  document.getElementById('ra-add-btn').disabled = false;
+  document.getElementById('ra-add-btn').style.opacity = '1';
 }
 
 async function addSupplier() {
-  const name = document.getElementById('ra-search').value.trim();
+  if (!raSelectedSupplier) { alert('Please select a supplier first'); return; }
+  const name = raSelectedSupplier.supplier_name;
   const day  = parseInt(document.getElementById('ra-day').value);
   const cover= parseInt(document.getElementById('ra-cover').value)||15;
   const avgmo= parseInt(document.getElementById('ra-avgmo').value)||3;
