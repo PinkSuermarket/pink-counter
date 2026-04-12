@@ -549,21 +549,33 @@ async function loadSuppliers() {
   // ── WEEK STRIP ──
   const DNAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const now = new Date();
-  const todayISO = now.getDay()===0 ? 7 : now.getDay(); // 1=Mon..7=Sun
-  // Build Mon-Sun strip
-  let weekHtml = '<div style="display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px">';
-  for (let d=1; d<=7; d++) {
-    const daysFromToday = d >= todayISO ? d - todayISO : 7 - todayISO + d;
-    const suppliersThisDay = sups.filter(s=>(s.visit_days||[]).includes(d));
-    const isToday = d === todayISO;
-    const hasSup  = suppliersThisDay.length > 0;
-    const hasUrgent = suppliersThisDay.some(s=>s.reorder?.needsOrder>0 && !s.session);
-    const isDone  = suppliersThisDay.length>0 && suppliersThisDay.every(s=>s.session);
-    const dotColor = !hasSup ? 'var(--g200)' : isDone ? 'var(--green)' : hasUrgent ? 'var(--red)' : 'var(--amber)';
-    weekHtml += `<div style="flex:1;min-width:40px;text-align:center;padding:8px 4px;border-radius:10px;
-      background:${isToday?'var(--pink)':'var(--g100)'};cursor:default">
-      <div style="font-size:11px;font-weight:600;color:${isToday?'white':'var(--g600)'}">${DNAMES[d-1]}</div>
-      <div style="width:6px;height:6px;border-radius:50%;background:${dotColor};margin:4px auto 0"></div>
+  // JS getDay(): 0=Sun,1=Mon..6=Sat → convert to ISO: 1=Mon..7=Sun
+  const todayISO = now.getDay() === 0 ? 7 : now.getDay();
+
+  // Build a map: ISO day number → suppliers visiting that day
+  // visit_days comes from Postgres array — may be numbers or strings, cast both
+  const daySupMap = {};
+  sups.forEach(s => {
+    (s.visit_days || []).forEach(vd => {
+      const d = Number(vd);
+      if (!daySupMap[d]) daySupMap[d] = [];
+      daySupMap[d].push(s);
+    });
+  });
+
+  let weekHtml = '<div style="display:flex;gap:3px;margin-bottom:14px">';
+  for (let d = 1; d <= 7; d++) {
+    const daySups   = daySupMap[d] || [];
+    const isToday   = d === todayISO;
+    const hasSup    = daySups.length > 0;
+    const hasUrgent = daySups.some(s => s.reorder?.needsOrder > 0 && !s.session);
+    const isDone    = hasSup && daySups.every(s => s.session);
+    const dotColor  = !hasSup ? 'transparent' : isDone ? '#1a9e6e' : hasUrgent ? '#dc2626' : '#d97706';
+    const bg        = isToday ? 'var(--pink)' : hasSup ? 'var(--g200)' : 'var(--g100)';
+    const textColor = isToday ? 'white' : hasSup ? 'var(--g900)' : 'var(--g400)';
+    weekHtml += `<div style="flex:1;text-align:center;padding:7px 2px;border-radius:10px;background:${bg}">
+      <div style="font-size:11px;font-weight:600;color:${textColor}">${DNAMES[d-1]}</div>
+      <div style="width:5px;height:5px;border-radius:50%;background:${dotColor};margin:4px auto 0"></div>
     </div>`;
   }
   weekHtml += '</div>';
