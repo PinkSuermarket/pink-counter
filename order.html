@@ -397,7 +397,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
 <script>
 const SB_URL  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
 const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdobG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
+// GET requests — no Content-Type
 const H = {
+  'apikey': SB_ANON,
+  'Authorization': 'Bearer ' + SB_ANON
+};
+// POST/PATCH requests
+const HP = {
   'apikey': SB_ANON,
   'Authorization': 'Bearer ' + SB_ANON,
   'Content-Type': 'application/json'
@@ -869,7 +875,7 @@ async function submitOrder() {
 
   const sr = await fetch(`${SB_URL}/rest/v1/order_sessions`, {
     method:'POST',
-    headers:{...H,'Prefer':'return=representation,resolution=merge-duplicates'},
+    headers:{...HP,'Prefer':'return=representation,resolution=merge-duplicates'},
     body:JSON.stringify({
       session_date:today, supplier_id:currentSup.supplier_id,
       supplier_name:currentSup.supplier_name, submitted_by:worker.full_name||worker.username,
@@ -884,7 +890,7 @@ async function submitOrder() {
   if (sessId) {
     await fetch(`${SB_URL}/rest/v1/order_session_items`,{
       method:'POST',
-      headers:{...H},
+      headers:{...HP},
       body:JSON.stringify(ordered.map(i=>({
         session_id:sessId, item_id:i.item_id, item_name:i.item_name, brand:currentBrand,
         current_stock:i.current_stock, daily_avg:i.avg_daily_sales,
