@@ -512,12 +512,20 @@ async function loadSuppliers() {
     fetch(`${SB_URL}/rest/v1/order_sessions?session_date=eq.${new Date().toISOString().slice(0,10)}&select=supplier_id,status,total_value`, {headers:H}),
     fetch(`${SB_URL}/rest/v1/v_reorder_now?select=supplier_id,needs_order,is_out_of_stock`, {headers:H})
   ]);
+
+  // Check for auth errors
+  if (!supR.ok) {
+    const errText = await supR.text();
+    document.getElementById('sup-body').innerHTML=`<div class="empty">Auth error ${supR.status}<br><small style="font-size:10px">${errText.slice(0,100)}</small><br><button onclick="loadSuppliers()" style="margin-top:8px;padding:8px 20px;background:var(--pink);color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer">↻ Retry</button></div>`;
+    return;
+  }
+
   const sups      = await supR.json();
   const sess      = await sessR.json();
   const reorderData = await reorderR.json();
 
   if (!Array.isArray(sups)) {
-    document.getElementById('sup-body').innerHTML='<div class="empty">Error loading suppliers. Please refresh.</div>';
+    document.getElementById('sup-body').innerHTML=`<div class="empty">Error loading data.<br><small style="font-size:11px;color:var(--g400)">${JSON.stringify(sups)}</small><br><br><button onclick="loadSuppliers()" style="margin-top:8px;padding:8px 20px;background:var(--pink);color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer">↻ Retry</button></div>`;
     return;
   }
 
@@ -662,7 +670,7 @@ async function goSupplier(sup) {
   const brands = Object.values(brandMap).sort((a,b)=>b.needsOrder-a.needsOrder);
 
   // If only 1 brand — skip straight to order screen
-  if (brands.length===1) { goBrand(brands[0], logoMap); return; }
+  if (brands.length===1) { goBrand(brands[0]); return; }
 
   if (!brands.length) {
     document.getElementById('brand-body').innerHTML='<div class="empty">No items found.<br>Ask admin to re-scan this supplier.</div>'; return;
@@ -681,7 +689,7 @@ async function goSupplier(sup) {
     else if (b.needsOrder>0) badge=`<span class="badge badge-amber">${b.needsOrder} order</span>`;
     else badge=`<span class="badge badge-green">OK</span>`;
 
-    return `<div class="brand-card ${urgent?'urgent':'ok'}" onclick="goBrand(${JSON.stringify(b).replace(/"/g,'&quot;')}, ${JSON.stringify(logoMap).replace(/"/g,'&quot;')})">
+    return `<div class="brand-card ${urgent?'urgent':'ok'}" onclick="goBrand(${JSON.stringify(b).replace(/"/g,'&quot;')})">
       <div class="brand-badge">${badge}</div>
       <div class="brand-logo">${logoHtml}</div>
       <div class="brand-name">${b.brand}</div>

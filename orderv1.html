@@ -670,7 +670,7 @@ async function goSupplier(sup) {
   const brands = Object.values(brandMap).sort((a,b)=>b.needsOrder-a.needsOrder);
 
   // If only 1 brand — skip straight to order screen
-  if (brands.length===1) { goBrand(brands[0], logoMap); return; }
+  if (brands.length===1) { goBrand(brands[0]); return; }
 
   if (!brands.length) {
     document.getElementById('brand-body').innerHTML='<div class="empty">No items found.<br>Ask admin to re-scan this supplier.</div>'; return;
@@ -689,7 +689,7 @@ async function goSupplier(sup) {
     else if (b.needsOrder>0) badge=`<span class="badge badge-amber">${b.needsOrder} order</span>`;
     else badge=`<span class="badge badge-green">OK</span>`;
 
-    return `<div class="brand-card ${urgent?'urgent':'ok'}" onclick="goBrand(${JSON.stringify(b).replace(/"/g,'&quot;')}, ${JSON.stringify(logoMap).replace(/"/g,'&quot;')})">
+    return `<div class="brand-card ${urgent?'urgent':'ok'}" onclick="goBrand(${JSON.stringify(b).replace(/"/g,'&quot;')})">
       <div class="brand-badge">${badge}</div>
       <div class="brand-logo">${logoHtml}</div>
       <div class="brand-name">${b.brand}</div>
