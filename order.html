@@ -771,6 +771,11 @@ function itemCard(item) {
   const step   = item.order_type==='box'?(item.units_per_pack||1):1;
   const minQ   = item.min_order_qty||1;
 
+  // Handle negative/unsynced stock clearly
+  const stockStatus = item.stock_status || (item.current_stock < 0 ? 'unsynced' : item.current_stock === 0 ? 'zero' : 'ok');
+  const stockDisplay = stockStatus === 'unsynced'
+    ? `Unsynced (${item.current_stock})`
+    : item.current_stock;
   const dlStr  = dlNum>=999?'∞':dlNum.toFixed(0)+'d';
   const dlCol  = dlNum<=3?'red':dlNum<=7?'amber':'green';
 
@@ -791,7 +796,13 @@ function itemCard(item) {
       <div class="item-left">
         <div class="item-name">${item.item_name}</div>
         <div class="item-tags">
-          ${oos?`<span class="item-tag tag-oos">Out of stock</span>`:low?`<span class="item-tag tag-low">${dlStr} left</span>`:`<span class="item-tag tag-ok">${dlStr} left</span>`}
+          ${stockStatus === 'unsynced'
+            ? `<span class="item-tag" style="background:#fef3c7;color:#d97706">⚠ Sync pending</span>`
+            : oos
+              ? `<span class="item-tag tag-oos">Out of stock</span>`
+              : low
+                ? `<span class="item-tag tag-low">${dlStr} left</span>`
+                : `<span class="item-tag tag-ok">${dlStr} left</span>`}
           <span class="item-tag" style="background:var(--g100);color:var(--g600)">₹${Number(item.purchase_price||0).toFixed(2)}</span>
           ${item.edit_qty>0?`<span class="item-tag" style="background:var(--pink-l);color:var(--pink-d)">${fmtINR(lineTotal)}</span>`:''}
         </div>
@@ -815,7 +826,11 @@ function itemCard(item) {
       </div>
       <div class="formula-row">
         <span class="formula-label">Current stock</span>
-        <span class="formula-val ${oos?'red':''}">${item.current_stock}</span>
+        <span class="formula-val ${oos?'red':''}">
+          ${stockStatus === 'unsynced'
+            ? `<span style="color:var(--amber)">${item.current_stock} ⚠ purchase not synced yet</span>`
+            : item.current_stock}
+        </span>
       </div>
       <div class="formula-row">
         <span class="formula-label">Stock lasts</span>
