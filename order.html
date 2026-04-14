@@ -258,9 +258,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
       <span class="submit-total-val" id="sb-total">₹0</span>
     </div>
     <div class="submit-actions">
-      <button class="btn-wa" onclick="sendWA()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        WhatsApp
+      <button class="btn-wa" onclick="previewPDF()" style="background:var(--blue)">
+        📄 Preview
       </button>
       <button class="btn-submit" id="sub-btn" onclick="submitOrder()">Submit Order</button>
     </div>
@@ -627,18 +626,109 @@ function updateItemDisplay(item){
 }
 
 // ── SUBMIT ────────────────────────────────────────────────────────────────────
+async function previewPDF(){
+  const ordered=orderItems.filter(i=>i.edit_qty>0);
+  if(!ordered.length){showToast('Add quantities first');return;}
+  showToast('Generating preview...');
+  // Submit temp session for preview
+  const poNum=`PREVIEW-${Date.now()}`;
+  const total=ordered.reduce((s,i)=>s+i.edit_qty*Number(i.purchase_price||0),0);
+  const today=new Date().toISOString().slice(0,10);
+  const sr=await fetch(`${SB_URL}/rest/v1/order_sessions`,{
+    method:'POST',headers:{...HP,'Prefer':'return=representation'},
+    body:JSON.stringify({session_date:today,supplier_id:currentSup.supplier_id,
+      supplier_name:currentSup.supplier_name,brand:currentBrand,
+      submitted_by:worker.full_name||worker.username,
+      status:'preview',total_items:ordered.length,
+      total_value:Math.round(total),po_number:poNum,
+      submitted_at:new Date().toISOString()})
+  });
+  const sess=await sr.json();
+  const sessId=Array.isArray(sess)?sess[0]?.id:sess?.id;
+  if(!sessId){showToast('Could not generate preview');return;}
+  await fetch(`${SB_URL}/rest/v1/order_session_items`,{method:'POST',headers:HP,
+    body:JSON.stringify(ordered.map(i=>({
+      session_id:sessId,item_id:i.item_id,item_name:i.item_name,brand:currentBrand,
+      current_stock:i.current_stock,daily_avg:i.avg_daily_sales,sales_7d:i.sales_7d||0,
+      suggested_qty:i.order_qty,ordered_qty:i.edit_qty,
+      units_per_pack:i.units_per_pack||1,order_type:i.order_type||'unit',
+      pack_label:i.pack_label||'box',purchase_price:i.purchase_price,
+      line_total:Math.round(i.edit_qty*Number(i.purchase_price||0))
+    })))});
+  const pdfRes=await fetch(`${SB_URL}/functions/v1/generate-order-pdf`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({session_id:sessId,worker_mobile:null,dry_run:false})
+  });
+  const pd=await pdfRes.json();
+  if(pd.pdf_url) window.open(pd.pdf_url,'_blank');
+  else showToast('Preview failed');
+}
+
 async function submitOrder(){
   const ordered=orderItems.filter(i=>i.edit_qty>0);
   if(!ordered.length){showToast('No items in order');return;}
-  const btn=document.getElementById('sub-btn');btn.disabled=true;btn.textContent='Submitting...';
+  const btn=document.getElementById('sub-btn');
+  btn.disabled=true;btn.textContent='Submitting...';
+
   const poNum=`PO-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*900)+100}`;
   const total=ordered.reduce((s,i)=>s+i.edit_qty*Number(i.purchase_price||0),0);
   const today=new Date().toISOString().slice(0,10);
-  const sr=await fetch(`${SB_URL}/rest/v1/order_sessions`,{method:'POST',headers:{...HP,'Prefer':'return=representation,resolution=merge-duplicates'},body:JSON.stringify({session_date:today,supplier_id:currentSup.supplier_id,supplier_name:currentSup.supplier_name,submitted_by:worker.full_name||worker.username,status:'submitted',total_items:ordered.length,total_value:Math.round(total),po_number:poNum,submitted_at:new Date().toISOString()})});
-  const sess=await sr.json();const sessId=Array.isArray(sess)?sess[0]?.id:sess?.id;
-  if(sessId){await fetch(`${SB_URL}/rest/v1/order_session_items`,{method:'POST',headers:HP,body:JSON.stringify(ordered.map(i=>({session_id:sessId,item_id:i.item_id,item_name:i.item_name,brand:currentBrand,current_stock:i.current_stock,daily_avg:i.avg_daily_sales,sales_7d:i.sales_7d||0,suggested_qty:i.order_qty,ordered_qty:i.edit_qty,units_per_pack:i.units_per_pack||1,order_type:i.order_type||'unit',pack_label:i.pack_label||'box',purchase_price:i.purchase_price,line_total:Math.round(i.edit_qty*Number(i.purchase_price||0))})))});}
-  btn.textContent='✓ Submitted!';showToast(`Order submitted — ${poNum}`);
-  setTimeout(()=>{btn.disabled=false;btn.textContent='Submit Order';goHome();},1800);
+
+  // 1. Create order session
+  const sr=await fetch(`${SB_URL}/rest/v1/order_sessions`,{
+    method:'POST',
+    headers:{...HP,'Prefer':'return=representation,resolution=merge-duplicates'},
+    body:JSON.stringify({
+      session_date:today, supplier_id:currentSup.supplier_id,
+      supplier_name:currentSup.supplier_name, brand:currentBrand,
+      submitted_by:worker.full_name||worker.username,
+      status:'submitted', total_items:ordered.length,
+      total_value:Math.round(total), po_number:poNum,
+      submitted_at:new Date().toISOString()
+    })
+  });
+  const sess=await sr.json();
+  const sessId=Array.isArray(sess)?sess[0]?.id:sess?.id;
+
+  if(!sessId){btn.disabled=false;btn.textContent='Submit Order';showToast('Error saving order. Try again.');return;}
+
+  // 2. Save line items
+  await fetch(`${SB_URL}/rest/v1/order_session_items`,{
+    method:'POST', headers:HP,
+    body:JSON.stringify(ordered.map(i=>({
+      session_id:sessId, item_id:i.item_id, item_name:i.item_name, brand:currentBrand,
+      current_stock:i.current_stock, daily_avg:i.avg_daily_sales, sales_7d:i.sales_7d||0,
+      suggested_qty:i.order_qty, ordered_qty:i.edit_qty,
+      units_per_pack:i.units_per_pack||1, order_type:i.order_type||'unit',
+      pack_label:i.pack_label||'box', purchase_price:i.purchase_price,
+      line_total:Math.round(i.edit_qty*Number(i.purchase_price||0))
+    })))
+  });
+
+  // 3. Generate PDF and send WhatsApp
+  btn.textContent='Sending PDF...';
+  try {
+    const pdfRes = await fetch(`${SB_URL}/functions/v1/generate-order-pdf`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        session_id: sessId,
+        worker_mobile: worker.mobile_number || null
+      })
+    });
+    const pdfData = await pdfRes.json();
+    if(pdfData.pdf_url){
+      showToast('✓ Order submitted · PDF sent');
+      // Also open the PDF in browser for worker to view
+      setTimeout(()=>window.open(pdfData.pdf_url,'_blank'), 500);
+    } else {
+      showToast(`Order submitted — ${poNum}`);
+    }
+  } catch(e) {
+    console.error('PDF generation error:', e);
+    showToast(`Order submitted — ${poNum}`);
+  }
+
+  setTimeout(()=>{btn.disabled=false;btn.textContent='Submit Order';goHome();},2000);
 }
 
 function sendWA(){
