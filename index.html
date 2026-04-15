@@ -810,7 +810,54 @@ async function addSupplier() {
     const sup = await ins.json();
     supId = Array.isArray(sup) ? sup[0]?.id : sup?.id;
   } else if (ins.status === 409) {
-    
+    // Duplicate — fetch existing supplier and update settings
+    const ex = await fetch(`${SB_URL}/rest/v1/suppliers?supplier_name=eq.${encodeURIComponent(name)}&select=id`, {headers:{apikey:SB_ANON,...hdr()}});
+    const exData = await ex.json();
+    supId = exData[0]?.id;
+    if (supId) {
+      await fetch(`${SB_URL}/rest/v1/suppliers?id=eq.${supId}`, {
+        method:'PATCH',
+        headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
+        body:JSON.stringify({visit_days:[day],cover_weeks:Math.ceil(cover/7),avg_months:avgmo,is_active:true})
+      });
+    }
+  } else {
+    const err = await ins.json();
+    st.innerHTML=`<span style="color:var(--red)">Failed: ${err?.message||ins.status}</span>`;
+    btn.disabled=false; btn.textContent='+ Add this supplier';
+    return;
+  }
+
+  if (!supId) { st.innerHTML='<span style="color:var(--red)">Could not get supplier ID</span>'; btn.disabled=false; btn.textContent='+ Add this supplier'; return; }
+
+  // Auto-onboard items
+  st.innerHTML='<div class="sp" style="display:inline-block;margin-right:6px;vertical-align:middle"></div> Scanning purchase history...';
+  const ob = await fetch(`${SB_URL}/rest/v1/rpc/auto_onboard_supplier`, {
+    method:'POST',
+    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
+    body:JSON.stringify({p_supplier_id:supId})
+  });
+  const cnt = await ob.json();
+
+  // Register brand in brand_logos
+  if (raSelectedBrandName) {
+    await fetch(`${SB_URL}/rest/v1/brand_logos`, {
+      method:'POST',
+      headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates'},
+      body:JSON.stringify({brand_name:raSelectedBrandName})
+    });
+  }
+
+  st.innerHTML=`<span style="color:var(--green)">✓ <strong>${name}</strong> added for brand <strong>${raSelectedBrandName}</strong> — ${cnt||0} items found.</span>`;
+  btn.disabled=false; btn.textContent='+ Add this supplier';
+
+  raSelectedSupplier=null;
+  document.querySelectorAll('[id^="ra-sup-"]').forEach(el=>{el.style.borderColor='var(--g200)';el.style.background='white';el.classList.remove('selected');});
+  document.getElementById('ra-sup-settings').style.display='none';
+  await showExistingSuppliers(raSelectedBrandName);
+  loadReorderAdmin();
+  populateBrandSelect();
+}
 
 async function reOnboard(supId, name) {
   const r = await fetch(`${SB_URL}/rest/v1/rpc/auto_onboard_supplier`, {
