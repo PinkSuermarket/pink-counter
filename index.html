@@ -210,15 +210,18 @@ tr:hover td{background:var(--g50);}
 
     <!-- Add New Supplier — Brand-first flow -->
     <div class="card">
-      <div class="card-title">Add supplier</div>
-      <div class="note" style="margin-bottom:14px">Search by <strong>brand name</strong> (e.g. BRITANNIA, MR GOLD) → select which supplier brings it → set visit day.</div>
-      
+      <div class="card-title">Add brand + supplier mapping</div>
+      <div class="note" style="margin-bottom:14px">
+        Step 1: Search brand (e.g. MR GOLD) → Step 2: Add <strong>one or more suppliers</strong> for that brand → each supplier can have different visit day and cover setting.
+        <br><small style="color:var(--g400)">Example: MR GOLD Sunflower from SRI MURUGAN (Monday) + MR GOLD Groundnut from G.K.M (Wednesday)</small>
+      </div>
+
       <!-- Step 1: Brand search -->
       <div id="ra-step1">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
           <div style="flex:1;min-width:200px">
-            <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Search brand / category</div>
-            <input type="text" id="ra-brand-search" placeholder="e.g. BRITANNIA, MR GOLD, HAIR CARE…"
+            <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">1. Search brand / category</div>
+            <input type="text" id="ra-brand-search" placeholder="e.g. MR GOLD, BRITANNIA, HAIR CARE…"
               oninput="searchBrands()"
               style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
           </div>
@@ -226,35 +229,53 @@ tr:hover td{background:var(--g50);}
         <div id="ra-brand-results" style="margin-top:8px;"></div>
       </div>
 
-      <!-- Step 2: Supplier selection (shown after brand pick) -->
+      <!-- Step 2: Multi-supplier selection -->
       <div id="ra-step2" style="display:none;margin-top:14px;padding-top:14px;border-top:2px solid var(--g100)">
-        <div style="font-size:12px;font-weight:600;color:var(--g600);margin-bottom:8px">
-          Suppliers who bring <span id="ra-selected-brand" style="color:var(--pink)"></span>:
+
+        <!-- Brand confirmed pill -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:12px;color:var(--g400)">Brand:</span>
+          <span id="ra-selected-brand" style="background:var(--pink-l);color:var(--pink);font-size:13px;font-weight:700;padding:3px 12px;border-radius:20px"></span>
+          <button onclick="resetBrandSearch()" style="font-size:11px;color:var(--g400);background:none;border:none;cursor:pointer;text-decoration:underline">Change</button>
         </div>
-        <div id="ra-supplier-list" style="margin-bottom:12px;"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-          <div style="min-width:130px">
-            <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Visit day</div>
-            <select id="ra-day" style="height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
-              <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
-              <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="7">Sunday</option>
-            </select>
+
+        <!-- Suppliers already added for this brand -->
+        <div id="ra-existing-sups" style="margin-bottom:10px"></div>
+
+        <!-- Add a supplier row -->
+        <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:6px">2. Select supplier to add for this brand</div>
+        <div id="ra-supplier-list" style="margin-bottom:10px;max-height:220px;overflow-y:auto;"></div>
+
+        <!-- Settings for selected supplier -->
+        <div id="ra-sup-settings" style="display:none;background:var(--g50);border-radius:10px;padding:12px;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:600;color:var(--g600);margin-bottom:8px">
+            Settings for <span id="ra-sup-name-lbl" style="color:var(--pink)"></span>
           </div>
-          <div style="min-width:110px">
-            <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Cover days</div>
-            <input type="number" id="ra-cover" value="15" min="7" max="30"
-              style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+            <div style="min-width:130px">
+              <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Visit day</div>
+              <select id="ra-day" style="height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white">
+                <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+                <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="7">Sunday</option>
+              </select>
+            </div>
+            <div style="min-width:110px">
+              <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Cover days</div>
+              <input type="number" id="ra-cover" value="15" min="7" max="30"
+                style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none;background:white">
+            </div>
+            <div style="min-width:80px">
+              <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Avg months</div>
+              <input type="number" id="ra-avgmo" value="3" min="1" max="6"
+                style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none;background:white">
+            </div>
+            <button onclick="addSupplier()" id="ra-add-btn"
+              style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
+              + Add this supplier
+            </button>
           </div>
-          <div style="min-width:80px">
-            <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Avg months</div>
-            <input type="number" id="ra-avgmo" value="3" min="1" max="6"
-              style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none;">
-          </div>
-          <button onclick="addSupplier()" id="ra-add-btn"
-            style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;opacity:.5;" disabled>
-            + Add & Onboard
-          </button>
         </div>
+
       </div>
       <div id="ra-add-status" style="margin-top:10px;font-size:13px;display:none;"></div>
     </div>
@@ -600,6 +621,24 @@ async function loadDash() {
 const DAYS_MAP = {1:'Monday',2:'Tuesday',3:'Wednesday',4:'Thursday',5:'Friday',6:'Saturday',7:'Sunday'};
 let raSearchData = [];
 
+
+async function searchBrands() {
+  const q = document.getElementById('ra-brand-search').value.trim();
+  const res = document.getElementById('ra-brand-results');
+  if (q.length < 2) { res.innerHTML=''; return; }
+  const r = await fetch(
+    `${SB_URL}/rest/v1/kb_item_categories?item_category_name=ilike.*${encodeURIComponent(q)}*&select=item_category_id,item_category_name&limit=10`,
+    {headers:{apikey:SB_ANON,...hdr()}}
+  );
+  const cats = await r.json();
+  if (!cats.length) { res.innerHTML='<div style="padding:6px;font-size:12px;color:var(--g400)">No brands found.</div>'; return; }
+  res.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">' +
+    cats.map(c=>`<button onclick="pickBrand('${c.item_category_name.replace(/'/g,"\'")}','${c.item_category_id}')"
+      style="height:30px;padding:0 12px;border:2px solid var(--g200);border-radius:20px;background:white;
+             font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--g600);cursor:pointer;">
+      ${c.item_category_name}</button>`).join('') + '</div>';
+}
+
 async function loadReorderAdmin() {
   // Load active suppliers
   const r = await fetch(`${SB_URL}/rest/v1/suppliers?is_active=eq.true&select=id,supplier_name,visit_days,cover_weeks,avg_months,brands,created_at&order=supplier_name`, {headers:{apikey:SB_ANON,...hdr()}});
@@ -632,42 +671,36 @@ async function loadReorderAdmin() {
   syncBrandNames();
 }
 
+let raSelectedBrandName = '';
+let raSelectedCatId = '';
 let raSelectedSupplier = null;
 
-async function searchBrands() {
-  const q = document.getElementById('ra-brand-search').value.trim();
-  const res = document.getElementById('ra-brand-results');
-  if (q.length < 2) { res.innerHTML=''; return; }
-
-  // Search distinct brands/categories from purchase history
-  const r = await fetch(
-    `${SB_URL}/rest/v1/kb_item_categories?item_category_name=ilike.*${encodeURIComponent(q)}*&select=item_category_id,item_category_name&limit=10`,
-    {headers:{apikey:SB_ANON,...hdr()}}
-  );
-  const cats = await r.json();
-  if (!cats.length) {
-    res.innerHTML='<div style="padding:8px;font-size:12px;color:var(--g400)">No brands found. Try a different search.</div>';
-    return;
-  }
-  res.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
-    cats.map(c=>`<button onclick="pickBrand('${c.item_category_name.replace(/'/g,"\\'")}','${c.item_category_id}')"
-      style="height:30px;padding:0 12px;border:2px solid var(--g200);border-radius:20px;background:white;
-             font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--g600);cursor:pointer;">
-      ${c.item_category_name}
-    </button>`).join('') + '</div>';
+function resetBrandSearch() {
+  raSelectedBrandName = '';
+  raSelectedCatId = '';
+  raSelectedSupplier = null;
+  document.getElementById('ra-brand-search').value = '';
+  document.getElementById('ra-brand-results').innerHTML = '';
+  document.getElementById('ra-step2').style.display = 'none';
+  document.getElementById('ra-sup-settings').style.display = 'none';
+  document.getElementById('ra-add-status').style.display = 'none';
 }
 
 async function pickBrand(brandName, catId) {
+  raSelectedBrandName = brandName;
+  raSelectedCatId = catId;
   document.getElementById('ra-brand-search').value = brandName;
   document.getElementById('ra-brand-results').innerHTML = '';
   document.getElementById('ra-selected-brand').textContent = brandName;
   document.getElementById('ra-step2').style.display = 'block';
-  document.getElementById('ra-supplier-list').innerHTML = '<div class="lrow" style="padding:12px"><div class="sp"></div> Finding suppliers...</div>';
+  document.getElementById('ra-sup-settings').style.display = 'none';
+  document.getElementById('ra-supplier-list').innerHTML = '<div class="lrow" style="padding:10px"><div class="sp"></div> Finding suppliers...</div>';
   raSelectedSupplier = null;
-  document.getElementById('ra-add-btn').disabled = true;
-  document.getElementById('ra-add-btn').style.opacity = '.5';
 
-  // Find suppliers who have bought this category in last 6 months
+  // Show already-added suppliers for this brand
+  await showExistingSuppliers(brandName);
+
+  // Find suppliers who bought this category in last 6 months
   const r = await fetch(`${SB_URL}/rest/v1/rpc/get_suppliers_for_brand`, {
     method: 'POST',
     headers: {apikey: SB_ANON, ...hdr(), 'Content-Type': 'application/json'},
@@ -677,34 +710,69 @@ async function pickBrand(brandName, catId) {
 
   if (!suppliers || !suppliers.length) {
     document.getElementById('ra-supplier-list').innerHTML =
-      '<div style="font-size:12px;color:var(--g400)">No suppliers found for this brand in last 6 months.</div>';
+      '<div style="font-size:12px;color:var(--g400);padding:8px">No suppliers found for this brand in last 6 months purchase history.</div>';
     return;
   }
-  document.getElementById('ra-supplier-list').innerHTML = suppliers.map(s =>
-    `<div onclick="pickRASupplier(${JSON.stringify(s).replace(/"/g,'&quot;')})"
-      id="ra-sup-${s.name_id}"
-      style="padding:10px 14px;border:2px solid var(--g200);border-radius:10px;cursor:pointer;margin-bottom:6px;
-             display:flex;align-items:center;justify-content:space-between;transition:.15s"
-      onmouseover="this.style.borderColor='var(--pink)'" onmouseout="if(!this.classList.contains('selected'))this.style.borderColor='var(--g200)'">
-      <div>
-        <div style="font-size:13px;font-weight:600">${s.supplier_name}</div>
-        <div style="font-size:11px;color:var(--g400)">${s.phone_number||'—'} · ${s.order_count} orders · ₹${Math.round(s.total_value).toLocaleString('en-IN')}</div>
-      </div>
-      <div style="font-size:11px;font-weight:600;color:var(--green)">Select →</div>
-    </div>`
-  ).join('');
+
+  document.getElementById('ra-supplier-list').innerHTML =
+    '<div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:6px">Select supplier to add:</div>' +
+    suppliers.map(s =>
+      `<div onclick="pickRASupplier(${JSON.stringify(s).replace(/"/g,'&quot;')})"
+        id="ra-sup-${s.name_id}"
+        style="padding:10px 14px;border:2px solid var(--g200);border-radius:10px;cursor:pointer;margin-bottom:6px;
+               display:flex;align-items:center;justify-content:space-between;transition:.15s;background:white"
+        onmouseover="this.style.borderColor='var(--pink)'"
+        onmouseout="if(!this.classList.contains('selected'))this.style.borderColor='var(--g200)'">
+        <div>
+          <div style="font-size:13px;font-weight:600">${s.supplier_name}</div>
+          <div style="font-size:11px;color:var(--g400)">${s.phone_number||'—'} · ${s.order_count} orders · ₹${Math.round(s.total_value).toLocaleString('en-IN')}</div>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:var(--green)">Select →</div>
+      </div>`
+    ).join('');
+}
+
+async function showExistingSuppliers(brandName) {
+  // Show which suppliers are already mapped to this brand
+  const r = await fetch(`${SB_URL}/rest/v1/supplier_items?brand=eq.${encodeURIComponent(brandName)}&is_active=eq.true&select=supplier_id`, {headers:{apikey:SB_ANON,...hdr()}});
+  const items = await r.json();
+  const supIds = [...new Set(items.map(i=>i.supplier_id))];
+  const el = document.getElementById('ra-existing-sups');
+  if (!supIds.length) { el.innerHTML=''; return; }
+  const sr = await fetch(`${SB_URL}/rest/v1/suppliers?id=in.(${supIds.join(',')})&select=id,supplier_name,visit_days,is_active`, {headers:{apikey:SB_ANON,...hdr()}});
+  const sups = await sr.json();
+  el.innerHTML = `<div style="margin-bottom:10px">
+    <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:6px">Already added for ${brandName}:</div>
+    ${sups.map(s=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--green-l);border:1px solid #a7f3d0;border-radius:8px;margin-bottom:4px">
+        <div style="font-size:13px;font-weight:600;color:var(--green)">✓ ${s.supplier_name}</div>
+        <button onclick="removeSupplierBrand(${s.id},'${s.supplier_name.replace(/'/g,"\\'")}','${brandName}')"
+          style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:600">
+          Remove
+        </button>
+      </div>`).join('')}
+  </div>`;
 }
 
 function pickRASupplier(sup) {
   raSelectedSupplier = sup;
-  // highlight selection
   document.querySelectorAll('[id^="ra-sup-"]').forEach(el => {
-    el.style.borderColor = 'var(--g200)'; el.classList.remove('selected');
+    el.style.borderColor='var(--g200)'; el.style.background='white'; el.classList.remove('selected');
   });
   const el = document.getElementById(`ra-sup-${sup.name_id}`);
-  if (el) { el.style.borderColor = 'var(--pink)'; el.style.background = 'var(--pink-l)'; el.classList.add('selected'); }
-  document.getElementById('ra-add-btn').disabled = false;
-  document.getElementById('ra-add-btn').style.opacity = '1';
+  if (el) { el.style.borderColor='var(--pink)'; el.style.background='var(--pink-l)'; el.classList.add('selected'); }
+  document.getElementById('ra-sup-name-lbl').textContent = sup.supplier_name;
+  document.getElementById('ra-sup-settings').style.display = 'block';
+}
+
+async function removeSupplierBrand(supId, supName, brandName) {
+  if (!confirm(`Remove ${supName} from brand "${brandName}"?\nThis removes all ${brandName} items for this supplier from the order form.`)) return;
+  await fetch(`${SB_URL}/rest/v1/supplier_items?supplier_id=eq.${supId}&brand=eq.${encodeURIComponent(brandName)}`, {
+    method:'PATCH', headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
+    body:JSON.stringify({is_active:false})
+  });
+  showExistingSuppliers(brandName);
+  loadReorderAdmin();
 }
 
 async function addSupplier() {
@@ -715,24 +783,26 @@ async function addSupplier() {
   const cover = parseInt(document.getElementById('ra-cover').value) || 15;
   const avgmo = parseInt(document.getElementById('ra-avgmo').value) || 3;
   const st    = document.getElementById('ra-add-status');
+  const btn   = document.getElementById('ra-add-btn');
   if (!name) return;
 
+  btn.disabled=true; btn.textContent='Adding...';
   st.innerHTML = '<div class="sp" style="display:inline-block;margin-right:6px;vertical-align:middle"></div> Adding supplier...';
   st.style.display = 'block';
 
-  // Step 1: INSERT supplier — if name already exists, fetch existing row instead
+  // INSERT supplier or fetch existing
   let supId = null;
   const ins = await fetch(`${SB_URL}/rest/v1/suppliers`, {
     method: 'POST',
     headers: { apikey:SB_ANON, ...hdr(), 'Content-Type':'application/json', 'Prefer':'return=representation' },
     body: JSON.stringify({
-      supplier_name:  name,
+      supplier_name:   name,
       whatsapp_number: phone,
-      visit_type:     'weekly',
-      visit_days:     [day],
-      cover_weeks:    Math.ceil(cover / 7),
-      avg_months:     avgmo,
-      is_active:      true
+      visit_type:      'weekly',
+      visit_days:      [day],
+      cover_weeks:     Math.ceil(cover / 7),
+      avg_months:      avgmo,
+      is_active:       true
     })
   });
 
@@ -740,51 +810,7 @@ async function addSupplier() {
     const sup = await ins.json();
     supId = Array.isArray(sup) ? sup[0]?.id : sup?.id;
   } else if (ins.status === 409) {
-    // Duplicate — fetch existing and update is_active + settings
-    const ex = await fetch(`${SB_URL}/rest/v1/suppliers?supplier_name=eq.${encodeURIComponent(name)}&select=id`, {
-      headers: { apikey: SB_ANON, ...hdr() }
-    });
-    const exData = await ex.json();
-    supId = exData[0]?.id;
-    if (supId) {
-      await fetch(`${SB_URL}/rest/v1/suppliers?id=eq.${supId}`, {
-        method: 'PATCH',
-        headers: { apikey:SB_ANON, ...hdr(), 'Content-Type':'application/json' },
-        body: JSON.stringify({ visit_days:[day], cover_weeks:Math.ceil(cover/7), avg_months:avgmo, is_active:true })
-      });
-    }
-  } else {
-    const err = await ins.json();
-    st.innerHTML = `<span style="color:var(--red)">Failed: ${err?.message || ins.status}</span>`;
-    return;
-  }
-
-  if (!supId) { st.innerHTML = '<span style="color:var(--red)">Could not get supplier ID</span>'; return; }
-
-  // Step 2: Auto-onboard items from purchase history
-  st.innerHTML = '<div class="sp" style="display:inline-block;margin-right:6px;vertical-align:middle"></div> Scanning purchase history for items...';
-  const ob = await fetch(`${SB_URL}/rest/v1/rpc/auto_onboard_supplier`, {
-    method: 'POST',
-    headers: { apikey:SB_ANON, ...hdr(), 'Content-Type':'application/json' },
-    body: JSON.stringify({ p_supplier_id: supId })
-  });
-  const cnt = await ob.json();
-
-  // Register the brand in brand_logos (so logo can be uploaded and it appears in order form)
-  const brandName = document.getElementById('ra-brand-search').value.trim();
-  if (brandName) {
-    await fetch(`${SB_URL}/rest/v1/brand_logos`, {
-      method:'POST',
-      headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates'},
-      body:JSON.stringify({brand_name:brandName})
-    });
-  }
-  st.innerHTML = `<span style="color:var(--green)">✓ <strong>${name}</strong> added — ${cnt || 0} items found. Brand "<strong>${brandName}</strong>" added to logo list — upload the logo in Brand Logos section to activate in order form.</span>`;
-  document.getElementById('ra-brand-search').value = '';
-  document.getElementById('ra-step2').style.display = 'none';
-  raSelectedSupplier = null;
-  loadReorderAdmin();
-}
+    
 
 async function reOnboard(supId, name) {
   const r = await fetch(`${SB_URL}/rest/v1/rpc/auto_onboard_supplier`, {

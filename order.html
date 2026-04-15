@@ -281,7 +281,7 @@ const SB_ANON = 'sb_publishable_unOW9_eUhaPki59JWbccgA_Pg4nflGS';
 const H  = {'apikey':SB_ANON,'Authorization':'Bearer '+SB_ANON};
 const HP = {'apikey':SB_ANON,'Authorization':'Bearer '+SB_ANON,'Content-Type':'application/json'};
 
-let worker=null, currentBrand=null, currentSup=null, orderItems=[];
+let worker=null, currentBrand=null, currentSup=null, orderItems=[], orderSuppliers=[];
 let allBrands=[], screenStack=['s-brands'];
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
@@ -509,8 +509,9 @@ async function startOrder(){
   document.getElementById('sup-info-card').innerHTML='';
   document.getElementById('submit-bar').classList.add('visible');
 
+  // Pass supplier_id=0 to get ALL suppliers for this brand
   const [orderR,salesR]=await Promise.all([
-    fetch(`${SB_URL}/rest/v1/rpc/get_brand_order_items`,{method:'POST',headers:HP,body:JSON.stringify({p_supplier_id:currentSup.supplier_id,p_brand:currentBrand})}),
+    fetch(`${SB_URL}/rest/v1/rpc/get_brand_order_items`,{method:'POST',headers:HP,body:JSON.stringify({p_supplier_id:0,p_brand:currentBrand})}),
     fetch(`${SB_URL}/rest/v1/rpc/get_brand_sales_7d`,{method:'POST',headers:HP,body:JSON.stringify({p_supplier_id:currentSup.supplier_id,p_brand:currentBrand})}).catch(()=>null)
   ]);
 
@@ -521,21 +522,30 @@ async function startOrder(){
 
   if(!Array.isArray(items)||!items.length){document.getElementById('order-body').innerHTML='<div class="empty">No items found for this brand.</div>';return;}
 
+  // Group items by supplier — each has supplier_name,whatsapp_number,cover_weeks etc from the function
   orderItems=items.map(d=>({...d,edit_qty:d.order_qty||0,sales_7d:sales7dMap[d.item_id]||0}));
 
-  // Supplier info card
-  const d=new Date(currentSup.next_visit_date);
-  const nextVisit=currentSup.days_until_visit===0?'Today':currentSup.days_until_visit===1?'Tomorrow':d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
-  document.getElementById('sup-info-card').innerHTML=`
-    <div class="sup-info-card">
-      <div class="sic-row"><span class="sic-l">Supplier</span><span class="sic-v">${currentSup.supplier_name}</span></div>
-      <div class="sic-row"><span class="sic-l">Phone</span><span class="sic-v"><a href="tel:${currentSup.whatsapp_number}" style="color:var(--blue);text-decoration:none">${currentSup.whatsapp_number||'—'}</a></span></div>
-      <div class="sic-row"><span class="sic-l">Next delivery</span><span class="sic-v ${currentSup.days_until_visit===0?'red':currentSup.days_until_visit<=2?'amber':'green'}">${nextVisit}</span></div>
-      <div class="sic-row"><span class="sic-l">Cover target</span><span class="sic-v">${currentSup.cover_weeks} week${currentSup.cover_weeks>1?'s':''}</span></div>
-      <div class="sic-row"><span class="sic-l">Last order date</span><span class="sic-v">${currentSup.last_order_date||'No orders yet'}</span></div>
-      <div class="sic-row"><span class="sic-l">Last order value</span><span class="sic-v pink">${currentSup.last_order_value?fmtINR(currentSup.last_order_value):'—'}</span></div>
-    </div>`;
+  // Get unique suppliers from items (already sorted by supplier_name from SQL)
+  const supsSeen=new Set();
+  orderSuppliers=[];
+  items.forEach(it=>{
+    if(!supsSeen.has(it.supplier_id)){
+      supsSeen.add(it.supplier_id);
+      orderSuppliers.push({
+        supplier_id:it.supplier_id,
+        supplier_name:it.supplier_name,
+        whatsapp_number:it.whatsapp_number,
+        cover_weeks:it.cover_weeks,
+        visit_days:it.visit_days,
+        days_until_visit:it.days_until_visit,
+        next_visit_date:it.next_visit_date,
+        last_order_date:it.last_order_date,
+        last_order_value:it.last_order_value,
+      });
+    }
+  });
 
+  document.getElementById('sup-info-card').innerHTML=''; // cleared — supplier info shown inline per group
   renderOrder();
 }
 
@@ -550,11 +560,55 @@ function renderOrder(){
       <div class="order-stat"><div class="order-stat-val pink">${fmtINR(total)}</div><div class="order-stat-lbl">Order value</div></div>
     </div>`;
   document.getElementById('sb-total').textContent=fmtINR(total);
-  const needsOrder=orderItems.filter(i=>i.order_qty>0);
-  const stocked=orderItems.filter(i=>i.order_qty===0);
+
+  // SINGLE supplier — simple flat list
+  if(orderSuppliers.length<=1){
+    const needsOrder=orderItems.filter(i=>i.order_qty>0);
+    const stocked=orderItems.filter(i=>i.order_qty===0);
+    let html='';
+    if(needsOrder.length){html+=`<div class="items-group-label">Needs reorder — ${needsOrder.length} item${needsOrder.length>1?'s':''}</div>`;html+=needsOrder.map(itemCard).join('');}
+    if(stocked.length){html+=`<div class="items-group-label" style="margin-top:${needsOrder.length?'8px':'0'}">Well stocked</div>`;html+=stocked.map(itemCard).join('');}
+    document.getElementById('order-body').innerHTML=html||'<div class="empty">No items</div>';
+    return;
+  }
+
+  // MULTIPLE suppliers — one section per supplier with header
   let html='';
-  if(needsOrder.length){html+=`<div class="items-group-label">Needs reorder — ${needsOrder.length} item${needsOrder.length>1?'s':''}</div>`;html+=needsOrder.map(itemCard).join('');}
-  if(stocked.length){html+=`<div class="items-group-label" style="margin-top:${needsOrder.length?'8px':'0'}">Well stocked</div>`;html+=stocked.map(itemCard).join('');}
+  orderSuppliers.forEach(sup=>{
+    const supItems=orderItems.filter(i=>i.supplier_id===sup.supplier_id);
+    if(!supItems.length) return;
+    const supOrdered=supItems.filter(i=>i.edit_qty>0);
+    const supTotal=supOrdered.reduce((s,i)=>s+i.edit_qty*Number(i.purchase_price||0),0);
+    const supOos=supItems.filter(i=>i.is_out_of_stock).length;
+    const supNeeds=supItems.filter(i=>i.order_qty>0).length;
+    const dv=Number(sup.days_until_visit||0);
+    const nd=new Date(sup.next_visit_date);
+    const nextStr=dv===0?'Today':dv===1?'Tomorrow':nd.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+    const nextCol=dv===0?'var(--red)':dv<=2?'var(--amber)':'var(--green)';
+    html+=`<div style="background:white;border-radius:14px;box-shadow:var(--sh);padding:12px 14px;margin-bottom:8px;border-left:4px solid var(--pink)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:14px;font-weight:700">${sup.supplier_name}</div>
+          <div style="font-size:12px;color:var(--g400);margin-top:2px">
+            <a href="tel:${sup.whatsapp_number||''}" style="color:var(--blue);text-decoration:none">${sup.whatsapp_number||'—'}</a>
+            &nbsp;·&nbsp;<span style="color:${nextCol}">${nextStr}</span>
+            &nbsp;·&nbsp;${sup.cover_weeks||2}wk
+          </div>
+          ${sup.last_order_value?`<div style="font-size:11px;color:var(--g400);margin-top:2px">Last: ${sup.last_order_date} · <strong style="color:var(--pink)">${fmtINR(sup.last_order_value)}</strong></div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:8px">
+          ${supOos>0?`<div style="font-size:11px;font-weight:700;color:var(--red)">${supOos} out</div>`:''}
+          ${supNeeds>0?`<div style="font-size:11px;font-weight:700;color:var(--amber)">${supNeeds} to order</div>`:''}
+          ${supTotal>0?`<div style="font-size:13px;font-weight:700;color:var(--pink)">${fmtINR(supTotal)}</div>`:''}
+        </div>
+      </div>
+    </div>`;
+    const needsOrder=supItems.filter(i=>i.order_qty>0);
+    const stocked=supItems.filter(i=>i.order_qty===0);
+    if(needsOrder.length){html+=`<div class="items-group-label" style="padding-left:8px">↳ Needs reorder (${needsOrder.length})</div>`;html+=needsOrder.map(itemCard).join('');}
+    if(stocked.length){html+=`<div class="items-group-label" style="padding-left:8px">↳ Well stocked (${stocked.length})</div>`;html+=stocked.map(itemCard).join('');}
+    html+='<div style="height:6px"></div>';
+  });
   document.getElementById('order-body').innerHTML=html||'<div class="empty">No items</div>';
 }
 
@@ -685,64 +739,65 @@ async function submitOrder(){
   const btn=document.getElementById('sub-btn');
   btn.disabled=true;btn.textContent='Submitting...';
 
-  const poNum=`PO-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*900)+100}`;
-  const total=ordered.reduce((s,i)=>s+i.edit_qty*Number(i.purchase_price||0),0);
   const today=new Date().toISOString().slice(0,10);
+  const sessIds=[];
 
-  // 1. Create order session
-  const sr=await fetch(`${SB_URL}/rest/v1/order_sessions`,{
-    method:'POST',
-    headers:{...HP,'Prefer':'return=representation,resolution=merge-duplicates'},
-    body:JSON.stringify({
-      session_date:today, supplier_id:currentSup.supplier_id,
-      supplier_name:currentSup.supplier_name, brand:currentBrand,
-      submitted_by:worker.full_name||worker.username,
-      status:'submitted', total_items:ordered.length,
-      total_value:Math.round(total), po_number:poNum,
-      submitted_at:new Date().toISOString()
-    })
-  });
-  const sess=await sr.json();
-  const sessId=Array.isArray(sess)?sess[0]?.id:sess?.id;
+  // Submit one order session per supplier
+  const suppliersWithOrders=orderSuppliers.length>0
+    ? orderSuppliers.filter(sup=>ordered.some(i=>i.supplier_id===sup.supplier_id))
+    : [{supplier_id:currentSup.supplier_id,supplier_name:currentSup.supplier_name}];
 
-  if(!sessId){btn.disabled=false;btn.textContent='Submit Order';showToast('Error saving order. Try again.');return;}
-
-  // 2. Save line items
-  await fetch(`${SB_URL}/rest/v1/order_session_items`,{
-    method:'POST', headers:HP,
-    body:JSON.stringify(ordered.map(i=>({
-      session_id:sessId, item_id:i.item_id, item_name:i.item_name, brand:currentBrand,
-      current_stock:i.current_stock, daily_avg:i.avg_daily_sales, sales_7d:i.sales_7d||0,
-      suggested_qty:i.order_qty, ordered_qty:i.edit_qty,
-      units_per_pack:i.units_per_pack||1, order_type:i.order_type||'unit',
-      pack_label:i.pack_label||'box', purchase_price:i.purchase_price,
-      line_total:Math.round(i.edit_qty*Number(i.purchase_price||0))
-    })))
-  });
-
-  // 3. Generate PDF and send WhatsApp
-  btn.textContent='Sending PDF...';
-  try {
-    const pdfRes = await fetch(`${SB_URL}/functions/v1/generate-order-pdf`,{
-      method:'POST', headers:{'Content-Type':'application/json'},
+  for(const sup of suppliersWithOrders){
+    const supOrdered=ordered.filter(i=>i.supplier_id===sup.supplier_id);
+    if(!supOrdered.length) continue;
+    const poNum=`PO-${today.replace(/-/g,'')}-${Math.floor(Math.random()*900)+100}`;
+    const total=supOrdered.reduce((s,i)=>s+i.edit_qty*Number(i.purchase_price||0),0);
+    const sr=await fetch(`${SB_URL}/rest/v1/order_sessions`,{
+      method:'POST',
+      headers:{...HP,'Prefer':'return=representation,resolution=merge-duplicates'},
       body:JSON.stringify({
-        session_id: sessId,
-        worker_mobile: worker.mobile_number || null
+        session_date:today,supplier_id:sup.supplier_id,
+        supplier_name:sup.supplier_name,brand:currentBrand,
+        submitted_by:worker.full_name||worker.username,
+        status:'submitted',total_items:supOrdered.length,
+        total_value:Math.round(total),po_number:poNum,
+        submitted_at:new Date().toISOString()
       })
     });
-    const pdfData = await pdfRes.json();
-    if(pdfData.pdf_url){
-      showToast('✓ Order submitted · PDF sent');
-      // Also open the PDF in browser for worker to view
-      setTimeout(()=>window.open(pdfData.pdf_url,'_blank'), 500);
-    } else {
-      showToast(`Order submitted — ${poNum}`);
-    }
-  } catch(e) {
-    console.error('PDF generation error:', e);
-    showToast(`Order submitted — ${poNum}`);
+    const sess=await sr.json();
+    const sessId=Array.isArray(sess)?sess[0]?.id:sess?.id;
+    if(!sessId) continue;
+    await fetch(`${SB_URL}/rest/v1/order_session_items`,{
+      method:'POST',headers:HP,
+      body:JSON.stringify(supOrdered.map(i=>({
+        session_id:sessId,item_id:i.item_id,item_name:i.item_name,brand:currentBrand,
+        current_stock:i.current_stock,daily_avg:i.avg_daily_sales,sales_7d:i.sales_7d||0,
+        suggested_qty:i.order_qty,ordered_qty:i.edit_qty,
+        units_per_pack:i.units_per_pack||1,order_type:i.order_type||'unit',
+        pack_label:i.pack_label||'box',purchase_price:i.purchase_price,
+        line_total:Math.round(i.edit_qty*Number(i.purchase_price||0))
+      })))
+    });
+    sessIds.push(sessId);
   }
 
+  if(!sessIds.length){btn.disabled=false;btn.textContent='Submit Order';showToast('Error saving orders.');return;}
+
+  // Generate PDF for each session
+  btn.textContent='Sending PDFs...';
+  try{
+    for(const sessId of sessIds){
+      const pdfRes=await fetch(`${SB_URL}/functions/v1/generate-order-pdf`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({session_id:sessId,worker_mobile:worker.mobile_number||null})
+      });
+      const pd=await pdfRes.json();
+      if(pd.pdf_url) setTimeout(()=>window.open(pd.pdf_url,'_blank'),300);
+    }
+    showToast(`✓ ${sessIds.length} order${sessIds.length>1?'s':''} submitted · PDF${sessIds.length>1?'s':''} sent`);
+  }catch(e){
+    showToast(`${sessIds.length} order${sessIds.length>1?'s':''} submitted`);
+  }
   setTimeout(()=>{btn.disabled=false;btn.textContent='Submit Order';goHome();},2000);
 }
 
