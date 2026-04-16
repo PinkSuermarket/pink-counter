@@ -1229,6 +1229,27 @@ async function loadItemConfig() {
 }
 
 
+function markDirty(itemId) {
+  const saveBtn = document.getElementById(`ic-save-${itemId}`);
+  const savedEl = document.getElementById(`ic-saved-${itemId}`);
+  if (saveBtn) saveBtn.style.display = 'inline-block';
+  if (savedEl) savedEl.style.display = 'none';
+}
+
+function onOrderTypeChange(itemId) {
+  markDirty(itemId);
+  const otype  = document.getElementById(`ic-otype-${itemId}`)?.value;
+  const uppEl  = document.getElementById(`ic-upp-${itemId}`);
+  const plblEl = document.getElementById(`ic-plbl-${itemId}`);
+  if (!uppEl || !plblEl) return;
+  if (otype === 'unit') {
+    uppEl.value = 1; uppEl.disabled = true; plblEl.disabled = true;
+  } else {
+    uppEl.disabled = false; plblEl.disabled = false;
+  }
+}
+
+
 async function saveItemConfig(itemId) {
   const btn   = document.getElementById(`ic-save-${itemId}`);
   const saved = document.getElementById(`ic-saved-${itemId}`);
