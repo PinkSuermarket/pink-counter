@@ -258,15 +258,13 @@ tr:hover td{background:var(--g50);}
     </div>
 
     <!-- Item Config per Supplier -->
-    <div class="sh" style="margin-top:24px"><div><div class="sh-title">Item settings</div><div class="sh-sub">Set unit type and min order qty per item for each brand</div></div></div>
+    <div class="sh" style="margin-top:24px"><div><div class="sh-title">Item settings</div><div class="sh-sub">Set order type (unit/box), pack size and min qty per item</div></div></div>
     <div class="card">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
         <select id="ic-brand" onchange="loadItemConfig()" style="height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;min-width:200px">
           <option value="">— Select brand —</option>
         </select>
-        <select id="ic-supplier" onchange="loadItemConfig()" style="height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;flex:1;min-width:180px;display:none">
-          <option value="">— Select supplier —</option>
-        </select>
+
         <span style="font-size:12px;color:var(--g400)" id="ic-count"></span>
       </div>
       <div id="ic-body">
@@ -1139,81 +1137,87 @@ async function populateBrandSelect() {
 }
 
 async function loadItemConfig() {
-  const brand  = document.getElementById('ic-brand')?.value;
-  const body   = document.getElementById('ic-body');
-  if (!brand) { body.innerHTML='<div class="empty" style="padding:16px">Select a brand above to configure its items</div>'; return; }
+  const brand = document.getElementById('ic-brand')?.value;
+  const body  = document.getElementById('ic-body');
+  if (!brand) { body.innerHTML='<div class="empty" style="padding:16px">Select a brand to configure its items</div>'; return; }
 
-  body.innerHTML = '<div class="lrow"><div class="sp"></div> Loading items...</div>';
+  body.innerHTML = '<div class="lrow"><div class="sp"></div> Loading...</div>';
 
-  // Load all supplier_items for this brand (across all suppliers)
-  const r = await fetch(`${SB_URL}/rest/v1/supplier_items?brand=eq.${encodeURIComponent(brand)}&is_active=eq.true&select=id,item_name,brand,supplier_id,order_type,units_per_pack,pack_label,min_order_qty,unit_label&order=item_name`, {headers:{apikey:SB_ANON,...hdr()}});
-  const items = await r.json();
+  // 1. Get category id for this brand
+  const cr = await fetch(`${SB_URL}/rest/v1/kb_item_categories?item_category_name=eq.${encodeURIComponent(brand)}&select=item_category_id`, {headers:{apikey:SB_ANON,...hdr()}});
+  const cats = await cr.json();
+  if (!cats.length) { body.innerHTML=`<div class="empty" style="padding:16px">Category "${brand}" not found in KhataBook.</div>`; return; }
+  const catId = cats[0].item_category_id;
 
-  // Also get supplier names
-  const supIds = [...new Set(items.map(i=>i.supplier_id))];
-  let supMap = {};
-  if (supIds.length) {
-    const sr = await fetch(`${SB_URL}/rest/v1/suppliers?id=in.(${supIds.join(',')})&select=id,supplier_name`, {headers:{apikey:SB_ANON,...hdr()}});
-    const sups = await sr.json();
-    sups.forEach(s=>supMap[s.id]=s.supplier_name);
-  }
-
-  document.getElementById('ic-count').textContent = `${items.length} items for ${brand}`;
-  if (!items.length) { body.innerHTML='<div class="empty" style="padding:16px">No items for this brand. Add the supplier first.</div>'; return; }
-
-  // Group by supplier
-  const bySup = {};
-  items.forEach(i => {
-    const sname = supMap[i.supplier_id] || `Supplier ${i.supplier_id}`;
-    if (!bySup[sname]) bySup[sname]=[];
-    bySup[sname].push(i);
+  // 2. Get all active items in this category
+  const ir = await fetch(`${SB_URL}/rest/v1/rpc/get_brand_items_for_order`,{
+    method:'POST', headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
+    body:JSON.stringify({p_brand_name:brand,p_cover_days:14})
   });
+  const brandItems = await ir.json().catch(()=>[]);
+
+  if (!brandItems.length) { body.innerHTML=`<div class="empty" style="padding:16px">No items found for brand "${brand}".</div>`; return; }
+
+  // 3. Get existing settings for these items
+  const itemIds = brandItems.map(i=>i.item_id);
+  const sr = await fetch(`${SB_URL}/rest/v1/item_settings?item_id=in.(${itemIds.join(',')})&select=item_id,order_type,units_per_pack,pack_label,unit_label,min_order_qty`, {headers:{apikey:SB_ANON,...hdr()}});
+  const settings = await sr.json().catch(()=>[]);
+  const settingsMap = {};
+  settings.forEach(s => settingsMap[s.item_id] = s);
+
+  document.getElementById('ic-count').textContent = `${brandItems.length} items`;
 
   let html = '<div class="tw"><table style="font-size:13px">';
-  html += '<thead><tr><th>Item</th><th>Order type</th><th style="min-width:90px">Units/pack</th><th style="min-width:90px">Pack label</th><th style="min-width:90px">Min order qty</th><th style="min-width:120px">Unit label</th><th></th></tr></thead><tbody>';
+  html += '<thead><tr><th>Item</th><th>Stock</th><th>Order type</th><th style="min-width:80px">Units/pack</th><th style="min-width:80px">Pack label</th><th style="min-width:80px">Min qty</th><th style="min-width:100px">Unit label</th><th></th></tr></thead><tbody>';
 
-  Object.entries(bySup).forEach(([supName, bitems]) => {
-    html += `<tr><td colspan="7" style="background:var(--g50);font-size:11px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;padding:6px 12px">${supName}</td></tr>`;
-    bitems.forEach(item => {
-      const orderSel = ORDER_OPTS.map(o=>`<option value="${o}" ${item.order_type===o?'selected':''}>${o}</option>`).join('');
-      const unitSel  = UNIT_OPTS.map(u=>`<option value="${u}" ${item.unit_label===u?'selected':''}>${u}</option>`).join('');
-      const packSel  = UNIT_OPTS.map(u=>`<option value="${u}" ${item.pack_label===u?'selected':''}>${u}</option>`).join('');
-      html += `<tr id="icr-${item.id}">
-        <td style="font-size:12px;font-weight:500;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${item.item_name}">${item.item_name}</td>
-        <td>
-          <select id="ic-otype-${item.id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="onOrderTypeChange(${item.id})">
-            ${orderSel}
-          </select>
-        </td>
-        <td>
-          <input type="number" id="ic-upp-${item.id}" value="${item.units_per_pack}" min="1" max="999"
-            style="width:70px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 8px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;"
-            oninput="markDirty(${item.id})">
-        </td>
-        <td>
-          <select id="ic-plbl-${item.id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.id})">
-            ${packSel}
-          </select>
-        </td>
-        <td>
-          <input type="number" id="ic-moq-${item.id}" value="${item.min_order_qty}" min="1" max="999"
-            style="width:70px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 8px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;"
-            oninput="markDirty(${item.id})">
-        </td>
-        <td>
-          <select id="ic-ulbl-${item.id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.id})">
-            ${unitSel}
-          </select>
-        </td>
-        <td>
-          <button id="ic-save-${item.id}" onclick="saveItemConfig(${item.id})"
-            style="height:28px;padding:0 10px;background:var(--green);color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;display:none">
-            Save
-          </button>
-          <span id="ic-saved-${item.id}" style="font-size:11px;color:var(--green);display:none">✓</span>
-        </td>
-      </tr>`;
-    });
+  brandItems.forEach(item => {
+    const s = settingsMap[item.item_id] || {};
+    const orderType   = s.order_type    || 'unit';
+    const unitsPack   = s.units_per_pack || 1;
+    const packLabel   = s.pack_label    || 'box';
+    const unitLabel   = s.unit_label    || 'unit';
+    const minQty      = s.min_order_qty  || 1;
+    const stock       = Number(item.stock||0);
+    const stockCol    = stock < 0 ? 'var(--red)' : stock === 0 ? 'var(--amber)' : 'var(--green)';
+
+    const orderSel = ORDER_OPTS.map(o=>`<option value="${o}" ${orderType===o?'selected':''}>${o}</option>`).join('');
+    const unitSel  = UNIT_OPTS.map(u=>`<option value="${u}" ${unitLabel===u?'selected':''}>${u}</option>`).join('');
+    const packSel  = UNIT_OPTS.map(u=>`<option value="${u}" ${packLabel===u?'selected':''}>${u}</option>`).join('');
+
+    html += `<tr id="icr-${item.item_id}">
+      <td style="font-size:12px;font-weight:500;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${item.item_name}">${item.item_name}</td>
+      <td class="mono" style="color:${stockCol};font-weight:600">${stock}</td>
+      <td>
+        <select id="ic-otype-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="onOrderTypeChange(${item.item_id})">
+          ${orderSel}
+        </select>
+      </td>
+      <td>
+        <input type="number" id="ic-upp-${item.item_id}" value="${unitsPack}" min="1" max="999"
+          style="width:65px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;"
+          oninput="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}>
+      </td>
+      <td>
+        <select id="ic-plbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}>
+          ${packSel}
+        </select>
+      </td>
+      <td>
+        <input type="number" id="ic-moq-${item.item_id}" value="${minQty}" min="1" max="999"
+          style="width:65px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;"
+          oninput="markDirty(${item.item_id})">
+      </td>
+      <td>
+        <select id="ic-ulbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})">
+          ${unitSel}
+        </select>
+      </td>
+      <td>
+        <button id="ic-save-${item.item_id}" onclick="saveItemConfig(${item.item_id})"
+          style="height:28px;padding:0 10px;background:var(--green);color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;display:none">Save</button>
+        <span id="ic-saved-${item.item_id}" style="font-size:11px;color:var(--green);display:none">✓</span>
+      </td>
+    </tr>`;
   });
 
   html += '</tbody></table></div>';
@@ -1224,23 +1228,6 @@ async function loadItemConfig() {
   body.innerHTML = html;
 }
 
-function markDirty(itemId) {
-  document.getElementById(`ic-save-${itemId}`).style.display = 'inline-block';
-  document.getElementById(`ic-saved-${itemId}`).style.display = 'none';
-}
-
-function onOrderTypeChange(itemId) {
-  markDirty(itemId);
-  const otype = document.getElementById(`ic-otype-${itemId}`).value;
-  const uppEl = document.getElementById(`ic-upp-${itemId}`);
-  const plblEl= document.getElementById(`ic-plbl-${itemId}`);
-  // If unit, units_per_pack = 1 and disable
-  if (otype === 'unit') {
-    uppEl.value = 1; uppEl.disabled = true; plblEl.disabled = true;
-  } else {
-    uppEl.disabled = false; plblEl.disabled = false;
-  }
-}
 
 async function saveItemConfig(itemId) {
   const btn   = document.getElementById(`ic-save-${itemId}`);
@@ -1248,16 +1235,19 @@ async function saveItemConfig(itemId) {
   btn.textContent = '...'; btn.disabled = true;
 
   const payload = {
+    item_id:       itemId,
     order_type:    document.getElementById(`ic-otype-${itemId}`).value,
     units_per_pack:parseInt(document.getElementById(`ic-upp-${itemId}`).value)||1,
     pack_label:    document.getElementById(`ic-plbl-${itemId}`).value,
     min_order_qty: parseInt(document.getElementById(`ic-moq-${itemId}`).value)||1,
     unit_label:    document.getElementById(`ic-ulbl-${itemId}`).value,
+    updated_at:    new Date().toISOString(),
   };
 
-  const r = await fetch(`${SB_URL}/rest/v1/supplier_items?id=eq.${itemId}`, {
-    method:'PATCH',
-    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
+  // Upsert into item_settings (no supplier link)
+  const r = await fetch(`${SB_URL}/rest/v1/item_settings`, {
+    method:'POST',
+    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},
     body: JSON.stringify(payload)
   });
 
@@ -1268,6 +1258,7 @@ async function saveItemConfig(itemId) {
     btn.textContent='Save'; btn.disabled=false; alert('Save failed');
   }
 }
+
 
 async function saveAllItems() {
   // Find all visible save buttons and click them
