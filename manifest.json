@@ -1,72 +1,22 @@
 {
-  "name": "Pink Supermarket — Orders",
+  "name": "Pink Supermarket Orders",
   "short_name": "Pink Orders",
   "description": "Worker order portal for Pink Supermarket",
-  "start_url": "/pink-counter/order.html",
-  "scope": "/pink-counter/",
+  "start_url": "./order.html",
+  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#e8446a",
+  "prefer_related_applications": false,
   "icons": [
-    {
-      "src": "icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "New Order",
-      "short_name": "Order",
-      "description": "Start a new order",
-      "url": "/pink-counter/order.html",
-      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
-    }
-  ],
-  "categories": ["business", "shopping"],
-  "lang": "en-IN"
+    { "src": "icons/icon-72.png",  "sizes": "72x72",   "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-96.png",  "sizes": "96x96",   "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
 }

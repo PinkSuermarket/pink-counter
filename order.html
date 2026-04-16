@@ -6,7 +6,7 @@
 <title>Pink Supermarket — Orders</title>
 
 <!-- PWA -->
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#e8446a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -254,6 +254,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
     <div class="topbar-right">
       <div class="worker-pill" id="worker-pill"></div>
       <button class="so-btn" title="My Orders" onclick="goOrders()" style="font-size:16px">📋</button>
+      <button class="so-btn" id="install-btn" title="Install App" onclick="handleInstall()" style="font-size:16px;display:none">⬇️</button>
       <button class="so-btn" onclick="doLogout()">⏻</button>
     </div>
   </div>
@@ -913,70 +914,109 @@ async function downloadOrderPDF(sessionId,btn){
 // ── SHEET ─────────────────────────────────────────────────────────────────────
 function closeSheet(){document.getElementById('sheet-overlay').classList.remove('show');document.getElementById('bottom-sheet').classList.remove('show');}
 
-// ── PWA SERVICE WORKER ────────────────────────────────────────────────────────
+
+// ── PWA ───────────────────────────────────────────────────────────────────────
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+  || window.navigator.standalone === true;
+let deferredPrompt = null;
+
+// Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(reg => {
-        console.log('[PWA] Service worker registered:', reg.scope);
-        // Check for updates every time app loads
-        reg.update();
-      })
-      .catch(err => console.warn('[PWA] SW registration failed:', err));
+    navigator.serviceWorker.register('./service-worker.js', {scope: './'})
+      .then(reg => { console.log('[SW] Scope:', reg.scope); reg.update(); })
+      .catch(err => console.warn('[SW] Failed:', err));
   });
 }
 
-// ── PWA INSTALL PROMPT ────────────────────────────────────────────────────────
-let deferredPrompt = null;
+// Capture Android/Chrome install event
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
-  // Show install banner after user logs in
-  setTimeout(showInstallBanner, 3000);
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'flex';
+  // Show banner after 2.5s
+  setTimeout(showInstallBanner, 2500);
 });
 
 function showInstallBanner() {
-  if (!deferredPrompt || !worker) return;
-  // Don't show if already installed
-  if (window.matchMedia('(display-mode: standalone)').matches) return;
+  if (isStandalone) return;
+  if (sessionStorage.getItem('pwa-dismissed')) return;
+  if (document.getElementById('pwa-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'pwa-banner';
-  banner.style.cssText = `position:fixed;bottom:80px;left:12px;right:12px;background:#1c1a18;color:white;
-    border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:999;
-    box-shadow:0 4px 24px rgba(0,0,0,.3);animation:slideUp .3s ease`;
-  banner.innerHTML = `
-    <img src="icons/icon-72.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0">
-    <div style="flex:1;min-width:0">
-      <div style="font-size:14px;font-weight:700">Add to Home Screen</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:1px">Open faster, works offline</div>
-    </div>
-    <button onclick="installPWA()" style="background:var(--pink);color:white;border:none;border-radius:10px;
-      padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
-      Install
-    </button>
-    <button onclick="document.getElementById('pwa-banner').remove()" style="background:rgba(255,255,255,.1);
-      color:white;border:none;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:18px;
-      display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>`;
+  banner.style.cssText = 'position:fixed;bottom:80px;left:12px;right:12px;background:#1c1a18;color:white;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:999;box-shadow:0 4px 24px rgba(0,0,0,.3)';
+  banner.innerHTML =
+    '<img src="./icons/icon-72.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0">' +
+    '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">Add to Home Screen</div>' +
+    '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:1px">Faster · works offline</div></div>' +
+    (isIOS
+      ? '<button onclick="showIOSGuide()" style="background:var(--pink);color:white;border:none;border-radius:10px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">How to Install</button>'
+      : '<button onclick="installPWA()" style="background:var(--pink);color:white;border:none;border-radius:10px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Install</button>') +
+    '<button onclick="dismissBanner()" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center">x</button>';
   document.body.appendChild(banner);
 }
 
+function dismissBanner() {
+  sessionStorage.setItem('pwa-dismissed', '1');
+  const b = document.getElementById('pwa-banner');
+  if (b) b.remove();
+}
+
 async function installPWA() {
-  const banner = document.getElementById('pwa-banner');
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  console.log('[PWA] Install outcome:', outcome);
-  deferredPrompt = null;
-  if (banner) banner.remove();
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const {outcome} = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    dismissBanner();
+    if (outcome === 'accepted') showToast('Installing... check your home screen');
+  } else {
+    showIOSGuide();
+  }
+}
+
+function handleInstall() {
+  if (deferredPrompt) installPWA(); else showIOSGuide();
+}
+
+function showIOSGuide() {
+  document.getElementById('sheet-content').innerHTML =
+    '<div style="padding:20px 20px 32px">' +
+    '<div style="font-size:18px;font-weight:700;margin-bottom:4px">Add to Home Screen</div>' +
+    '<div style="font-size:13px;color:var(--g400);margin-bottom:20px">Install this app to your phone</div>' +
+    (isIOS
+      ? '<div style="background:var(--g50);border-radius:12px;padding:16px;margin-bottom:16px;line-height:2;font-size:14px">' +
+        '1. Tap the <strong>Share</strong> button ⎋ at the bottom of Safari<br>' +
+        '2. Scroll and tap <strong>"Add to Home Screen"</strong><br>' +
+        '3. Tap <strong>"Add"</strong> at the top right</div>'
+      : '<div style="background:var(--g50);border-radius:12px;padding:16px;margin-bottom:16px;line-height:2;font-size:14px">' +
+        '1. Tap the <strong>⋮ menu</strong> in Chrome<br>' +
+        '2. Tap <strong>"Add to Home Screen"</strong><br>' +
+        '3. Tap <strong>"Install"</strong></div>') +
+    '<button onclick="closeSheet()" style="width:100%;height:50px;background:var(--pink);color:white;border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer">Got it</button>' +
+    '</div>';
+  document.getElementById('sheet-overlay').classList.add('show');
+  document.getElementById('bottom-sheet').classList.add('show');
 }
 
 window.addEventListener('appinstalled', () => {
-  console.log('[PWA] App installed!');
   deferredPrompt = null;
-  const banner = document.getElementById('pwa-banner');
-  if (banner) banner.remove();
-  showToast('✓ App installed! Find it on your home screen.');
+  dismissBanner();
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'none';
+  showToast('App installed! Open from your home screen');
 });
+
+// iOS — always show install button (no beforeinstallprompt on Safari)
+if (isIOS && !isStandalone) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('install-btn');
+    if (btn) btn.style.display = 'flex';
+  });
+  setTimeout(showInstallBanner, 3000);
+}
+
 </script>
 </body>
 </html>

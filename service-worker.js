@@ -1,93 +1,63 @@
-// Pink Supermarket — Service Worker v1
-const CACHE_NAME = 'pink-orders-v1';
-const STATIC_ASSETS = [
-  '/pink-counter/order.html',
-  '/pink-counter/manifest.json',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap',
+// Pink Supermarket — Service Worker v2
+const CACHE = 'pink-v2';
+const OFFLINE_PAGE = './order.html';
+
+const PRECACHE = [
+  './order.html',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
 ];
 
-// ── INSTALL: cache static assets ─────────────────────────────────────────────
-self.addEventListener('install', event => {
-  console.log('[SW] Installing...');
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      // Cache what we can — some cross-origin may fail, that's ok
-      return Promise.allSettled(
-        STATIC_ASSETS.map(url => cache.add(url).catch(() => {}))
-      );
-    }).then(() => self.skipWaiting())
+// INSTALL — precache shell
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => Promise.allSettled(PRECACHE.map(u => c.add(u).catch(()=>{}))))
+      .then(() => self.skipWaiting())
   );
 });
 
-// ── ACTIVATE: clean old caches ────────────────────────────────────────────────
-self.addEventListener('activate', event => {
-  console.log('[SW] Activating...');
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+// ACTIVATE — delete old caches
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+// FETCH strategy:
+// - Supabase API → network only (never cache)
+// - HTML/assets  → network first, fall back to cache
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+
+  // Never cache Supabase or external API calls
+  if (url.hostname.includes('supabase.co') ||
+      url.hostname.includes('googleapis.com') ||
+      url.hostname.includes('jsdelivr.net')) {
+    e.respondWith(
+      fetch(e.request).catch(() =>
+        new Response(JSON.stringify({error:'offline'}),
+          {status:503, headers:{'Content-Type':'application/json'}})
       )
-    ).then(() => self.clients.claim())
-  );
-});
-
-// ── FETCH: network-first for API, cache-first for assets ─────────────────────
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
-
-  // Always go network for Supabase API calls
-  if (url.hostname.includes('supabase.co')) {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        // Offline: return a JSON error so the app can handle gracefully
-        return new Response(
-          JSON.stringify({ error: 'offline', message: 'No internet connection' }),
-          { headers: { 'Content-Type': 'application/json' }, status: 503 }
-        );
-      })
     );
     return;
   }
 
-  // Cache-first for static assets (HTML, fonts, scripts)
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        // Cache successful GET responses
-        if (event.request.method === 'GET' && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+  // Network first for everything else
+  e.respondWith(
+    fetch(e.request)
+      .then(res => {
+        if (e.request.method === 'GET' && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
         }
-        return response;
-      }).catch(() => {
-        // Offline fallback for navigation requests
-        if (event.request.mode === 'navigate') {
-          return caches.match('/pink-counter/order.html');
-        }
-      });
-    })
-  );
-});
-
-// ── BACKGROUND SYNC (for future use) ─────────────────────────────────────────
-self.addEventListener('sync', event => {
-  if (event.tag === 'sync-orders') {
-    console.log('[SW] Background sync: orders');
-  }
-});
-
-// ── PUSH NOTIFICATIONS (for future use) ──────────────────────────────────────
-self.addEventListener('push', event => {
-  if (!event.data) return;
-  const data = event.data.json().catch(() => ({ title: 'Pink Supermarket', body: event.data.text() }));
-  event.waitUntil(
-    data.then(d => self.registration.showNotification(d.title || 'Pink Supermarket', {
-      body: d.body || '',
-      icon: '/pink-counter/icons/icon-192.png',
-      badge: '/pink-counter/icons/icon-72.png',
-      vibrate: [200, 100, 200],
-    }))
+        return res;
+      })
+      .catch(() => caches.match(e.request)
+        .then(cached => cached || caches.match(OFFLINE_PAGE))
+      )
   );
 });
