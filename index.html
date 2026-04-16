@@ -210,17 +210,26 @@ tr:hover td{background:var(--g50);}
     <div class="note" style="margin-bottom:16px">Manage brands and item settings. Workers browse brands, add items to cart, then select a supplier when submitting.</div>
 
     <!-- Add Brand -->
-    <div class="sh"><div><div class="sh-title">Add brand</div><div class="sh-sub">Search KhataBook category → register as brand</div></div></div>
+    <div class="sh"><div><div class="sh-title">Add brand</div><div class="sh-sub">All KhataBook categories shown — type to filter, then click Add</div></div></div>
     <div class="card">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
         <div style="flex:1;min-width:200px">
-          <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Search brand / category</div>
-          <input type="text" id="ra-brand-search" placeholder="e.g. MR GOLD, BRITANNIA, ICE CREAMS…"
-            oninput="searchBrands()"
-            style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+          <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Brand / category</div>
+          <input type="text" id="ra-brand-search" list="ra-brand-list"
+            placeholder="Click or type to search all brands…"
+            oninput="onBrandInput()"
+            autocomplete="off"
+            style="width:100%;height:40px;border:2px solid var(--g200);border-radius:8px;padding:0 12px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;"
+            onfocus="this.style.borderColor='var(--pink)'" onblur="this.style.borderColor='var(--g200)'">
+          <datalist id="ra-brand-list"></datalist>
         </div>
+        <button onclick="addBrandFromSearch()"
+          style="height:40px;padding:0 20px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
+          + Add Brand
+        </button>
       </div>
-      <div id="ra-brand-results" style="margin-top:8px;"></div>
+      <!-- Already added brands pills -->
+      <div id="ra-already-added" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
       <div id="ra-add-status" style="margin-top:10px;font-size:13px;display:none;"></div>
     </div>
 
@@ -584,28 +593,93 @@ const DAYS_MAP = {1:'Monday',2:'Tuesday',3:'Wednesday',4:'Thursday',5:'Friday',6
 let raSearchData = [];
 
 
-async function searchBrands() {
-  const q = document.getElementById('ra-brand-search').value.trim();
-  const res = document.getElementById('ra-brand-results');
-  if (q.length < 2) { res.innerHTML=''; return; }
+// All categories loaded once on page load
+let allCategories = [];
+let allCategoryNames = new Set();
+
+async function loadAllCategories() {
   const r = await fetch(
-    `${SB_URL}/rest/v1/kb_item_categories?item_category_name=ilike.*${encodeURIComponent(q)}*&select=item_category_id,item_category_name&limit=10`,
+    `${SB_URL}/rest/v1/kb_item_categories?select=item_category_id,item_category_name&order=item_category_name`,
     {headers:{apikey:SB_ANON,...hdr()}}
   );
-  const cats = await r.json();
-  if (!cats.length) { res.innerHTML='<div style="padding:6px;font-size:12px;color:var(--g400)">No brands found.</div>'; return; }
-  res.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">' +
-    cats.map(c=>`<button onclick="pickBrand('${c.item_category_name.replace(/'/g,"\'")}','${c.item_category_id}')"
-      style="height:30px;padding:0 12px;border:2px solid var(--g200);border-radius:20px;background:white;
-             font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--g600);cursor:pointer;">
-      ${c.item_category_name}</button>`).join('') + '</div>';
+  allCategories = await r.json().catch(()=>[]);
+  allCategoryNames = new Set(allCategories.map(c=>c.item_category_name));
+
+  // Populate datalist with ALL categories
+  const dl = document.getElementById('ra-brand-list');
+  if (dl) {
+    dl.innerHTML = allCategories.map(c=>`<option value="${c.item_category_name}">`).join('');
+  }
 }
+
+function onBrandInput() {
+  // Clear status when user types
+  const st = document.getElementById('ra-add-status');
+  if (st) st.style.display = 'none';
+}
+
+async function addBrandFromSearch() {
+  const input = document.getElementById('ra-brand-search');
+  const brandName = (input?.value||'').trim().toUpperCase();
+  const st = document.getElementById('ra-add-status');
+  if (!brandName) {
+    st.innerHTML = '<span style="color:var(--amber)">Please enter or select a brand name.</span>';
+    st.style.display = 'block';
+    input?.focus();
+    return;
+  }
+  st.innerHTML = '<div class="sp" style="display:inline-block;margin-right:6px;vertical-align:middle"></div> Adding brand...';
+  st.style.display = 'block';
+
+  const r = await fetch(`${SB_URL}/rest/v1/brand_logos`, {
+    method:'POST',
+    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates'},
+    body:JSON.stringify({brand_name:brandName})
+  });
+  if (r.ok || r.status===409) {
+    st.innerHTML = `<span style="color:var(--green)">✓ <strong>${brandName}</strong> added — upload its logo in Brand Logos below to activate in order form.</span>`;
+    if (input) input.value = '';
+    loadBrandLogos();
+    populateBrandSelect();
+    showAddedBrandPills();
+  } else {
+    st.innerHTML = `<span style="color:var(--red)">Failed to add brand.</span>`;
+  }
+}
+
+async function showAddedBrandPills() {
+  const el = document.getElementById('ra-already-added');
+  if (!el) return;
+  const r = await fetch(`${SB_URL}/rest/v1/brand_logos?select=id,brand_name,logo_url&order=brand_name`,{headers:{apikey:SB_ANON,...hdr()}});
+  const brands = await r.json().catch(()=>[]);
+  if (!brands.length) { el.innerHTML=''; return; }
+  el.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--g400);width:100%;margin-bottom:4px">Already added:</div>' +
+    brands.map(b=>`
+      <span style="display:inline-flex;align-items:center;gap:5px;background:${b.logo_url?'var(--green-l)':'var(--g100)'};
+        color:${b.logo_url?'var(--green)':'var(--g600)'};border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">
+        ${b.logo_url?'✓':''} ${b.brand_name}
+        <button onclick="deleteBrand(${b.id},'${b.brand_name.replace(/'/g,"\'")}',${!!b.logo_url})"
+          style="background:none;border:none;cursor:pointer;color:inherit;font-size:13px;line-height:1;padding:0;opacity:.6">×</button>
+      </span>`).join('');
+}
+
+// Legacy: pickBrand called from old flow — just add brand directly now
+async function pickBrand(brandName, catId) {
+  const input = document.getElementById('ra-brand-search');
+  if (input) input.value = brandName;
+  await addBrandFromSearch();
+}
+
+// Legacy stub — no longer needed
+async function searchBrands() {}
 
 async function loadReorderAdmin() {
   // Supplier table removed — brands are now decoupled from suppliers
   loadWorkerUsers();
   loadBrandLogos();
   populateBrandSelect();
+  loadAllCategories();
+  showAddedBrandPills();
 }
 
 let raSelectedBrandName = '';
