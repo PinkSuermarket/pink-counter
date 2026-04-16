@@ -311,6 +311,7 @@ const H  = {'apikey':SB_ANON,'Authorization':'Bearer '+SB_ANON};
 const HP = {'apikey':SB_ANON,'Authorization':'Bearer '+SB_ANON,'Content-Type':'application/json'};
 
 let worker=null, allBrands=[], currentBrand=null, currentBrandItems=[];
+let coverDays=14, avgMonths=3;  // user-configurable per session
 let cart={};  // { item_id: {item, qty, brand_name} }
 let allSuppliers=[];
 let selectedSupplier=null;
@@ -433,16 +434,98 @@ function renderBrands(q){
 }
 
 // ── BRAND ITEMS ───────────────────────────────────────────────────────────────
-async function openBrand(brandName){
+function openBrand(brandName){
   currentBrand=brandName;
+  // Show bottom sheet with cover days / avg months settings before loading items
+  const brand=allBrands.find(b=>b.brand_name===brandName)||{};
+  const oos=Number(brand.oos_count||0),order=Number(brand.needs_order_count||0);
+  const badge=oos>0?`<span class="badge b-red">${oos} out of stock</span>`:order>0?`<span class="badge b-amber">${order} need order</span>`:`<span class="badge b-green">Stock OK</span>`;
+
+  document.getElementById('sheet-content').innerHTML=`
+    <div style="padding:16px 20px 8px">
+      <div style="font-size:18px;font-weight:700;margin-bottom:4px">${brandName}</div>
+      <div style="margin-bottom:16px">${badge}</div>
+
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Cover days</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="cover-opts">
+            ${[7,14,21,30].map(d=>`<button onclick="setCover(${d})" id="copt-${d}"
+              style="height:34px;padding:0 14px;border:2px solid ${d===coverDays?'var(--pink)':'var(--g200)'};
+              border-radius:8px;background:${d===coverDays?'var(--pink-l)':'white'};
+              color:${d===coverDays?'var(--pink)':'var(--g600)'};
+              font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
+              ${d}d</button>`).join('')}
+          </div>
+        </div>
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Avg sales from</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="avg-opts">
+            ${[1,2,3,6].map(m=>`<button onclick="setAvgMonths(${m})" id="aopt-${m}"
+              style="height:34px;padding:0 14px;border:2px solid ${m===avgMonths?'var(--pink)':'var(--g200)'};
+              border-radius:8px;background:${m===avgMonths?'var(--pink-l)':'white'};
+              color:${m===avgMonths?'var(--pink)':'var(--g600)'};
+              font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
+              ${m}mo</button>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--g50);border-radius:10px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:var(--g600)">
+        Suggested qty = (daily avg × <strong>${coverDays} days</strong>) − current stock
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button onclick="closeSheet()" style="flex:1;height:48px;border:2px solid var(--g200);border-radius:12px;background:white;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer">Cancel</button>
+        <button onclick="closeSheet();startBrowseBrand()" style="flex:2;height:48px;background:var(--pink);color:white;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer">
+          View ${brand.total_items||''} Items →
+        </button>
+      </div>
+    </div>`;
+
+  document.getElementById('sheet-overlay').classList.add('show');
+  document.getElementById('bottom-sheet').classList.add('show');
+}
+
+function setCover(days){
+  coverDays=days;
+  // Update button styles
+  [7,14,21,30].forEach(d=>{
+    const b=document.getElementById(`copt-${d}`);
+    if(!b)return;
+    b.style.borderColor=d===days?'var(--pink)':'var(--g200)';
+    b.style.background=d===days?'var(--pink-l)':'white';
+    b.style.color=d===days?'var(--pink)':'var(--g600)';
+  });
+  // Update formula hint
+  const hint=document.querySelector('[style*="Suggested qty"]');
+  if(hint) hint.innerHTML=`Suggested qty = (daily avg × <strong>${coverDays} days</strong>) − current stock`;
+}
+
+function setAvgMonths(m){
+  avgMonths=m;
+  [1,2,3,6].forEach(mo=>{
+    const b=document.getElementById(`aopt-${mo}`);
+    if(!b)return;
+    b.style.borderColor=mo===m?'var(--pink)':'var(--g200)';
+    b.style.background=mo===m?'var(--pink-l)':'white';
+    b.style.color=mo===m?'var(--pink)':'var(--g600)';
+  });
+}
+
+async function startBrowseBrand(){
   navigate('s-items');
   document.getElementById('items-body').innerHTML='<div class="lrow"><div class="sp"></div></div>';
-  // Get cover days from first active supplier for this brand (default 14)
-  const coverDays=14;
-  const r=await fetch(`${SB_URL}/rest/v1/rpc/get_brand_items_for_order`,{method:'POST',headers:HP,body:JSON.stringify({p_brand_name:brandName,p_cover_days:coverDays})});
+  const r=await fetch(`${SB_URL}/rest/v1/rpc/get_brand_items_for_order`,{
+    method:'POST',headers:HP,
+    body:JSON.stringify({p_brand_name:currentBrand,p_cover_days:coverDays})
+  });
   const items=await r.json().catch(()=>[]);
   currentBrandItems=items;
-  if(!items.length){document.getElementById('items-body').innerHTML='<div class="empty">No items found for this brand.</div>';return;}
+  if(!items.length){
+    document.getElementById('items-body').innerHTML='<div class="empty">No items found for this brand.</div>';
+    return;
+  }
   renderBrandItems();
   updateCartFab();
 }
@@ -464,10 +547,16 @@ function itemCard(item){
   const oos=stock<=0;
   const daily=Number(item.daily_avg||0);
   const sales7d=Number(item.sold_7d||0);
-  const coverDays=14;
   const suggested=Number(item.suggested_qty||0);
+  const minQty=Number(item.min_order_qty||1);
+  const orderType=item.order_type||'unit';
+  const unitLabel=item.unit_label||'unit';
+  const unitsPack=Number(item.units_per_pack||1);
+  const packLabel=item.pack_label||'box';
   const inCart=cart[item.item_id];
-  const qty=inCart?inCart.qty:suggested;
+  // Default qty = max(suggested, min_order_qty)
+  const defaultQty=inCart?inCart.qty:Math.max(suggested,suggested>0?minQty:0);
+  const qty=defaultQty;
 
   let stockTag='';
   if(ss==='negative') stockTag=`<span class="item-tag tag-sync">⚠ Stock ${stock}</span>`;
@@ -507,7 +596,7 @@ function itemCard(item){
       <div class="formula-row"><span class="formula-label">7-day sales</span><span class="formula-val ${sales7d>0?'green':'red'}">${sales7d} units</span></div>
       <div class="formula-row"><span class="formula-label">Daily avg</span><span class="formula-val">${daily.toFixed(2)}/day</span></div>
       <div class="formula-row"><span class="formula-label">Stock</span><span class="formula-val ${ss==='negative'?'amber':oos?'red':''}">${stock}${ss==='negative'?' ⚠':''}</span></div>
-      <div class="formula-eq">${daily.toFixed(2)}/day × ${coverDays}d = ${Number(item.target_stock||0).toFixed(0)} target → suggest ${suggested} units</div>
+      <div class="formula-eq">${daily.toFixed(2)}/day × ${coverDays}d = ${Number(item.target_stock||0).toFixed(0)} target → suggest <strong>${suggested} ${unitLabel}</strong>${minQty>1?` · min order ${minQty}`:''}</div>
     </div>
   </div>`;
 }
