@@ -1234,6 +1234,9 @@ function markDirty(itemId) {
   const savedEl = document.getElementById(`ic-saved-${itemId}`);
   if (saveBtn) saveBtn.style.display = 'inline-block';
   if (savedEl) savedEl.style.display = 'none';
+  // Highlight Save All button so user notices unsaved changes
+  const saveAll = document.querySelector('[onclick="saveAllItems()"]');
+  if (saveAll) saveAll.style.background = 'var(--amber)';
 }
 
 function onOrderTypeChange(itemId) {
@@ -1273,22 +1276,31 @@ async function saveItemConfig(itemId) {
   });
 
   if (r.ok) {
-    btn.style.display='none'; btn.disabled=false; btn.textContent='Save';
-    saved.style.display='inline'; setTimeout(()=>saved.style.display='none',2000);
+    if (btn) { btn.style.display='none'; btn.disabled=false; btn.textContent='Save'; }
+    if (saved) { saved.style.display='inline'; setTimeout(()=>saved.style.display='none',2000); }
+    return true;
   } else {
-    btn.textContent='Save'; btn.disabled=false; alert('Save failed');
+    if (btn) { btn.textContent='Save'; btn.disabled=false; }
+    console.error('Save failed for item', itemId, await r.text().catch(()=>''));
+    return false;
   }
 }
 
 
 async function saveAllItems() {
-  // Find all visible save buttons and click them
   const rows = document.querySelectorAll('[id^="icr-"]');
+  if (!rows.length) { alert('No items loaded. Select a brand first.'); return; }
+  const saveBtn = document.querySelector('[onclick="saveAllItems()"]');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+  let saved = 0, failed = 0;
   for (const row of rows) {
-    const itemId = row.id.replace('icr-','');
-    const btn = document.getElementById(`ic-save-${itemId}`);
-    if (btn && btn.style.display !== 'none') await saveItemConfig(itemId);
+    const itemId = parseInt(row.id.replace('icr-', ''));
+    if (!itemId) continue;
+    const ok = await saveItemConfig(itemId);
+    if (ok) saved++; else failed++;
   }
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save all changes'; saveBtn.style.background = 'var(--pink)'; }
+  alert(failed === 0 ? `✓ Saved ${saved} items.` : `Saved ${saved}, failed ${failed}.`);
 }
 
 
