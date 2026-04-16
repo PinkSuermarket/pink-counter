@@ -244,7 +244,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
     <div class="screen active" id="s-brands">
       <div class="date-strip">
         <div><div class="date-strip-day" id="strip-day"></div><div class="date-strip-full" id="strip-date"></div></div>
-        <div class="date-strip-pill" id="strip-badge">Loading...</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="date-strip-pill" id="strip-badge">Loading...</div>
+          <button onclick="loadBrands()" style="background:rgba(255,255,255,.2);border:none;border-radius:20px;padding:4px 10px;color:white;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif" title="Refresh brands">↻</button>
+        </div>
       </div>
       <div class="search-wrap">
         <div class="search-rel">
@@ -388,7 +391,7 @@ async function loadSuppliers(){
 // ── BRANDS ────────────────────────────────────────────────────────────────────
 async function loadBrands(){
   document.getElementById('brand-body').innerHTML='<div class="lrow"><div class="sp"></div></div>';
-  const r=await fetch(`${SB_URL}/rest/v1/rpc/get_brands_for_order`,{method:'POST',headers:HP,body:'{}'});
+  const r=await fetch(`${SB_URL}/rest/v1/rpc/get_brands_for_order`,{method:'POST',headers:HP,body:'{}',cache:'no-store'});
   if(!r.ok){document.getElementById('brand-body').innerHTML='<div class="empty">Error loading.<br><button onclick="loadBrands()" style="margin-top:8px;padding:8px 20px;background:var(--pink);color:white;border:none;border-radius:8px;cursor:pointer">↻ Retry</button></div>';return;}
   allBrands=await r.json().catch(()=>[]);
   const oosB=allBrands.filter(b=>Number(b.oos_count||0)>0).length;
