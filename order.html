@@ -190,6 +190,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
 .sheet-sub{font-size:12px;color:var(--g400);margin-top:2px;}
 .sheet-body{padding:14px 20px;}
 
+/* ORDER HISTORY CARDS */
+.ord-card{background:white;border-radius:var(--r);box-shadow:var(--sh);padding:14px 16px;margin-bottom:10px;}
+.ord-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+.ord-po{font-size:12px;font-weight:700;color:var(--g900);font-family:'DM Mono',monospace;}
+.ord-date{font-size:11px;color:var(--g400);margin-top:2px;}
+.ord-val{font-size:16px;font-weight:700;color:var(--pink);}
+.ord-meta{font-size:12px;color:var(--g600);margin-bottom:10px;}
+.ord-pdf-btn{width:100%;height:40px;background:var(--pink-l);color:var(--pink);border:2px solid var(--pink-l);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
+.ord-pdf-btn:active{opacity:.8;}
+
 /* MISC */
 .sec-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--g400);margin:12px 0 8px;}
 .lrow{display:flex;align-items:center;justify-content:center;gap:8px;padding:40px 16px;color:var(--g400);font-size:13px;}
@@ -224,6 +234,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
     </div>
     <div class="topbar-right">
       <div class="worker-pill" id="worker-pill"></div>
+      <button class="so-btn" title="My Orders" onclick="goOrders()" style="font-size:16px">📋</button>
       <button class="so-btn" onclick="doLogout()">⏻</button>
     </div>
   </div>
@@ -254,6 +265,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
     <div class="screen hidden-right" id="s-cart">
       <div id="cart-body"><div class="empty">Your cart is empty.<br>Browse brands and add items.</div></div>
       <div style="height:100px"></div>
+    </div>
+
+    <!-- S4: SUBMITTED ORDERS -->
+    <div class="screen hidden-right" id="s-orders">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--g400);margin-bottom:12px">My submitted orders</div>
+      <div id="orders-list-body"><div class="lrow"><div class="sp"></div></div></div>
+      <div style="height:80px"></div>
     </div>
   </div>
 
@@ -351,6 +369,7 @@ function updateTopbar(){
   if(cur==='s-brands'){document.getElementById('topbar-title').textContent='Order Brands';document.getElementById('topbar-sub').textContent='';}
   else if(cur==='s-items'){document.getElementById('topbar-title').textContent=currentBrand||'Items';document.getElementById('topbar-sub').textContent='Tap + to add to cart';}
   else if(cur==='s-cart'){document.getElementById('topbar-title').textContent='Your Cart';document.getElementById('topbar-sub').textContent=cartCount()+' items';}
+  else if(cur==='s-orders'){document.getElementById('topbar-title').textContent='My Orders';document.getElementById('topbar-sub').textContent='';}
 }
 
 // ── SUPPLIERS ─────────────────────────────────────────────────────────────────
@@ -724,10 +743,60 @@ async function submitOrder(){
     document.getElementById('s-brands').classList.add('active');
     document.getElementById('s-items').classList.add('hidden-right');
     document.getElementById('s-cart').classList.add('hidden-right');
+    document.getElementById('s-orders').classList.add('hidden-right');
     document.getElementById('order-bar').classList.remove('visible');
     document.getElementById('cart-fab').classList.remove('visible');
     updateTopbar();loadBrands();
   },1800);
+}
+
+// ── ORDERS HISTORY ────────────────────────────────────────────────────────────
+function goOrders(){
+  navigate('s-orders');
+  loadMyOrders();
+}
+
+async function loadMyOrders(){
+  const body=document.getElementById('orders-list-body');
+  body.innerHTML='<div class="lrow"><div class="sp"></div></div>';
+  const name=encodeURIComponent(worker.full_name||worker.username);
+  const r=await fetch(`${SB_URL}/rest/v1/order_sessions?submitted_by=eq.${name}&status=eq.submitted&order=submitted_at.desc&limit=30&select=id,po_number,session_date,supplier_name,brand,total_items,total_value,submitted_at`,{headers:H});
+  const orders=await r.json().catch(()=>[]);
+  if(!orders.length){
+    body.innerHTML='<div class="empty">No orders yet.<br>Browse brands and submit your first order.</div>';
+    return;
+  }
+  body.innerHTML=orders.map(o=>{
+    const val=o.total_value?'₹'+Math.round(o.total_value).toLocaleString('en-IN'):'—';
+    return `<div class="ord-card">
+      <div class="ord-card-top">
+        <div>
+          <div class="ord-po">${o.po_number||'Order #'+o.id}</div>
+          <div class="ord-date">${o.session_date||''} · ${o.supplier_name||'—'}</div>
+          <div class="ord-meta">${o.brand||'—'} · ${o.total_items||0} items</div>
+        </div>
+        <div class="ord-val">${val}</div>
+      </div>
+      <button class="ord-pdf-btn" onclick="downloadOrderPDF(${o.id},this)">
+        📄 Download PDF for purchase entry
+      </button>
+    </div>`;
+  }).join('');
+}
+
+async function downloadOrderPDF(sessionId,btn){
+  const orig=btn.textContent;
+  btn.disabled=true;btn.textContent='Generating PDF...';
+  try{
+    const r=await fetch(`${SB_URL}/functions/v1/generate-order-pdf`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({session_id:sessionId,worker_mobile:null})
+    });
+    const d=await r.json();
+    if(d.pdf_url){window.open(d.pdf_url,'_blank');btn.textContent='✓ Opened';}
+    else{btn.textContent='Failed — try again';}
+  }catch(e){btn.textContent='Error';}
+  setTimeout(()=>{btn.disabled=false;btn.textContent=orig;},3000);
 }
 
 // ── SHEET ─────────────────────────────────────────────────────────────────────
