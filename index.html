@@ -604,35 +604,10 @@ async function searchBrands() {
 }
 
 async function loadReorderAdmin() {
-  // Load active suppliers
-  const r = await fetch(`${SB_URL}/rest/v1/suppliers?is_active=eq.true&select=id,supplier_name,visit_days,cover_weeks,avg_months,brands,created_at&order=supplier_name`, {headers:{apikey:SB_ANON,...hdr()}});
-  const sups = await r.json();
-
-  // Load item counts per supplier
-  const rc = await fetch(`${SB_URL}/rest/v1/supplier_items?is_active=eq.true&select=supplier_id`, {headers:{apikey:SB_ANON,...hdr()}});
-  const items = await rc.json();
-  const itemCounts = {};
-  items.forEach(i => { itemCounts[i.supplier_id] = (itemCounts[i.supplier_id]||0)+1; });
-
-  document.getElementById('ra-count').textContent = `${sups.length} active suppliers`;
-  document.getElementById('ra-tbody').innerHTML = sups.length ? sups.map(s => `<tr>
-    <td>
-      <div style="font-size:13px;font-weight:600">${s.supplier_name}</div>
-      <div style="font-size:11px;color:var(--g400)">${s.whatsapp_number||''}</div>
-    </td>
-    <td style="font-size:11px;color:var(--g600)">${(s.brands||[]).join(', ')||'—'}</td>
-    <td><span class="badge b-blue">${(s.visit_days||[]).map(d=>DAYS_MAP[d]).join(', ')}</span></td>
-    <td class="mono">${s.cover_weeks*7} days</td>
-    <td class="mono">${itemCounts[s.id]||0} items</td>
-    <td style="display:flex;gap:6px;flex-wrap:wrap">
-      <button onclick="reOnboard(${s.id},'${s.supplier_name.replace(/'/g,"\\'")}')" style="height:26px;padding:0 8px;border:2px solid var(--blue);border-radius:6px;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer">↻ Re-scan</button>
-      <button onclick="toggleSupplier(${s.id},false)" style="height:26px;padding:0 8px;border:2px solid var(--g200);border-radius:6px;background:var(--g100);color:var(--g600);font-size:11px;cursor:pointer">Disable</button>
-    </td>
-  </tr>`).join('') : '<tr><td colspan="6" class="empty">No suppliers yet. Add one above.</td></tr>';
-
+  // Supplier table removed — brands are now decoupled from suppliers
   loadWorkerUsers();
-  populateSupplierSelect();
-  syncBrandNames();
+  loadBrandLogos();
+  populateBrandSelect();
 }
 
 let raSelectedBrandName = '';
@@ -643,11 +618,12 @@ function resetBrandSearch() {
   raSelectedBrandName = '';
   raSelectedCatId = '';
   raSelectedSupplier = null;
-  document.getElementById('ra-brand-search').value = '';
-  document.getElementById('ra-brand-results').innerHTML = '';
-  document.getElementById('ra-step2').style.display = 'none';
-  document.getElementById('ra-sup-settings').style.display = 'none';
-  document.getElementById('ra-add-status').style.display = 'none';
+  const el = document.getElementById('ra-brand-search');
+  if (el) el.value = '';
+  const res = document.getElementById('ra-brand-results');
+  if (res) res.innerHTML = '';
+  const st = document.getElementById('ra-add-status');
+  if (st) st.style.display = 'none';
 }
 
 async function pickBrand(brandName, catId) {
@@ -702,8 +678,8 @@ function pickRASupplier(sup) {
   });
   const el = document.getElementById(`ra-sup-${sup.name_id}`);
   if (el) { el.style.borderColor='var(--pink)'; el.style.background='var(--pink-l)'; el.classList.add('selected'); }
-  document.getElementById('ra-sup-name-lbl').textContent = sup.supplier_name;
-  document.getElementById('ra-sup-settings').style.display = 'block';
+  // Supplier settings panel removed — supplier selected at order time
+  console.log('Supplier selected:', sup.supplier_name);
 }
 
 async function removeSupplierBrand(supId, supName, brandName) {
@@ -793,9 +769,6 @@ async function addSupplier() {
   btn.disabled=false; btn.textContent='+ Add this supplier';
 
   raSelectedSupplier=null;
-  document.querySelectorAll('[id^="ra-sup-"]').forEach(el=>{el.style.borderColor='var(--g200)';el.style.background='white';el.classList.remove('selected');});
-  document.getElementById('ra-sup-settings').style.display='none';
-  await showExistingSuppliers(raSelectedBrandName);
   loadReorderAdmin();
   populateBrandSelect();
 }
