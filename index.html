@@ -1239,28 +1239,64 @@ async function loadItemConfig() {
   const settingsMap = {};
   settings.forEach(s => settingsMap[s.item_id] = s);
 
+  // 4. Get order history stats (last qty + avg qty) for these items
+  const or = await fetch(`${SB_URL}/rest/v1/rpc/get_item_order_stats`, {
+    method:'POST', headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
+    body: JSON.stringify({p_item_ids: itemIds})
+  });
+  const orderStats = await or.json().catch(()=>[]);
+  const statsMap = {};
+  (Array.isArray(orderStats)?orderStats:[]).forEach(s => statsMap[s.item_id] = s);
+
   document.getElementById('ic-count').textContent = `${brandItems.length} items`;
 
   let html = '<div class="tw"><table style="font-size:13px">';
-  html += '<thead><tr><th>Item</th><th>Stock</th><th>Order type</th><th style="min-width:80px">Units/pack</th><th style="min-width:80px">Pack label</th><th style="min-width:80px">Min qty</th><th style="min-width:100px">Unit label</th><th></th></tr></thead><tbody>';
+  html += `<thead><tr>
+    <th>Item</th>
+    <th>Stock</th>
+    <th title="Last time this item was ordered">Last Ordered</th>
+    <th title="Average qty ordered across all past orders">Avg Order Qty</th>
+    <th>Order type</th>
+    <th style="min-width:75px">Units/pack</th>
+    <th style="min-width:75px">Pack label</th>
+    <th style="min-width:75px">Min qty</th>
+    <th style="min-width:90px">Unit label</th>
+    <th></th>
+  </tr></thead><tbody>`;
 
   brandItems.forEach(item => {
-    const s = settingsMap[item.item_id] || {};
-    const orderType   = s.order_type    || 'unit';
-    const unitsPack   = s.units_per_pack || 1;
-    const packLabel   = s.pack_label    || 'box';
-    const unitLabel   = s.unit_label    || 'unit';
-    const minQty      = s.min_order_qty  || 1;
-    const stock       = Number(item.stock||0);
-    const stockCol    = stock < 0 ? 'var(--red)' : stock === 0 ? 'var(--amber)' : 'var(--green)';
+    const s    = settingsMap[item.item_id] || {};
+    const stat = statsMap[item.item_id]    || {};
+
+    const orderType = s.order_type    || 'unit';
+    const unitsPack = s.units_per_pack || 1;
+    const packLabel = s.pack_label    || 'box';
+    const unitLabel = s.unit_label    || 'unit';
+    const minQty    = s.min_order_qty  || 1;
+    const stock     = Number(item.stock||0);
+    const stockCol  = stock < 0 ? 'var(--red)' : stock === 0 ? 'var(--amber)' : 'var(--green)';
+
+    // Order history — read only
+    const lastQty  = stat.last_ordered_qty != null ? stat.last_ordered_qty : '—';
+    const avgQty   = stat.avg_ordered_qty  != null ? Number(stat.avg_ordered_qty).toFixed(1) : '—';
+    const lastDate = stat.last_order_date  ? `<div style="font-size:10px;color:var(--g400)">${stat.last_order_date}</div>` : '';
+    const orderCount = stat.order_count    ? `<div style="font-size:10px;color:var(--g400)">${stat.order_count} order${stat.order_count>1?'s':''}</div>` : '';
 
     const orderSel = ORDER_OPTS.map(o=>`<option value="${o}" ${orderType===o?'selected':''}>${o}</option>`).join('');
     const unitSel  = UNIT_OPTS.map(u=>`<option value="${u}" ${unitLabel===u?'selected':''}>${u}</option>`).join('');
     const packSel  = UNIT_OPTS.map(u=>`<option value="${u}" ${packLabel===u?'selected':''}>${u}</option>`).join('');
 
     html += `<tr id="icr-${item.item_id}">
-      <td style="font-size:12px;font-weight:500;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${item.item_name}">${item.item_name}</td>
-      <td class="mono" style="color:${stockCol};font-weight:600">${stock}</td>
+      <td style="font-size:12px;font-weight:500;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${item.item_name}">${item.item_name}</td>
+      <td class="mono" style="color:${stockCol};font-weight:600;text-align:center">${stock}</td>
+      <td style="text-align:center">
+        <div style="font-size:13px;font-weight:600;color:var(--g900)">${lastQty}</div>
+        ${lastDate}
+      </td>
+      <td style="text-align:center">
+        <div style="font-size:13px;font-weight:600;color:var(--blue)">${avgQty}</div>
+        ${orderCount}
+      </td>
       <td>
         <select id="ic-otype-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="onOrderTypeChange(${item.item_id})">
           ${orderSel}
@@ -1268,7 +1304,7 @@ async function loadItemConfig() {
       </td>
       <td>
         <input type="number" id="ic-upp-${item.item_id}" value="${unitsPack}" min="1" max="999"
-          style="width:65px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;"
+          style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;"
           oninput="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}>
       </td>
       <td>
@@ -1278,7 +1314,7 @@ async function loadItemConfig() {
       </td>
       <td>
         <input type="number" id="ic-moq-${item.item_id}" value="${minQty}" min="1" max="999"
-          style="width:65px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;"
+          style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;"
           oninput="markDirty(${item.item_id})">
       </td>
       <td>
@@ -1295,9 +1331,9 @@ async function loadItemConfig() {
   });
 
   html += '</tbody></table></div>';
-  html += `<div style="margin-top:12px;display:flex;gap:8px">
+  html += `<div style="margin-top:12px;display:flex;gap:8px;align-items:center">
     <button onclick="saveAllItems()" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save all changes</button>
-    <span style="font-size:12px;color:var(--g400);align-self:center">Changes only save when you click Save or Save all</span>
+    <span style="font-size:12px;color:var(--g400)">Last Ordered and Avg Order Qty are read-only — from past order history</span>
   </div>`;
   body.innerHTML = html;
 }
