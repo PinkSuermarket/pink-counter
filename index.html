@@ -477,16 +477,49 @@ async function boot(s) {
   document.getElementById('uav').textContent  = nm.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('uname').textContent = nm.split(' ')[0];
   initDates(); loadDash(); loadInventory(); loadReorderAdmin();
+  // Auto-refresh session every 50 minutes to prevent expiry during use
+  setInterval(async () => {
+    const { data, error } = await sb.auth.refreshSession();
+    if (error) {
+      console.warn('[Auth] Session refresh failed:', error.message);
+      showLogin('Session expired. Please sign in again.');
+    } else if (data?.session) {
+      sess = data.session;
+      console.log('[Auth] Session refreshed OK');
+    }
+  }, 50 * 60 * 1000); // every 50 minutes
 }
 
-sb.auth.onAuthStateChange((ev, s) => { if ((ev==='SIGNED_IN'||ev==='TOKEN_REFRESHED') && s && !booting) boot(s); });
+sb.auth.onAuthStateChange((ev, s) => {
+  if (s) sess = s; // Always keep sess up to date
+  if ((ev==='SIGNED_IN'||ev==='TOKEN_REFRESHED') && s && !booting) boot(s);
+  if (ev==='TOKEN_REFRESHED' && s) {
+    console.log('[Auth] Token refreshed, expires:', new Date(s.expires_at*1000).toLocaleTimeString());
+  }
+});
 sb.auth.getSession().then(({data:{session:s}}) => { if (s && !booting) boot(s); });
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const today = () => new Date().toISOString().slice(0,10);
 const ago = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
 const mtd = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; };
-const hdr = () => sess ? { Authorization: 'Bearer '+sess.access_token } : {};
+// Always return fresh auth headers — refresh session if expired
+async function freshHdr() {
+  if (!sess) return {};
+  // Check expiry — Supabase tokens expire in 3600s
+  const expiresAt = sess.expires_at || 0;
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (expiresAt - nowSec < 60) {
+    // Token about to expire or already expired — refresh
+    const { data } = await sb.auth.refreshSession();
+    if (data?.session) {
+      sess = data.session;
+    }
+  }
+  return sess ? { Authorization: 'Bearer ' + sess.access_token } : {};
+}
+// Sync version for non-async contexts (uses last known session)
+const hdr = () => sess ? { Authorization: 'Bearer ' + sess.access_token } : {};
 const rs  = v => '₹'+Math.abs(Math.round(parseFloat(v||0))).toLocaleString('en-IN');
 const pct = v => Math.round(parseFloat(v||0)*10)/10 + '%';
 const pc  = v => { const n=parseFloat(v||0); return `<span class="${n>=0?'p-pos':'p-neg'}">${n<0?'-':''}${rs(Math.abs(n))}</span>`; };
@@ -1291,7 +1324,7 @@ async function loadItemConfig() {
     const packSel  = UNIT_OPTS.map(u=>`<option value="${u}" ${packLabel===u?'selected':''}>${u}</option>`).join('');
 
     html += `<tr id="icr-${item.item_id}">
-      <td style="font-size:12px;font-weight:500;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${item.item_name}">${item.item_name}</td>
+      <td style="font-size:12px;font-weight:500;min-width:180px">${item.item_name}</td>
       <td class="mono" style="color:${stockCol};font-weight:600;text-align:center">${stock}</td>
       <td style="text-align:center;min-width:80px">
         <div style="font-size:14px;font-weight:700;color:var(--g900)">${lastQty}</div>
@@ -1384,9 +1417,10 @@ async function saveItemConfig(itemId) {
   };
 
   // Upsert into item_settings (no supplier link)
+  const authHdr = await freshHdr();
   const r = await fetch(`${SB_URL}/rest/v1/item_settings`, {
     method:'POST',
-    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},
+    headers:{apikey:SB_ANON,...authHdr,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},
     body: JSON.stringify(payload)
   });
 
