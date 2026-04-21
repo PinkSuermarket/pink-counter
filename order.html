@@ -1008,7 +1008,7 @@ window.addEventListener('appinstalled', () => {
   showToast('App installed! Open from your home screen');
 });
 
-// iOS — always show install button (no beforeinstallprompt on Safari)
+// iOS1 — always show install button (no beforeinstallprompt on Safari)
 if (isIOS && !isStandalone) {
   document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('install-btn');
