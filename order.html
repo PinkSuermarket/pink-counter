@@ -556,11 +556,20 @@ function setAvgMonths(m){
 async function startBrowseBrand(){
   navigate('s-items');
   document.getElementById('items-body').innerHTML='<div class="lrow"><div class="sp"></div></div>';
+  console.log('[Order] Fetching items for brand:', JSON.stringify(currentBrand), 'cover:', coverDays);
   const r=await fetch(`${SB_URL}/rest/v1/rpc/get_brand_items_for_order`,{
     method:'POST',headers:HP,
     body:JSON.stringify({p_brand_name:currentBrand,p_cover_days:coverDays})
   });
-  const items=await r.json().catch(()=>[]);
+  const raw=await r.text();
+  console.log('[Order] Response status:', r.status, 'body:', raw.slice(0,200));
+  let items=[];
+  try{items=JSON.parse(raw);}catch(e){console.error('[Order] Parse error:',e);}
+  if(!Array.isArray(items)){
+    console.error('[Order] Not an array:', items);
+    document.getElementById('items-body').innerHTML=`<div class="empty">Error loading items.<br><small>${JSON.stringify(items).slice(0,100)}</small></div>`;
+    return;
+  }
   currentBrandItems=items;
   if(!items.length){
     document.getElementById('items-body').innerHTML='<div class="empty">No items found for this brand.</div>';
@@ -824,7 +833,7 @@ async function submitOrder(){
   const sr=await fetch(`${SB_URL}/rest/v1/order_sessions`,{
     method:'POST',headers:{...HP,'Prefer':'return=representation,resolution=merge-duplicates'},
     body:JSON.stringify({
-      session_date:today,supplier_id:selectedSupplier.id,
+      session_date:today,supplier_id:selectedSupplier.id||null,
       supplier_name:selectedSupplier.supplier_name||selectedSupplier.name||'',
       submitted_by:worker.full_name||worker.username,
       status:'submitted',total_items:items.length,
@@ -836,18 +845,29 @@ async function submitOrder(){
   const sessId=Array.isArray(sess)?sess[0]?.id:sess?.id;
   if(!sessId){btn.disabled=false;btn.textContent='Submit Order';showToast('Error. Try again.');return;}
 
-  await fetch(`${SB_URL}/rest/v1/order_session_items`,{
-    method:'POST',headers:HP,
-    body:JSON.stringify(items.map(c=>({
-      session_id:sessId,item_id:c.item.item_id,item_name:c.item.item_name,
-      brand:c.brand_name,current_stock:c.item.stock,
-      daily_avg:c.item.daily_avg,sales_7d:c.item.sold_7d||0,
-      suggested_qty:c.item.suggested_qty||0,ordered_qty:c.qty,
-      units_per_pack:1,order_type:'unit',pack_label:'unit',
-      purchase_price:c.item.purchase_price,
-      line_total:Math.round(c.qty*Number(c.item.purchase_price||0))
-    })))
+  const itemPayload=items.map(c=>({
+    session_id:sessId,item_id:c.item.item_id,item_name:c.item.item_name,
+    brand:c.brand_name,current_stock:c.item.stock,
+    daily_avg:c.item.daily_avg,sales_7d:c.item.sold_7d||0,
+    suggested_qty:c.item.suggested_qty||0,ordered_qty:c.qty,
+    units_per_pack:Number(c.item.units_per_pack||1),
+    order_type:c.item.order_type||'unit',
+    pack_label:c.item.pack_label||'unit',
+    purchase_price:c.item.purchase_price,
+    line_total:Math.round(c.qty*Number(c.item.purchase_price||0))
+  }));
+  console.log('[Submit] Saving',itemPayload.length,'items for session',sessId);
+  const ir=await fetch(`${SB_URL}/rest/v1/order_session_items`,{
+    method:'POST',headers:{...HP,'Prefer':'return=minimal'},
+    body:JSON.stringify(itemPayload)
   });
+  if(!ir.ok){
+    const errText=await ir.text();
+    console.error('[Submit] Items save failed:',ir.status,errText);
+    showToast('Warning: items may not have saved');
+  } else {
+    console.log('[Submit] Items saved OK');
+  }
 
   btn.textContent='Sending PDF...';
   try{
