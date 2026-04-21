@@ -331,6 +331,7 @@ const H  = {'apikey':SB_ANON,'Authorization':'Bearer '+SB_ANON};
 const HP = {'apikey':SB_ANON,'Authorization':'Bearer '+SB_ANON,'Content-Type':'application/json'};
 
 let worker=null, allBrands=[], currentBrand=null, currentBrandItems=[];
+let allKbSuppliers=[];  // all supplier names from kb_names for autocomplete
 let coverDays=14, avgMonths=3;  // user-configurable per session
 let cart={};  // { item_id: {item, qty, brand_name} }
 let allSuppliers=[];
@@ -361,6 +362,7 @@ function startApp(){
   document.getElementById('strip-date').textContent=now.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
   loadBrands();
   loadSuppliers();
+  loadKbSuppliers();
 }
 const saved=localStorage.getItem('pk_worker');
 if(saved){try{worker=JSON.parse(saved);}catch{}}
@@ -400,13 +402,31 @@ function updateTopbar(){
 async function loadSuppliers(){
   const r=await fetch(`${SB_URL}/rest/v1/suppliers?is_active=eq.true&select=id,supplier_name,whatsapp_number,visit_days,cover_weeks`,{headers:H});
   allSuppliers=await r.json().catch(()=>[]);
-  // Fetch last order for each supplier
-  for(const s of allSuppliers){
-    const lr=await fetch(`${SB_URL}/rest/v1/order_sessions?supplier_id=eq.${s.id}&status=eq.submitted&order=session_date.desc&limit=1&select=session_date,total_value`,{headers:H});
-    const ld=await lr.json().catch(()=>[]);
-    s.last_date=ld[0]?.session_date||null;
-    s.last_value=ld[0]?.total_value||null;
-  }
+}
+
+async function loadKbSuppliers(){
+  // Load all unique supplier names from actual purchase bills for autocomplete
+  const r=await fetch(`${SB_URL}/rest/v1/kb_names?select=full_name&order=full_name&limit=500`,{headers:H});
+  const names=await r.json().catch(()=>[]);
+  // Also get from recent order sessions
+  const r2=await fetch(`${SB_URL}/rest/v1/order_sessions?select=supplier_name&status=eq.submitted&order=supplier_name`,{headers:H});
+  const orders=await r2.json().catch(()=>[]);
+  const fromOrders=orders.map(o=>o.supplier_name).filter(Boolean);
+  const fromKb=names.map(n=>n.full_name).filter(Boolean);
+  // Deduplicate
+  allKbSuppliers=[...new Set([...fromOrders,...fromKb])].sort();
+}
+
+function onSupInput(val){
+  const v=val.trim();
+  selectedSupplier=v?{name:v,supplier_name:v}:null;
+  const st=document.getElementById('sup-status');
+  if(st) st.innerHTML=v
+    ?`<span style="color:var(--green)">✓ ${v}</span>`
+    :'Type supplier name or pick from list';
+  const inp=document.getElementById('sup-input');
+  if(inp) inp.style.borderColor=v?'var(--green)':'var(--g200)';
+  updateOrderBar();
 }
 
 // ── BRANDS ────────────────────────────────────────────────────────────────────
@@ -708,27 +728,27 @@ function renderCart(){
 
   let html='';
 
-  // Supplier selection
+  // Supplier section — autocomplete text input
+  const supNames = allKbSuppliers.length
+    ? allKbSuppliers
+    : (allSuppliers.length ? allSuppliers.map(s=>s.supplier_name) : []);
+  const supVal = selectedSupplier ? (selectedSupplier.name||selectedSupplier.supplier_name||'') : '';
   html+=`<div class="sup-select-section">
-    <div class="sup-select-title">Select supplier for this order</div>`;
-  if(!allSuppliers.length){
-    html+=`<div style="font-size:13px;color:var(--g400)">Loading suppliers...</div>`;
-  } else {
-    html+=allSuppliers.map(s=>{
-      const isSelected=selectedSupplier&&selectedSupplier.id===s.id;
-      const days=['','Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-      const visitStr=(s.visit_days||[]).map(d=>days[d]).join(', ');
-      return `<div class="sup-card ${isSelected?'selected':''}" onclick="pickSupplier(${s.id})">
-        <div class="sup-check">✓</div>
-        <div class="sup-name">${s.supplier_name}</div>
-        <div class="sup-meta">${s.whatsapp_number||'—'} · Visit: ${visitStr}</div>
-        ${s.last_date
-          ? `<div class="sup-last">Last bill: <strong>${s.last_date}</strong> · <strong style="color:var(--pink)">${fmtINR(s.last_value)}</strong></div>`
-          : `<div class="sup-last" style="color:var(--g400)">No orders yet</div>`}
-      </div>`;
-    }).join('');
-  }
-  html+='</div>';
+    <div class="sup-select-title">Select supplier for this order</div>
+    <input type="text" id="sup-input" list="sup-list"
+      value="${supVal}"
+      placeholder="Type or select supplier name..."
+      oninput="onSupInput(this.value)"
+      autocomplete="off"
+      style="width:100%;height:44px;border:2px solid var(--g200);border-radius:12px;padding:0 14px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;"
+      onfocus="this.style.borderColor='var(--pink)'" onblur="this.style.borderColor=selectedSupplier?'var(--green)':'var(--g200)'">
+    <datalist id="sup-list">
+      ${supNames.map(n=>`<option value="${n}">`).join('')}
+    </datalist>
+    <div id="sup-status" style="font-size:12px;margin-top:6px;color:var(--g400)">
+      ${supVal ? `<span style="color:var(--green)">✓ ${supVal}</span>` : 'Type supplier name or pick from list'}
+    </div>
+  </div>`;
 
   // Items by brand
   Object.entries(byBrand).forEach(([brand,citems])=>{
@@ -762,13 +782,6 @@ function renderCart(){
 
 function pickSupplier(supId){
   selectedSupplier=allSuppliers.find(s=>s.id===supId)||null;
-  // Update UI — toggle selected class
-  document.querySelectorAll('.sup-card').forEach(el=>el.classList.remove('selected'));
-  const cards=document.querySelectorAll('.sup-card');
-  // Find the clicked card by iterating
-  allSuppliers.forEach((s,i)=>{
-    if(s.id===supId&&cards[i]) cards[i].classList.add('selected');
-  });
   updateOrderBar();
 }
 
@@ -792,7 +805,8 @@ function cartRemove(itemId){
 function updateOrderBar(){
   const total=cartTotal();
   document.getElementById('order-bar-total').textContent=fmtINR(total);
-  document.getElementById('submit-btn').disabled=!selectedSupplier||cartCount()===0;
+  const hasSup=selectedSupplier&&(selectedSupplier.name||selectedSupplier.supplier_name);
+  document.getElementById('submit-btn').disabled=!hasSup||cartCount()===0;
 }
 
 // ── SUBMIT ────────────────────────────────────────────────────────────────────
@@ -811,7 +825,7 @@ async function submitOrder(){
     method:'POST',headers:{...HP,'Prefer':'return=representation,resolution=merge-duplicates'},
     body:JSON.stringify({
       session_date:today,supplier_id:selectedSupplier.id,
-      supplier_name:selectedSupplier.supplier_name,
+      supplier_name:selectedSupplier.supplier_name||selectedSupplier.name||'',
       submitted_by:worker.full_name||worker.username,
       status:'submitted',total_items:items.length,
       total_value:Math.round(total),po_number:poNum,
@@ -947,17 +961,16 @@ function showInstallBanner() {
   const banner = document.createElement('div');
   banner.id = 'pwa-banner';
   banner.style.cssText = 'position:fixed;bottom:80px;left:12px;right:12px;background:#1c1a18;color:white;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:999;box-shadow:0 4px 24px rgba(0,0,0,.3)';
+  const actionBtn = isIOS
+    ? `<button onclick="showIOSGuide()" style="background:var(--pink);color:white;border:none;border-radius:10px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">How to Install</button>`
+    : `<button onclick="installPWA()" style="background:var(--pink);color:white;border:none;border-radius:10px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Install</button>`;
   banner.innerHTML =
-    '<img src="./icons/icon-72.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0">' +
-    '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">Add to Home Screen</div>' +
-    '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:1px">Faster · works offline</div></div>' +
-    (isIOS
-      ? '<button onclick="showIOSGuide()" style="background:var(--pink);color:white;border:none;border-radius:10px;padding:8px 14px;font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">How to Install</button>'
-      : '<button onclick="installPWA()" style="background:var(--pink);color:white;border:none;border-radius:10px;padding:8px 14px;font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Install</button>') +
-    '<button onclick="dismissBanner()" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center">x</button>';
+    `<img src="./icons/icon-72.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0">` +
+    `<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">Add to Home Screen</div><div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:1px">Faster · works offline</div></div>` +
+    actionBtn +
+    `<button onclick="dismissBanner()" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center">x</button>`;
   document.body.appendChild(banner);
 }
-
 function dismissBanner() {
   sessionStorage.setItem('pwa-dismissed', '1');
   const b = document.getElementById('pwa-banner');
@@ -981,25 +994,19 @@ function handleInstall() {
 }
 
 function showIOSGuide() {
+  const iosSteps = isIOS
+    ? `<div style="background:var(--g50);border-radius:12px;padding:16px;margin-bottom:16px;line-height:2;font-size:14px">1. Tap the <strong>Share</strong> button ⏋ at the bottom of Safari<br>2. Scroll and tap <strong>"Add to Home Screen"</strong><br>3. Tap <strong>"Add"</strong> at the top right</div>`
+    : `<div style="background:var(--g50);border-radius:12px;padding:16px;margin-bottom:16px;line-height:2;font-size:14px">1. Tap the <strong>⋮ menu</strong> in Chrome<br>2. Tap <strong>"Add to Home Screen"</strong><br>3. Tap <strong>"Install"</strong></div>`;
   document.getElementById('sheet-content').innerHTML =
-    '<div style="padding:20px 20px 32px">' +
-    '<div style="font-size:18px;font-weight:700;margin-bottom:4px">Add to Home Screen</div>' +
-    '<div style="font-size:13px;color:var(--g400);margin-bottom:20px">Install this app to your phone</div>' +
-    (isIOS
-      ? '<div style="background:var(--g50);border-radius:12px;padding:16px;margin-bottom:16px;line-height:2;font-size:14px">' +
-        '1. Tap the <strong>Share</strong> button ⎋ at the bottom of Safari<br>' +
-        '2. Scroll and tap <strong>"Add to Home Screen"</strong><br>' +
-        '3. Tap <strong>"Add"</strong> at the top right</div>'
-      : '<div style="background:var(--g50);border-radius:12px;padding:16px;margin-bottom:16px;line-height:2;font-size:14px">' +
-        '1. Tap the <strong>⋮ menu</strong> in Chrome<br>' +
-        '2. Tap <strong>"Add to Home Screen"</strong><br>' +
-        '3. Tap <strong>"Install"</strong></div>') +
-    '<button onclick="closeSheet()" style="width:100%;height:50px;background:var(--pink);color:white;border:none;border-radius:14px;font-family:\'DM Sans\',sans-serif;font-size:15px;font-weight:700;cursor:pointer">Got it</button>' +
-    '</div>';
+    `<div style="padding:20px 20px 32px">` +
+    `<div style="font-size:18px;font-weight:700;margin-bottom:4px">Add to Home Screen</div>` +
+    `<div style="font-size:13px;color:var(--g400);margin-bottom:20px">Install this app to your phone</div>` +
+    iosSteps +
+    `<button onclick="closeSheet()" style="width:100%;height:50px;background:var(--pink);color:white;border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer">Got it</button>` +
+    `</div>`;
   document.getElementById('sheet-overlay').classList.add('show');
   document.getElementById('bottom-sheet').classList.add('show');
 }
-
 window.addEventListener('appinstalled', () => {
   deferredPrompt = null;
   dismissBanner();
@@ -1008,7 +1015,7 @@ window.addEventListener('appinstalled', () => {
   showToast('App installed! Open from your home screen');
 });
 
-// iOS1 — always show install button (no beforeinstallprompt on Safari)
+// iOS — always show install button (no beforeinstallprompt on Safari)
 if (isIOS && !isStandalone) {
   document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('install-btn');

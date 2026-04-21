@@ -1469,7 +1469,7 @@ async function loadOrders() {
     body: JSON.stringify({p_limit: 100})
   });
   const orders = await r.json().catch(() => []);
-  document.getElementById('ord-count').textContent = `${orders.filter(o=>o.status==='submitted').length} orders`;
+  document.getElementById('ord-count').textContent = `${orders.length} orders`;
 
   if (!orders.length) {
     document.getElementById('ord-tbody').innerHTML = '<tr><td colspan="8" class="empty">No orders yet</td></tr>';
@@ -1479,21 +1479,21 @@ async function loadOrders() {
   document.getElementById('ord-tbody').innerHTML = orders.map(o => {
     const date = o.session_date || '—';
     const val = o.total_value ? '₹' + Math.round(o.total_value).toLocaleString('en-IN') : '—';
-    const isPreview = o.status === 'preview';
+    
     return `<tr>
       <td class="mono" style="font-size:12px">${o.po_number||'—'}</td>
       <td style="font-size:12px">${date}</td>
       <td style="font-size:12px">${o.submitted_by||'—'}</td>
       <td style="font-size:12px;font-weight:600">${o.supplier_name||'—'}</td>
       <td style="font-size:12px;color:var(--g600)">${o.brand||'—'}</td>
-      <td class="mono">${o.item_count||0}</td>
+      <td class="mono">${o.total_items||0}</td>
       <td class="mono" style="font-weight:600;color:var(--pink)">${val}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
-        <button onclick="viewOrder(${o.session_id},'${(o.po_number||'').replace(/'/g,"\'")}','${(o.supplier_name||'').replace(/'/g,"\'")}','${date}')"
+        <button onclick="viewOrder(${o.id},'${(o.po_number||'').replace(/'/g,"\'")}','${(o.supplier_name||'').replace(/'/g,"\'")}','${date}')"
           style="height:26px;padding:0 8px;border:2px solid var(--blue);border-radius:6px;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer">
           View
         </button>
-        ${o.status==='submitted'?`<button onclick="genPDF(${o.session_id},'${(o.po_number||'').replace(/'/g,"\'")}',this)"
+        ${true?`<button onclick="genPDF(${o.id},'${(o.po_number||'').replace(/'/g,"\'")}',this)"
           style="height:26px;padding:0 8px;border:2px solid var(--pink);border-radius:6px;background:var(--pink-l);color:var(--pink);font-size:11px;font-weight:600;cursor:pointer">
           PDF
         </button>`:''}
