@@ -1572,6 +1572,11 @@ async function genPDF(sessionId, poNum, btn) {
 }
 
 
+
+// Safety: expose critical functions to global scope
+window.signInGoogle = signInGoogle;
+window.doLogout = doLogout;
+window.showPage = showPage;
 </script>
 </body>
 </html>
