@@ -872,7 +872,8 @@ async function submitOrder(){
   btn.textContent='Sending PDF...';
   try{
     const pdfRes=await fetch(`${SB_URL}/functions/v1/generate-order-pdf`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_ANON},
       body:JSON.stringify({session_id:sessId,worker_mobile:worker.mobile_number||null})
     });
     const pd=await pdfRes.json();
@@ -935,7 +936,8 @@ async function downloadOrderPDF(sessionId,btn){
   btn.disabled=true;btn.textContent='Generating PDF...';
   try{
     const r=await fetch(`${SB_URL}/functions/v1/generate-order-pdf`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_ANON},
       body:JSON.stringify({session_id:sessionId,worker_mobile:null})
     });
     const d=await r.json();

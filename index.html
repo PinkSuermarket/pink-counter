@@ -1514,7 +1514,16 @@ async function viewOrder(sessionId, poNum, supplierName, date) {
     body: JSON.stringify({p_session_id: sessionId})
   });
   const items = await r.json().catch(() => []);
-  if (!items.length) { document.getElementById('ord-items-tbody').innerHTML = '<tr><td colspan="5" class="empty">No items</td></tr>'; return; }
+  if (!items.length) {
+    document.getElementById('ord-items-tbody').innerHTML =
+      '<tr><td colspan="5" style="padding:16px;color:var(--g400);font-size:13px;text-align:center">' +
+      'No item details for this order.<br><small>Submit a new order to see items here.</small>' +
+      '</td></tr>';
+    document.getElementById('ord-detail-actions').innerHTML =
+      '<button onclick="genPDF(' + sessionId + ','' + poNum + '',this)" ' +
+      'style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">PDF</button>';
+    return;
+  }
 
   const total = items.reduce((s,i) => s + Number(i.line_total||0), 0);
   document.getElementById('ord-items-tbody').innerHTML = items.map(i => `<tr>
@@ -1541,21 +1550,25 @@ async function genPDF(sessionId, poNum, btn) {
   const origText = btn.textContent;
   btn.disabled = true; btn.textContent = 'Generating...';
   try {
+    const freshH = await freshHdr();
     const r = await fetch(`${SB_URL}/functions/v1/generate-order-pdf`, {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'apikey': SB_ANON, ...freshH},
       body: JSON.stringify({session_id: sessionId, worker_mobile: null})
     });
-    const d = await r.json();
+    const d = await r.json().catch(() => ({}));
+    console.log('[genPDF]', r.status, JSON.stringify(d).slice(0,200));
     if (d.pdf_url) {
       window.open(d.pdf_url, '_blank');
       btn.textContent = '✓ Opened';
     } else {
-      btn.textContent = 'Failed';
+      btn.textContent = 'Error: ' + (d.error || r.status);
     }
   } catch(e) {
-    btn.textContent = 'Error';
+    console.error('[genPDF] error:', e);
+    btn.textContent = 'Network error';
   }
-  setTimeout(() => { btn.disabled = false; btn.textContent = origText; }, 3000);
+  setTimeout(() => { btn.disabled = false; btn.textContent = origText; }, 4000);
 }
 
 
