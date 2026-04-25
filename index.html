@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v2.1 -->
+<!DOCTYPE html><!-- v2.2 spin -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -41,7 +41,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);mi
 .nav{display:flex;gap:2px;overflow-x:auto;}
 .nav::-webkit-scrollbar{display:none;}
 .ntab{padding:6px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--g600);white-space:nowrap;}
-.ntab.active{background:var(--pink-l);color:var(--pink);}
+.ntab.active,.ntab.on{background:var(--pink-l);color:var(--pink);}
 .user-chip{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .uavatar{width:26px;height:26px;border-radius:50%;background:var(--pink-l);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--pink);}
 .uname{font-size:12px;font-weight:500;color:var(--g600);}
@@ -58,7 +58,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);mi
 .kval{font-size:26px;font-weight:600;line-height:1;}
 .ksub{font-size:11px;color:var(--g400);margin-top:3px;}
 .c-pink{color:var(--pink);}.c-green{color:var(--green);}.c-amber{color:var(--amber);}.c-blue{color:var(--blue);}.c-purple{color:var(--purple);}.c-red{color:var(--red);}
-
 .card{background:white;border-radius:var(--r);box-shadow:var(--sh);padding:16px 18px;margin-bottom:16px;}
 .card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--g400);margin-bottom:12px;}
 
@@ -159,6 +158,7 @@ tr:hover td{background:var(--g50);}
       <button class="ntab"     onclick="gotoTab('pl',this)">P&amp;L Report</button>
       <button class="ntab"     onclick="gotoTab('marketing',this)">Marketing</button>
       <button class="ntab"     onclick="gotoTab('orders',this)">Orders</button>
+      <button class="ntab"     onclick="gotoTab('spin',this)">🎰 Spin Wheel</button>
     </div>
     <div class="user-chip">
       <div class="uavatar" id="uav">P</div>
@@ -208,8 +208,6 @@ tr:hover td{background:var(--g50);}
   <!-- ══════════ REORDER ADMIN ══════════ -->
   <div class="page" id="page-reorder">
     <div class="note" style="margin-bottom:16px">Manage brands and item settings. Workers browse brands, add items to cart, then select a supplier when submitting.</div>
-
-    <!-- Add Brand -->
     <div class="sh"><div><div class="sh-title">Add brand</div><div class="sh-sub">All KhataBook categories shown — type to filter, then click Add</div></div></div>
     <div class="card">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
@@ -217,8 +215,7 @@ tr:hover td{background:var(--g50);}
           <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Brand / category</div>
           <input type="text" id="ra-brand-search" list="ra-brand-list"
             placeholder="Click or type to search all brands…"
-            oninput="onBrandInput()"
-            autocomplete="off"
+            oninput="onBrandInput()" autocomplete="off"
             style="width:100%;height:40px;border:2px solid var(--g200);border-radius:8px;padding:0 12px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;"
             onfocus="this.style.borderColor='var(--pink)'" onblur="this.style.borderColor='var(--g200)'">
           <datalist id="ra-brand-list"></datalist>
@@ -228,12 +225,9 @@ tr:hover td{background:var(--g50);}
           + Add Brand
         </button>
       </div>
-      <!-- Already added brands pills -->
       <div id="ra-already-added" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
       <div id="ra-add-status" style="margin-top:10px;font-size:13px;display:none;"></div>
     </div>
-
-    <!-- Worker Account Management -->
     <div class="sh" style="margin-top:24px"><div><div class="sh-title">Worker accounts</div><div class="sh-sub">Workers log in to order.html with username + password</div></div></div>
     <div class="card">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
@@ -257,28 +251,21 @@ tr:hover td{background:var(--g50);}
         <tbody id="wu-tbody"><tr><td colspan="5"><div class="lrow"><div class="sp"></div></div></td></tr></tbody>
       </table></div>
     </div>
-
-    <!-- Brand Logo Upload -->
     <div class="sh" style="margin-top:24px"><div><div class="sh-title">Brand logos</div><div class="sh-sub">Only brands you added appear here. Upload logo to activate in order form.</div></div></div>
     <div class="card">
       <div id="brand-logo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px">
         <div class="lrow"><div class="sp"></div></div>
       </div>
     </div>
-
-    <!-- Item Config per Supplier -->
     <div class="sh" style="margin-top:24px"><div><div class="sh-title">Item settings</div><div class="sh-sub">Set order type (unit/box), pack size and min qty per item</div></div></div>
     <div class="card">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
         <select id="ic-brand" onchange="loadItemConfig()" style="height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;min-width:200px">
           <option value="">— Select brand —</option>
         </select>
-
         <span style="font-size:12px;color:var(--g400)" id="ic-count"></span>
       </div>
-      <div id="ic-body">
-        <div class="empty" style="padding:16px">Select a brand above to configure its items</div>
-      </div>
+      <div id="ic-body"><div class="empty" style="padding:16px">Select a brand above to configure its items</div></div>
     </div>
   </div>
 
@@ -365,8 +352,6 @@ tr:hover td{background:var(--g50);}
       <div class="kcard"><div class="klbl">Failed</div><div class="kval c-amber" id="t-fail">—</div><div class="ksub">delivery issues</div></div>
       <div class="kcard"><div class="klbl">Remaining</div><div class="kval c-blue" id="t-rem">—</div><div class="ksub">customers to reach</div></div>
     </div>
-
-    <!-- ROI Section -->
     <div class="sh"><div><div class="sh-title">ROI Analysis</div><div class="sh-sub">Real profit = (sale price − cost price) × qty per line item</div></div></div>
     <div class="kgrid">
       <div class="kcard"><div class="klbl">Purchased after offer</div><div class="kval c-green" id="r-purchased">—</div><div class="ksub">confirmed visits</div></div>
@@ -374,7 +359,6 @@ tr:hover td{background:var(--g50);}
       <div class="kcard"><div class="klbl">Gross profit</div><div class="kval c-purple" id="r-gross">—</div><div class="ksub">(sale−cost)×qty</div></div>
       <div class="kcard"><div class="klbl">Net profit</div><div class="kval" id="r-net">—</div><div class="ksub">after offer cost</div></div>
     </div>
-
     <div class="card">
       <div class="card-title">Messages sent per day (range)</div>
       <div class="bar-chart" id="mk-chart"><div class="lrow"><div class="sp"></div></div></div>
@@ -384,9 +368,7 @@ tr:hover td{background:var(--g50);}
       <thead><tr><th>Customer</th><th>Phone</th><th>Offer</th><th>Sent</th><th>Status</th></tr></thead>
       <tbody id="mk-tbody"><tr><td colspan="5"><div class="lrow"><div class="sp"></div></div></td></tr></tbody>
     </table></div></div>
-
-    <!-- Offer Lookup -->
-    <div class="sh"><div><div class="sh-title">Offer Lookup & Redemption</div><div class="sh-sub">For billing counter staff</div></div></div>
+    <div class="sh"><div><div class="sh-title">Offer Lookup &amp; Redemption</div><div class="sh-sub">For billing counter staff</div></div></div>
     <div class="card" style="max-width:480px">
       <div style="display:flex;gap:10px;margin-bottom:12px">
         <input type="tel" id="lu-phone" placeholder="10-digit mobile number" maxlength="10" style="flex:1;height:46px;border:2px solid var(--g200);border-radius:10px;padding:0 14px;font-size:17px;font-family:'DM Mono',monospace;outline:none;">
@@ -407,8 +389,6 @@ tr:hover td{background:var(--g50);}
         <tbody id="ord-tbody"><tr><td colspan="8"><div class="lrow"><div class="sp"></div> Loading...</div></td></tr></tbody>
       </table></div>
     </div>
-
-    <!-- Order detail sheet -->
     <div id="ord-detail" style="display:none;margin-top:16px">
       <div class="sh"><div><div class="sh-title" id="ord-detail-title">Order Items</div><div class="sh-sub" id="ord-detail-sub"></div></div>
         <button onclick="document.getElementById('ord-detail').style.display='none'" style="height:32px;padding:0 14px;background:var(--g100);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Close</button>
@@ -422,6 +402,127 @@ tr:hover td{background:var(--g50);}
       <div style="padding:12px 0;display:flex;gap:8px;flex-wrap:wrap" id="ord-detail-actions"></div>
     </div>
   </div>
+
+  <!-- ══════════ SPIN WHEEL ══════════ -->
+  <div class="page" id="page-spin">
+
+  <!-- ── KPI row ── -->
+  <div class="kgrid" style="margin-top:4px">
+    <div class="kcard"><div class="klbl">Total Spins</div><div class="kval c-pink" id="sp-total">—</div><div class="ksub">all time</div></div>
+    <div class="kcard"><div class="klbl">Redeemed</div><div class="kval c-green" id="sp-redeemed">—</div><div class="ksub">at billing</div></div>
+    <div class="kcard"><div class="klbl">Pending</div><div class="kval c-amber" id="sp-pending">—</div><div class="ksub">won, not yet redeemed</div></div>
+    <div class="kcard"><div class="klbl">Active Prizes</div><div class="kval c-blue" id="sp-prizes">—</div><div class="ksub">on the wheel</div></div>
+  </div>
+
+  <!-- ── Prize Config ── -->
+  <div class="sh">
+    <div><div class="sh-title">Prize Configuration</div><div class="sh-sub">Drag to reorder · Changes reflect immediately on spin wheel page</div></div>
+    <button onclick="openAddPrize()" style="height:34px;padding:0 16px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">+ Add Prize</button>
+  </div>
+
+  <!-- Add/Edit Prize Form (hidden by default) -->
+  <div class="card" id="prize-form" style="display:none;border:2px solid var(--pink-l)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:600" id="prize-form-title">Add New Prize</div>
+      <button onclick="closePrizeForm()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--g400)">×</button>
+    </div>
+    <input type="hidden" id="pf-id">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Prize Label *</div>
+        <input type="text" id="pf-label" placeholder="e.g. Mr. Gold Oil 5L"
+          style="width:100%;height:38px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Emoji</div>
+        <input type="text" id="pf-emoji" placeholder="🎁" maxlength="4"
+          style="width:100%;height:38px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:20px;font-family:'DM Sans',sans-serif;outline:none;text-align:center">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Wheel Colour</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="color" id="pf-color" value="#ff1493"
+            style="width:38px;height:38px;border:2px solid var(--g200);border-radius:8px;padding:2px;cursor:pointer">
+          <input type="text" id="pf-color-hex" value="#ff1493" placeholder="#ff1493" maxlength="7"
+            style="flex:1;height:38px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none"
+            oninput="syncColorHex()">
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Win Probability (weight %)</div>
+        <input type="number" id="pf-prob" placeholder="10" min="0.1" max="100" step="0.1"
+          style="width:100%;height:38px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none">
+        <div style="font-size:10px;color:var(--g400);margin-top:3px" id="pf-prob-hint"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Prize Type</div>
+        <select id="pf-type" style="width:100%;height:38px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+          <option value="product">Product</option>
+          <option value="discount">Discount</option>
+          <option value="freebie">Freebie</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px">Min. Purchase (₹)</div>
+        <input type="number" id="pf-minpurchase" value="1499" min="0"
+          style="width:100%;height:38px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Mono',monospace;outline:none">
+      </div>
+    </div>
+    <div id="pf-prob-bar" style="height:10px;background:var(--g100);border-radius:5px;margin-bottom:12px;overflow:hidden">
+      <div id="pf-prob-fill" style="height:100%;background:var(--pink);border-radius:5px;transition:width 0.3s;width:10%"></div>
+    </div>
+    <div id="pf-status" style="font-size:13px;display:none;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="savePrize()" style="height:38px;padding:0 20px;background:var(--green);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save Prize</button>
+      <button onclick="closePrizeForm()" style="height:38px;padding:0 16px;background:var(--g100);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--g600);cursor:pointer">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Prize table -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px">
+    <div class="tw"><table>
+      <thead><tr>
+        <th>Prize</th><th>Colour</th><th>Probability</th>
+        <th>Type</th><th>Min. Purchase</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="sp-prizes-tbody">
+        <tr><td colspan="7"><div class="lrow"><div class="sp"></div> Loading prizes...</div></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- Wheel preview -->
+  <div class="sh"><div><div class="sh-title">Live Wheel Preview</div><div class="sh-sub">Reflects current active prizes</div></div></div>
+  <div class="card" style="text-align:center;padding:20px">
+    <canvas id="sp-preview" width="280" height="280" style="border-radius:50%;box-shadow:0 0 0 4px #fff,0 0 0 7px #ff1493,0 6px 24px rgba(255,20,147,0.2)"></canvas>
+    <div style="margin-top:12px;font-size:12px;color:var(--g400)" id="sp-total-pct"></div>
+  </div>
+
+  <!-- ── Winners List ── -->
+  <div class="sh" style="margin-top:8px">
+    <div><div class="sh-title">Winners List</div><div class="sh-sub" id="sp-winners-count">Loading...</div></div>
+    <div style="display:flex;gap:6px">
+      <select id="sp-filter" onchange="loadWinners()" style="height:32px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none">
+        <option value="all">All winners</option>
+        <option value="pending">Pending redemption</option>
+        <option value="redeemed">Redeemed</option>
+      </select>
+      <button onclick="loadWinners()" style="height:32px;padding:0 12px;background:var(--g100);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">↻</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tw"><table>
+      <thead><tr>
+        <th>Phone</th><th>Prize Won</th><th>Spun At</th>
+        <th>Status</th><th>Redeemed At</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="sp-winners-tbody">
+        <tr><td colspan="6"><div class="lrow"><div class="sp"></div></div></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+</div><!-- /#page-spin -->
 
 </div><!-- /#app -->
 
@@ -438,7 +539,7 @@ const sb = window.supabase.createClient(SB_URL, SB_ANON, {
 let sess = null, booting = false;
 let invAll = [], selectedSup = null, supItems = [], basis = '30', currentOffer = null;
 
-// ── AUTH ─────────────────────────────────────────────────────────────────────
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 function showLogin(e) {
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
@@ -446,7 +547,6 @@ function showLogin(e) {
   document.getElementById('gbtn').disabled = false;
   if (e) { const el = document.getElementById('lerr'); el.textContent = e; el.style.display = 'block'; }
 }
-
 function signInGoogle() {
   document.getElementById('gbtn').disabled = true;
   document.getElementById('lerr').style.display = 'none';
@@ -455,17 +555,13 @@ function signInGoogle() {
     queryParams: { prompt: 'select_account' }
   }});
 }
-
-// Attach login button — use addEventListener to avoid global scope issues
 document.addEventListener('DOMContentLoaded', function() {
   const btn = document.getElementById('gbtn');
   if (btn) btn.addEventListener('click', signInGoogle);
 });
-
 function signOut() {
   sb.auth.signOut().then(() => { sess = null; booting = false; history.replaceState(null,'',location.pathname); showLogin(); });
 }
-
 async function boot(s) {
   if (booting) return; booting = true; sess = s;
   document.getElementById('lload').style.display = 'block';
@@ -476,32 +572,21 @@ async function boot(s) {
     const d = await r.json();
     if (!d.allowed) { await sb.auth.signOut(); booting=false; showLogin('Access denied: '+s.user.email); return; }
   } catch { booting=false; showLogin('Network error verifying access.'); return; }
-
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   const nm = s.user.user_metadata?.full_name || s.user.email || 'Admin';
   document.getElementById('uav').textContent  = nm.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('uname').textContent = nm.split(' ')[0];
   initDates(); loadDash(); loadInventory(); loadReorderAdmin();
-  // Auto-refresh session every 50 minutes to prevent expiry during use
   setInterval(async () => {
     const { data, error } = await sb.auth.refreshSession();
-    if (error) {
-      console.warn('[Auth] Session refresh failed:', error.message);
-      showLogin('Session expired. Please sign in again.');
-    } else if (data?.session) {
-      sess = data.session;
-      console.log('[Auth] Session refreshed OK');
-    }
-  }, 50 * 60 * 1000); // every 50 minutes
+    if (error) showLogin('Session expired. Please sign in again.');
+    else if (data?.session) sess = data.session;
+  }, 50 * 60 * 1000);
 }
-
 sb.auth.onAuthStateChange((ev, s) => {
-  if (s) sess = s; // Always keep sess up to date
+  if (s) sess = s;
   if ((ev==='SIGNED_IN'||ev==='TOKEN_REFRESHED') && s && !booting) boot(s);
-  if (ev==='TOKEN_REFRESHED' && s) {
-    console.log('[Auth] Token refreshed, expires:', new Date(s.expires_at*1000).toLocaleTimeString());
-  }
 });
 sb.auth.getSession().then(({data:{session:s}}) => { if (s && !booting) boot(s); });
 
@@ -509,22 +594,16 @@ sb.auth.getSession().then(({data:{session:s}}) => { if (s && !booting) boot(s); 
 const today = () => new Date().toISOString().slice(0,10);
 const ago = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
 const mtd = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; };
-// Always return fresh auth headers — refresh session if expired
 async function freshHdr() {
   if (!sess) return {};
-  // Check expiry — Supabase tokens expire in 3600s
   const expiresAt = sess.expires_at || 0;
   const nowSec = Math.floor(Date.now() / 1000);
   if (expiresAt - nowSec < 60) {
-    // Token about to expire or already expired — refresh
     const { data } = await sb.auth.refreshSession();
-    if (data?.session) {
-      sess = data.session;
-    }
+    if (data?.session) sess = data.session;
   }
   return sess ? { Authorization: 'Bearer ' + sess.access_token } : {};
 }
-// Sync version for non-async contexts (uses last known session)
 const hdr = () => sess ? { Authorization: 'Bearer ' + sess.access_token } : {};
 const rs  = v => '₹'+Math.abs(Math.round(parseFloat(v||0))).toLocaleString('en-IN');
 const pct = v => Math.round(parseFloat(v||0)*10)/10 + '%';
@@ -549,18 +628,19 @@ function gotoTab(name, btn) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   btn.classList.add('on');
   document.getElementById('page-'+name).classList.add('on');
-  if (name==='pl') loadPL();
+  if (name==='pl')        loadPL();
   if (name==='marketing') loadMarketing();
-  if (name==='orders') loadOrders();
+  if (name==='orders')    loadOrders();
+  if (name==='spin')      loadSpinTab();
 }
 
 // ── DATE INIT ─────────────────────────────────────────────────────────────────
 function initDates() {
   ['d-from','d-to'].forEach(id => document.getElementById(id).value = today());
-  document.getElementById('pl-from').value = ago(1); document.getElementById('pl-to').value = ago(1);
+  document.getElementById('pl-from').value = ago(1);
+  document.getElementById('pl-to').value   = ago(1);
   ['mk-from','mk-to'].forEach(id => document.getElementById(id).value = today());
 }
-
 function setDR(r,btn) {
   document.querySelectorAll('#page-dash .qbtn').forEach(b=>b.classList.remove('on')); btn.classList.add('on');
   const f=document.getElementById('d-from'), t=document.getElementById('d-to');
@@ -601,14 +681,10 @@ async function loadDash() {
   document.getElementById('dk-basket').textContent= 'avg '+rs(k.avg_basket||0)+' basket';
   document.getElementById('dk-wa').textContent   = (d.marketing?.total_sent||0).toLocaleString('en-IN');
   document.getElementById('dk-wa2').textContent  = (d.marketing?.total_redeemed||0)+' redeemed';
-
-  // Top items
   const rows = (d.top_items||[]);
   document.getElementById('top-items').innerHTML = rows.length
     ? rows.map((r,i)=>`<tr><td><strong style="font-size:12px">${r.item_name}</strong></td><td class="mono">${Math.round(r.qty_sold)}</td><td class="mono">${rs(r.revenue)}</td><td>${pc(r.gross_profit)}</td></tr>`).join('')
     : '<tr><td colspan="4" class="empty">No data for this range</td></tr>';
-
-  // Inventory alerts (quick counts from loaded data)
   const ns = invAll.filter(r=>r.movement_bucket==='never_sold').length;
   const d90= invAll.filter(r=>r.movement_bucket==='dead_90d').length;
   document.getElementById('inv-alerts').innerHTML = invAll.length
@@ -618,7 +694,6 @@ async function loadDash() {
         <div style="display:flex;justify-content:space-between"><span>Low stock items</span><strong style="color:var(--amber)">—</strong></div>
       </div>`
     : '<div class="lrow"><div class="sp"></div></div>';
-
   document.getElementById('mkt-summary').innerHTML = `
     <div style="font-size:13px;display:flex;flex-direction:column;gap:6px">
       <div style="display:flex;justify-content:space-between"><span>Messages sent</span><strong>${(d.marketing?.total_sent||0).toLocaleString()}</strong></div>
@@ -628,371 +703,78 @@ async function loadDash() {
 }
 
 // ── REORDER ADMIN ─────────────────────────────────────────────────────────────
-const DAYS_MAP = {1:'Monday',2:'Tuesday',3:'Wednesday',4:'Thursday',5:'Friday',6:'Saturday',7:'Sunday'};
-let raSearchData = [];
-
-
-// All categories loaded once on page load
-let allCategories = [];
-let allCategoryNames = new Set();
-
+let allCategories = [], allCategoryNames = new Set();
 async function loadAllCategories() {
-  const r = await fetch(
-    `${SB_URL}/rest/v1/kb_item_categories?select=item_category_id,item_category_name&order=item_category_name`,
-    {headers:{apikey:SB_ANON,...hdr()}}
-  );
+  const r = await fetch(`${SB_URL}/rest/v1/kb_item_categories?select=item_category_id,item_category_name&order=item_category_name`,{headers:{apikey:SB_ANON,...hdr()}});
   allCategories = await r.json().catch(()=>[]);
   allCategoryNames = new Set(allCategories.map(c=>c.item_category_name));
-
-  // Populate datalist with ALL categories
   const dl = document.getElementById('ra-brand-list');
-  if (dl) {
-    dl.innerHTML = allCategories.map(c=>`<option value="${c.item_category_name}">`).join('');
-  }
+  if (dl) dl.innerHTML = allCategories.map(c=>`<option value="${c.item_category_name}">`).join('');
 }
-
-function onBrandInput() {
-  // Clear status when user types
-  const st = document.getElementById('ra-add-status');
-  if (st) st.style.display = 'none';
-}
-
+function onBrandInput() { const st=document.getElementById('ra-add-status'); if(st) st.style.display='none'; }
 async function addBrandFromSearch() {
-  const input = document.getElementById('ra-brand-search');
-  const brandName = (input?.value||'').trim().toUpperCase();
-  const st = document.getElementById('ra-add-status');
-  if (!brandName) {
-    st.innerHTML = '<span style="color:var(--amber)">Please enter or select a brand name.</span>';
-    st.style.display = 'block';
-    input?.focus();
-    return;
-  }
-  st.innerHTML = '<div class="sp" style="display:inline-block;margin-right:6px;vertical-align:middle"></div> Adding brand...';
-  st.style.display = 'block';
-
-  const r = await fetch(`${SB_URL}/rest/v1/brand_logos`, {
-    method:'POST',
-    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates'},
-    body:JSON.stringify({brand_name:brandName})
-  });
-  if (r.ok || r.status===409) {
-    st.innerHTML = `<span style="color:var(--green)">✓ <strong>${brandName}</strong> added — upload its logo in Brand Logos below to activate in order form.</span>`;
-    if (input) input.value = '';
-    loadBrandLogos();
-    populateBrandSelect();
-    showAddedBrandPills();
-  } else {
-    st.innerHTML = `<span style="color:var(--red)">Failed to add brand.</span>`;
-  }
+  const input=document.getElementById('ra-brand-search');
+  const brandName=(input?.value||'').trim().toUpperCase();
+  const st=document.getElementById('ra-add-status');
+  if (!brandName) { st.innerHTML='<span style="color:var(--amber)">Please enter or select a brand name.</span>'; st.style.display='block'; input?.focus(); return; }
+  st.innerHTML='<div class="sp" style="display:inline-block;margin-right:6px;vertical-align:middle"></div> Adding brand...'; st.style.display='block';
+  const r = await fetch(`${SB_URL}/rest/v1/brand_logos`,{method:'POST',headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates'},body:JSON.stringify({brand_name:brandName})});
+  if (r.ok||r.status===409) {
+    st.innerHTML=`<span style="color:var(--green)">✓ <strong>${brandName}</strong> added.</span>`;
+    if(input) input.value='';
+    loadBrandLogos(); populateBrandSelect(); showAddedBrandPills();
+  } else { st.innerHTML=`<span style="color:var(--red)">Failed to add brand.</span>`; }
 }
-
 async function showAddedBrandPills() {
-  const el = document.getElementById('ra-already-added');
-  if (!el) return;
-  const r = await fetch(`${SB_URL}/rest/v1/brand_logos?select=id,brand_name,logo_url&order=brand_name`,{headers:{apikey:SB_ANON,...hdr()}});
-  const brands = await r.json().catch(()=>[]);
+  const el=document.getElementById('ra-already-added'); if (!el) return;
+  const r=await fetch(`${SB_URL}/rest/v1/brand_logos?select=id,brand_name,logo_url&order=brand_name`,{headers:{apikey:SB_ANON,...hdr()}});
+  const brands=await r.json().catch(()=>[]);
   if (!brands.length) { el.innerHTML=''; return; }
-  el.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--g400);width:100%;margin-bottom:4px">Already added:</div>' +
-    brands.map(b=>`
-      <span style="display:inline-flex;align-items:center;gap:5px;background:${b.logo_url?'var(--green-l)':'var(--g100)'};
-        color:${b.logo_url?'var(--green)':'var(--g600)'};border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">
-        ${b.logo_url?'✓':''} ${b.brand_name}
-        <button onclick="deleteBrand(${b.id},'${b.brand_name.replace(/'/g,"\'")}',${!!b.logo_url})"
-          style="background:none;border:none;cursor:pointer;color:inherit;font-size:13px;line-height:1;padding:0;opacity:.6">×</button>
-      </span>`).join('');
+  el.innerHTML='<div style="font-size:11px;font-weight:600;color:var(--g400);width:100%;margin-bottom:4px">Already added:</div>'+
+    brands.map(b=>`<span style="display:inline-flex;align-items:center;gap:5px;background:${b.logo_url?'var(--green-l)':'var(--g100)'};color:${b.logo_url?'var(--green)':'var(--g600)'};border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">${b.logo_url?'✓':''} ${b.brand_name}<button onclick="deleteBrand(${b.id},'${b.brand_name.replace(/'/g,"\'")}',${!!b.logo_url})" style="background:none;border:none;cursor:pointer;color:inherit;font-size:13px;line-height:1;padding:0;opacity:.6">×</button></span>`).join('');
 }
-
-// Legacy: pickBrand called from old flow — just add brand directly now
-async function pickBrand(brandName, catId) {
-  const input = document.getElementById('ra-brand-search');
-  if (input) input.value = brandName;
-  await addBrandFromSearch();
-}
-
-// Legacy stub — no longer needed
-async function searchBrands() {}
-
-async function loadReorderAdmin() {
-  // Supplier table removed — brands are now decoupled from suppliers
-  loadWorkerUsers();
-  loadBrandLogos();
-  populateBrandSelect();
-  loadAllCategories();
-  showAddedBrandPills();
-}
-
-let raSelectedBrandName = '';
-let raSelectedCatId = '';
-let raSelectedSupplier = null;
-
-function resetBrandSearch() {
-  raSelectedBrandName = '';
-  raSelectedCatId = '';
-  raSelectedSupplier = null;
-  const el = document.getElementById('ra-brand-search');
-  if (el) el.value = '';
-  const res = document.getElementById('ra-brand-results');
-  if (res) res.innerHTML = '';
-  const st = document.getElementById('ra-add-status');
-  if (st) st.style.display = 'none';
-}
-
-async function pickBrand(brandName, catId) {
-  // Simply register the brand in brand_logos — no supplier linking
-  const st = document.getElementById('ra-add-status');
-  st.innerHTML = '<div class="sp" style="display:inline-block;margin-right:6px;vertical-align:middle"></div> Adding brand...';
-  st.style.display = 'block';
-  document.getElementById('ra-brand-results').innerHTML = '';
-
-  const r = await fetch(`${SB_URL}/rest/v1/brand_logos`, {
-    method: 'POST',
-    headers: {apikey: SB_ANON, ...hdr(), 'Content-Type': 'application/json', 'Prefer': 'resolution=ignore-duplicates'},
-    body: JSON.stringify({brand_name: brandName})
-  });
-
-  if (r.ok || r.status === 409) {
-    st.innerHTML = `<span style="color:var(--green)">✓ Brand <strong>${brandName}</strong> added — go to Brand Logos section to upload logo, then it will appear in worker order form.</span>`;
-    document.getElementById('ra-brand-search').value = '';
-    loadBrandLogos();
-    populateBrandSelect();
-  } else {
-    st.innerHTML = `<span style="color:var(--red)">Failed to add brand</span>`;
-  }
-}
-
-async function showExistingSuppliers(brandName) {
-  // Show which suppliers are already mapped to this brand
-  const r = await fetch(`${SB_URL}/rest/v1/supplier_items?brand=eq.${encodeURIComponent(brandName)}&is_active=eq.true&select=supplier_id`, {headers:{apikey:SB_ANON,...hdr()}});
-  const items = await r.json();
-  const supIds = [...new Set(items.map(i=>i.supplier_id))];
-  const el = document.getElementById('ra-existing-sups');
-  if (!supIds.length) { el.innerHTML=''; return; }
-  const sr = await fetch(`${SB_URL}/rest/v1/suppliers?id=in.(${supIds.join(',')})&select=id,supplier_name,visit_days,is_active`, {headers:{apikey:SB_ANON,...hdr()}});
-  const sups = await sr.json();
-  el.innerHTML = `<div style="margin-bottom:10px">
-    <div style="font-size:11px;font-weight:600;color:var(--g400);margin-bottom:6px">Already added for ${brandName}:</div>
-    ${sups.map(s=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--green-l);border:1px solid #a7f3d0;border-radius:8px;margin-bottom:4px">
-        <div style="font-size:13px;font-weight:600;color:var(--green)">✓ ${s.supplier_name}</div>
-        <button onclick="removeSupplierBrand(${s.id},'${s.supplier_name.replace(/'/g,"\\'")}','${brandName}')"
-          style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:600">
-          Remove
-        </button>
-      </div>`).join('')}
-  </div>`;
-}
-
-function pickRASupplier(sup) {
-  raSelectedSupplier = sup;
-  document.querySelectorAll('[id^="ra-sup-"]').forEach(el => {
-    el.style.borderColor='var(--g200)'; el.style.background='white'; el.classList.remove('selected');
-  });
-  const el = document.getElementById(`ra-sup-${sup.name_id}`);
-  if (el) { el.style.borderColor='var(--pink)'; el.style.background='var(--pink-l)'; el.classList.add('selected'); }
-  // Supplier settings panel removed — supplier selected at order time
-  console.log('Supplier selected:', sup.supplier_name);
-}
-
-async function removeSupplierBrand(supId, supName, brandName) {
-  if (!confirm(`Remove ${supName} from brand "${brandName}"?\nThis removes all ${brandName} items for this supplier from the order form.`)) return;
-  await fetch(`${SB_URL}/rest/v1/supplier_items?supplier_id=eq.${supId}&brand=eq.${encodeURIComponent(brandName)}`, {
-    method:'PATCH', headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
-    body:JSON.stringify({is_active:false})
-  });
-  showExistingSuppliers(brandName);
-  loadReorderAdmin();
-}
-
-async function addSupplier() {
-  if (!raSelectedSupplier) { alert('Please select a supplier first'); return; }
-  const name  = raSelectedSupplier.supplier_name;
-  const phone = raSelectedSupplier.phone_number || '';
-  const day   = parseInt(document.getElementById('ra-day').value);
-  const cover = parseInt(document.getElementById('ra-cover').value) || 15;
-  const avgmo = parseInt(document.getElementById('ra-avgmo').value) || 3;
-  const st    = document.getElementById('ra-add-status');
-  const btn   = document.getElementById('ra-add-btn');
-  if (!name) return;
-
-  btn.disabled=true; btn.textContent='Adding...';
-  st.innerHTML = '<div class="sp" style="display:inline-block;margin-right:6px;vertical-align:middle"></div> Adding supplier...';
-  st.style.display = 'block';
-
-  // INSERT supplier or fetch existing
-  let supId = null;
-  const ins = await fetch(`${SB_URL}/rest/v1/suppliers`, {
-    method: 'POST',
-    headers: { apikey:SB_ANON, ...hdr(), 'Content-Type':'application/json', 'Prefer':'return=representation' },
-    body: JSON.stringify({
-      supplier_name:   name,
-      whatsapp_number: phone,
-      visit_type:      'weekly',
-      visit_days:      [day],
-      cover_weeks:     Math.ceil(cover / 7),
-      avg_months:      avgmo,
-      is_active:       true
-    })
-  });
-
-  if (ins.ok) {
-    const sup = await ins.json();
-    supId = Array.isArray(sup) ? sup[0]?.id : sup?.id;
-  } else if (ins.status === 409) {
-    // Duplicate — fetch existing supplier and update settings
-    const ex = await fetch(`${SB_URL}/rest/v1/suppliers?supplier_name=eq.${encodeURIComponent(name)}&select=id`, {headers:{apikey:SB_ANON,...hdr()}});
-    const exData = await ex.json();
-    supId = exData[0]?.id;
-    if (supId) {
-      await fetch(`${SB_URL}/rest/v1/suppliers?id=eq.${supId}`, {
-        method:'PATCH',
-        headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
-        body:JSON.stringify({visit_days:[day],cover_weeks:Math.ceil(cover/7),avg_months:avgmo,is_active:true})
-      });
-    }
-  } else {
-    const err = await ins.json();
-    st.innerHTML=`<span style="color:var(--red)">Failed: ${err?.message||ins.status}</span>`;
-    btn.disabled=false; btn.textContent='+ Add this supplier';
-    return;
-  }
-
-  if (!supId) { st.innerHTML='<span style="color:var(--red)">Could not get supplier ID</span>'; btn.disabled=false; btn.textContent='+ Add this supplier'; return; }
-
-  // Auto-onboard items
-  st.innerHTML='<div class="sp" style="display:inline-block;margin-right:6px;vertical-align:middle"></div> Scanning purchase history...';
-  const ob = await fetch(`${SB_URL}/rest/v1/rpc/auto_onboard_supplier`, {
-    method:'POST',
-    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
-    body:JSON.stringify({p_supplier_id:supId})
-  });
-  const cnt = await ob.json();
-
-  // Register brand in brand_logos
-  if (raSelectedBrandName) {
-    await fetch(`${SB_URL}/rest/v1/brand_logos`, {
-      method:'POST',
-      headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates'},
-      body:JSON.stringify({brand_name:raSelectedBrandName})
-    });
-  }
-
-  st.innerHTML=`<span style="color:var(--green)">✓ <strong>${name}</strong> added for brand <strong>${raSelectedBrandName}</strong> — ${cnt||0} items found.</span>`;
-  btn.disabled=false; btn.textContent='+ Add this supplier';
-
-  raSelectedSupplier=null;
-  loadReorderAdmin();
-  populateBrandSelect();
-}
-
-async function reOnboard(supId, name) {
-  const r = await fetch(`${SB_URL}/rest/v1/rpc/auto_onboard_supplier`, {
-    method:'POST', headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
-    body: JSON.stringify({p_supplier_id:supId})
-  });
-  const cnt = await r.json();
-  alert(`Re-scanned ${name}: ${cnt||0} items updated from purchase history.`);
-  loadReorderAdmin();
-}
-
-async function toggleSupplier(id, active) {
-  await fetch(`${SB_URL}/rest/v1/suppliers?id=eq.${id}`, {
-    method:'PATCH', headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
-    body: JSON.stringify({is_active:active})
-  });
-  loadReorderAdmin();
-}
-
-// Worker user management
+async function loadReorderAdmin() { loadWorkerUsers(); loadBrandLogos(); populateBrandSelect(); loadAllCategories(); showAddedBrandPills(); }
 async function loadWorkerUsers() {
-  const r = await fetch(`${SB_URL}/rest/v1/worker_users?select=id,username,full_name,is_active,created_at&order=created_at`, {headers:{apikey:SB_ANON,...hdr()}});
-  const users = await r.json();
-  document.getElementById('wu-tbody').innerHTML = users.length ? users.map(u=>`<tr>
-    <td class="mono">${u.username}</td>
-    <td style="font-size:13px">${u.full_name||'—'}</td>
-    <td><span class="badge ${u.is_active?'b-green':'b-gray'}">${u.is_active?'Active':'Inactive'}</span></td>
-    <td style="font-size:12px;color:var(--g400)">${fd(u.created_at)}</td>
-    <td><button onclick="toggleWorker(${u.id},${!u.is_active})" style="height:24px;padding:0 8px;border:2px solid var(--g200);border-radius:6px;background:var(--g100);color:var(--g600);font-size:11px;cursor:pointer">${u.is_active?'Disable':'Enable'}</button></td>
-  </tr>`).join('') : '<tr><td colspan="5" class="empty">No worker accounts yet</td></tr>';
+  const r=await fetch(`${SB_URL}/rest/v1/worker_users?select=id,username,full_name,is_active,created_at&order=created_at`,{headers:{apikey:SB_ANON,...hdr()}});
+  const users=await r.json();
+  document.getElementById('wu-tbody').innerHTML=users.length?users.map(u=>`<tr><td class="mono">${u.username}</td><td style="font-size:13px">${u.full_name||'—'}</td><td><span class="badge ${u.is_active?'b-green':'b-gray'}">${u.is_active?'Active':'Inactive'}</span></td><td style="font-size:12px;color:var(--g400)">${fd(u.created_at)}</td><td><button onclick="toggleWorker(${u.id},${!u.is_active})" style="height:24px;padding:0 8px;border:2px solid var(--g200);border-radius:6px;background:var(--g100);color:var(--g600);font-size:11px;cursor:pointer">${u.is_active?'Disable':'Enable'}</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No worker accounts yet</td></tr>';
 }
-
 async function createWorker() {
-  const uname = document.getElementById('wu-name').value.trim().toLowerCase();
-  const fname = document.getElementById('wu-fullname').value.trim();
-  const pass  = document.getElementById('wu-pass').value;
-  const st    = document.getElementById('wu-status');
+  const uname=document.getElementById('wu-name').value.trim().toLowerCase();
+  const fname=document.getElementById('wu-fullname').value.trim();
+  const pass=document.getElementById('wu-pass').value;
+  const st=document.getElementById('wu-status');
   if (!uname||!pass) { st.innerHTML='<span style="color:var(--red)">Username and password required</span>'; st.style.display='block'; return; }
-  // Hash password client-side using SHA-256
-  const hashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
-  const hash = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  const r = await fetch(`${SB_URL}/rest/v1/worker_users`, {
-    method:'POST', headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'return=minimal'},
-    body: JSON.stringify({username:uname, full_name:fname, password_hash:hash})
-  });
-  if (r.ok) {
-    st.innerHTML=`<span style="color:var(--green)">✓ Worker <strong>${uname}</strong> created. They can now log in to order.html</span>`;
-    document.getElementById('wu-name').value=''; document.getElementById('wu-fullname').value=''; document.getElementById('wu-pass').value='';
-    loadWorkerUsers();
-  } else {
-    st.innerHTML='<span style="color:var(--red)">Username already exists</span>';
-  }
+  const hashBuf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pass));
+  const hash=Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const r=await fetch(`${SB_URL}/rest/v1/worker_users`,{method:'POST',headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({username:uname,full_name:fname,password_hash:hash})});
+  if (r.ok) { st.innerHTML=`<span style="color:var(--green)">✓ Worker <strong>${uname}</strong> created.</span>`; document.getElementById('wu-name').value=''; document.getElementById('wu-fullname').value=''; document.getElementById('wu-pass').value=''; loadWorkerUsers(); }
+  else { st.innerHTML='<span style="color:var(--red)">Username already exists</span>'; }
   st.style.display='block';
 }
-
-async function toggleWorker(id, active) {
-  await fetch(`${SB_URL}/rest/v1/worker_users?id=eq.${id}`, {
-    method:'PATCH', headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
-    body: JSON.stringify({is_active:active})
-  });
-  loadWorkerUsers();
-  populateSupplierSelect();
-  syncBrandNames();
-}
+async function toggleWorker(id,active) { await fetch(`${SB_URL}/rest/v1/worker_users?id=eq.${id}`,{method:'PATCH',headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},body:JSON.stringify({is_active:active})}); loadWorkerUsers(); }
 
 // ── INVENTORY ─────────────────────────────────────────────────────────────────
 async function loadInventory() {
-  const d = await api(`${ADMIN}?action=inventory`);
-  if (!d) return;
-  const s = d.summary||{};
-  document.getElementById('ik-ns').textContent  = s.never_sold||0;
-  document.getElementById('ik-d90').textContent = s.dead_90d||0;
-  document.getElementById('ik-d60').textContent = s.slow_60d||0;
-  document.getElementById('ik-val').innerHTML   = rs(s.total_stock_value_at_risk||0);
-  invAll = d.items||[];
-  renderInv();
-  // update dashboard alerts
-  const ns = invAll.filter(r=>r.movement_bucket==='never_sold').length;
-  const d90= invAll.filter(r=>r.movement_bucket==='dead_90d').length;
-  document.getElementById('inv-alerts').innerHTML = `
-    <div style="font-size:13px;display:flex;flex-direction:column;gap:6px">
-      <div style="display:flex;justify-content:space-between"><span>Never sold (in stock)</span><strong style="color:var(--red)">${ns}</strong></div>
-      <div style="display:flex;justify-content:space-between"><span>Dead 90+ days</span><strong style="color:var(--red)">${d90}</strong></div>
-      <div style="display:flex;justify-content:space-between"><span>Stock value at risk</span><strong style="color:var(--amber)">${rs(s.total_stock_value_at_risk||0)}</strong></div>
-    </div>`;
+  const d=await api(`${ADMIN}?action=inventory`); if (!d) return;
+  const s=d.summary||{};
+  document.getElementById('ik-ns').textContent=s.never_sold||0;
+  document.getElementById('ik-d90').textContent=s.dead_90d||0;
+  document.getElementById('ik-d60').textContent=s.slow_60d||0;
+  document.getElementById('ik-val').innerHTML=rs(s.total_stock_value_at_risk||0);
+  invAll=d.items||[]; renderInv();
+  const ns=invAll.filter(r=>r.movement_bucket==='never_sold').length;
+  const d90=invAll.filter(r=>r.movement_bucket==='dead_90d').length;
+  document.getElementById('inv-alerts').innerHTML=`<div style="font-size:13px;display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between"><span>Never sold (in stock)</span><strong style="color:var(--red)">${ns}</strong></div><div style="display:flex;justify-content:space-between"><span>Dead 90+ days</span><strong style="color:var(--red)">${d90}</strong></div><div style="display:flex;justify-content:space-between"><span>Stock value at risk</span><strong style="color:var(--amber)">${rs(s.total_stock_value_at_risk||0)}</strong></div></div>`;
 }
-
 function renderInv() {
-  const filter = document.getElementById('inv-filter')?.value || 'all';
-  const search = (document.getElementById('inv-search')?.value || '').toLowerCase();
-  let rows = filter==='all' ? invAll.filter(r=>r.movement_bucket!=='active') : invAll.filter(r=>r.movement_bucket===filter);
-  if (search) rows = rows.filter(r=>r.item_name.toLowerCase().includes(search));
-  document.getElementById('inv-count').textContent = `Showing ${rows.length} items`;
-  const bucketBadge = {
-    never_sold: '<span class="badge b-red">Never sold</span>',
-    dead_90d:   '<span class="badge b-red">Dead 90d+</span>',
-    slow_60d:   '<span class="badge b-amber">Slow 60d</span>',
-    slow_30d:   '<span class="badge b-amber">Slow 30d</span>',
-  };
-  document.getElementById('inv-body').innerHTML = rows.length
-    ? rows.slice(0,300).map(r=>`<tr>
-        <td><strong style="font-size:12px">${r.item_name}</strong></td>
-        <td style="font-size:12px;color:var(--g600)">${r.category_name}</td>
-        <td class="mono">${parseFloat(r.current_stock||0).toFixed(0)}</td>
-        <td class="mono">${rs(r.cost_price)}</td>
-        <td class="mono" style="font-weight:600">${rs(r.stock_value)}</td>
-        <td style="font-size:12px;color:var(--g400)">${fd(r.last_sold)}</td>
-        <td>${bucketBadge[r.movement_bucket]||''}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="7" class="empty">No items match this filter</td></tr>';
+  const filter=document.getElementById('inv-filter')?.value||'all';
+  const search=(document.getElementById('inv-search')?.value||'').toLowerCase();
+  let rows=filter==='all'?invAll.filter(r=>r.movement_bucket!=='active'):invAll.filter(r=>r.movement_bucket===filter);
+  if (search) rows=rows.filter(r=>r.item_name.toLowerCase().includes(search));
+  document.getElementById('inv-count').textContent=`Showing ${rows.length} items`;
+  const bucketBadge={never_sold:'<span class="badge b-red">Never sold</span>',dead_90d:'<span class="badge b-red">Dead 90d+</span>',slow_60d:'<span class="badge b-amber">Slow 60d</span>',slow_30d:'<span class="badge b-amber">Slow 30d</span>'};
+  document.getElementById('inv-body').innerHTML=rows.length?rows.slice(0,300).map(r=>`<tr><td><strong style="font-size:12px">${r.item_name}</strong></td><td style="font-size:12px;color:var(--g600)">${r.category_name}</td><td class="mono">${parseFloat(r.current_stock||0).toFixed(0)}</td><td class="mono">${rs(r.cost_price)}</td><td class="mono" style="font-weight:600">${rs(r.stock_value)}</td><td style="font-size:12px;color:var(--g400)">${fd(r.last_sold)}</td><td>${bucketBadge[r.movement_bucket]||''}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">No items match this filter</td></tr>';
 }
 
 // ── P&L ───────────────────────────────────────────────────────────────────────
@@ -1001,43 +783,20 @@ async function loadPL() {
   ['pl-rev','pl-cogs','pl-gp','pl-txn'].forEach(id=>document.getElementById(id).textContent='…');
   document.getElementById('pl-chart').innerHTML='<div class="lrow"><div class="sp"></div></div>';
   document.getElementById('pl-items').innerHTML='<tr><td colspan="8"><div class="lrow"><div class="sp"></div></div></td></tr>';
-  const d = await api(`${ADMIN}?action=pl&from=${from}&to=${to}`);
-  if (!d) return;
-  const t = d.totals||{};
-  document.getElementById('pl-rev').innerHTML  = rs(t.total_revenue||0);
-  document.getElementById('pl-cogs').innerHTML = rs(t.total_cogs||0);
-  const gp = document.getElementById('pl-gp');
-  gp.innerHTML = rs(t.total_gross_profit||0);
-  gp.className = 'kval '+(parseFloat(t.total_gross_profit||0)>=0?'c-green':'c-red');
-  document.getElementById('pl-margin').textContent = pct(t.margin_pct||0)+' gross margin';
-  document.getElementById('pl-txn').textContent = parseInt(t.total_txns||0).toLocaleString('en-IN');
-
-  // Day chart
+  const d=await api(`${ADMIN}?action=pl&from=${from}&to=${to}`); if (!d) return;
+  const t=d.totals||{};
+  document.getElementById('pl-rev').innerHTML=rs(t.total_revenue||0);
+  document.getElementById('pl-cogs').innerHTML=rs(t.total_cogs||0);
+  const gp=document.getElementById('pl-gp'); gp.innerHTML=rs(t.total_gross_profit||0); gp.className='kval '+(parseFloat(t.total_gross_profit||0)>=0?'c-green':'c-red');
+  document.getElementById('pl-margin').textContent=pct(t.margin_pct||0)+' gross margin';
+  document.getElementById('pl-txn').textContent=parseInt(t.total_txns||0).toLocaleString('en-IN');
   const days=(d.days||[]).slice().reverse();
   if (days.length) {
-    const maxGP = Math.max(...days.map(r=>Math.abs(parseFloat(r.gross_profit||0))),1);
-    document.getElementById('pl-chart').innerHTML = days.map(r=>{
-      const gp=parseFloat(r.gross_profit||0), pct=Math.round((Math.abs(gp)/maxGP)*100);
-      const col=gp>=0?'var(--green-l)':'var(--red-l)';
-      const lbl=new Date(r.sale_date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-      return `<div class="bc"><div class="bv" style="color:${gp>=0?'var(--green)':'var(--red)'}">${rs(gp)}</div><div class="bb" style="height:${Math.max(pct,3)}%;background:${col}"></div><div class="bl">${lbl}</div></div>`;
-    }).join('');
+    const maxGP=Math.max(...days.map(r=>Math.abs(parseFloat(r.gross_profit||0))),1);
+    document.getElementById('pl-chart').innerHTML=days.map(r=>{const gp=parseFloat(r.gross_profit||0),p=Math.round((Math.abs(gp)/maxGP)*100);const col=gp>=0?'var(--green-l)':'var(--red-l)';const lbl=new Date(r.sale_date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});return `<div class="bc"><div class="bv" style="color:${gp>=0?'var(--green)':'var(--red)'}">${rs(gp)}</div><div class="bb" style="height:${Math.max(p,3)}%;background:${col}"></div><div class="bl">${lbl}</div></div>`;}).join('');
   } else document.getElementById('pl-chart').innerHTML='<div class="empty">No data</div>';
-
-  // Items table
   const items=d.items||[];
-  document.getElementById('pl-items').innerHTML = items.length
-    ? items.map((r,i)=>`<tr>
-        <td style="color:var(--g400);font-size:12px">${i+1}</td>
-        <td><strong style="font-size:12px">${r.item_name}</strong></td>
-        <td style="font-size:12px;color:var(--g600)">${r.category_name}</td>
-        <td class="mono">${Math.round(r.qty_sold)}</td>
-        <td class="mono">${rs(r.revenue)}</td>
-        <td class="mono">${rs(r.cogs)}</td>
-        <td>${pc(r.gross_profit)}</td>
-        <td class="mono" style="${parseFloat(r.margin_pct||0)>0?'color:var(--green)':'color:var(--red)'}">${pct(r.margin_pct)}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="8" class="empty">No items with purchase price data</td></tr>';
+  document.getElementById('pl-items').innerHTML=items.length?items.map((r,i)=>`<tr><td style="color:var(--g400);font-size:12px">${i+1}</td><td><strong style="font-size:12px">${r.item_name}</strong></td><td style="font-size:12px;color:var(--g600)">${r.category_name}</td><td class="mono">${Math.round(r.qty_sold)}</td><td class="mono">${rs(r.revenue)}</td><td class="mono">${rs(r.cogs)}</td><td>${pc(r.gross_profit)}</td><td class="mono" style="${parseFloat(r.margin_pct||0)>0?'color:var(--green)':'color:var(--red)'}">${pct(r.margin_pct)}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">No items with purchase price data</td></tr>';
 }
 
 // ── MARKETING ─────────────────────────────────────────────────────────────────
@@ -1045,544 +804,473 @@ async function loadMarketing() {
   const from=document.getElementById('mk-from').value, to=document.getElementById('mk-to').value;
   document.getElementById('mk-chart').innerHTML='<div class="lrow"><div class="sp"></div></div>';
   document.getElementById('mk-tbody').innerHTML='<tr><td colspan="5"><div class="lrow"><div class="sp"></div></div></td></tr>';
-
-  const [statsD, totD, roiD] = await Promise.all([
-    api(`${MKT}?action=stats&from=${from}&to=${to}`),
-    api(`${MKT}?action=totals`),
-    api(`${MKT}?action=roi`),
-  ]);
-
-  if (totD) {
-    document.getElementById('t-sent').textContent = totD.total_sent?.toLocaleString()||'—';
-    document.getElementById('t-red').textContent  = totD.total_redeemed?.toLocaleString()||'—';
-    document.getElementById('t-fail').textContent = totD.total_failed?.toLocaleString()||'—';
-    document.getElementById('t-rem').textContent  = totD.remaining?.toLocaleString()||'—';
-  }
-  if (roiD?.summary) {
-    const s=roiD.summary;
-    document.getElementById('r-purchased').textContent = s.redeemed_with_purchase||0;
-    document.getElementById('r-bilval').innerHTML = rs(s.total_purchase_value||0);
-    document.getElementById('r-gross').innerHTML  = rs(s.total_gross_profit||0);
-    const net=parseFloat(s.total_net_profit||0);
-    const ne=document.getElementById('r-net');
-    ne.innerHTML=(net<0?'-':'')+rs(Math.abs(net));
-    ne.className='kval '+(net>=0?'c-green':'c-red');
-  }
-  if (statsD?.byDay) {
-    const entries=Object.entries(statsD.byDay).sort(([a],[b])=>a.localeCompare(b));
-    if (entries.length) {
-      const maxV=Math.max(...entries.map(([,v])=>v),1);
-      document.getElementById('mk-chart').innerHTML=entries.map(([day,val])=>{
-        const pct=Math.round((val/maxV)*100);
-        const lbl=new Date(day+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-        return `<div class="bc"><div class="bv">${val}</div><div class="bb" style="height:${Math.max(pct,3)}%"></div><div class="bl">${lbl}</div></div>`;
-      }).join('');
-    } else document.getElementById('mk-chart').innerHTML='<div class="empty">No messages in this range</div>';
-  }
-  if (statsD?.recent) {
-    document.getElementById('mk-tbody').innerHTML = statsD.recent.map(r=>`<tr>
-      <td><strong>${r.customer}</strong></td>
-      <td class="mono">${r.phone}</td>
-      <td>${r.offer_type==='free_item'?'<span class="badge b-purple">Free item</span>':'<span class="badge b-amber">Discount</span>'}</td>
-      <td style="font-size:12px;color:var(--g400)">${fdt(r.sent_at)}</td>
-      <td>${r.redeemed?'<span class="badge b-green">Redeemed</span>':'<span class="badge b-gray">Sent</span>'}</td>
-    </tr>`).join('');
-  }
+  const [statsD,totD,roiD]=await Promise.all([api(`${MKT}?action=stats&from=${from}&to=${to}`),api(`${MKT}?action=totals`),api(`${MKT}?action=roi`)]);
+  if (totD) { document.getElementById('t-sent').textContent=totD.total_sent?.toLocaleString()||'—'; document.getElementById('t-red').textContent=totD.total_redeemed?.toLocaleString()||'—'; document.getElementById('t-fail').textContent=totD.total_failed?.toLocaleString()||'—'; document.getElementById('t-rem').textContent=totD.remaining?.toLocaleString()||'—'; }
+  if (roiD?.summary) { const s=roiD.summary; document.getElementById('r-purchased').textContent=s.redeemed_with_purchase||0; document.getElementById('r-bilval').innerHTML=rs(s.total_purchase_value||0); document.getElementById('r-gross').innerHTML=rs(s.total_gross_profit||0); const net=parseFloat(s.total_net_profit||0),ne=document.getElementById('r-net'); ne.innerHTML=(net<0?'-':'')+rs(Math.abs(net)); ne.className='kval '+(net>=0?'c-green':'c-red'); }
+  if (statsD?.byDay) { const entries=Object.entries(statsD.byDay).sort(([a],[b])=>a.localeCompare(b)); if (entries.length) { const maxV=Math.max(...entries.map(([,v])=>v),1); document.getElementById('mk-chart').innerHTML=entries.map(([day,val])=>{const p=Math.round((val/maxV)*100);const lbl=new Date(day+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});return `<div class="bc"><div class="bv">${val}</div><div class="bb" style="height:${Math.max(p,3)}%"></div><div class="bl">${lbl}</div></div>`;}).join('');} else document.getElementById('mk-chart').innerHTML='<div class="empty">No messages in this range</div>'; }
+  if (statsD?.recent) { document.getElementById('mk-tbody').innerHTML=statsD.recent.map(r=>`<tr><td><strong>${r.customer}</strong></td><td class="mono">${r.phone}</td><td>${r.offer_type==='free_item'?'<span class="badge b-purple">Free item</span>':'<span class="badge b-amber">Discount</span>'}</td><td style="font-size:12px;color:var(--g400)">${fdt(r.sent_at)}</td><td>${r.redeemed?'<span class="badge b-green">Redeemed</span>':'<span class="badge b-gray">Sent</span>'}</td></tr>`).join('');}
 }
 
 // ── OFFER LOOKUP ─────────────────────────────────────────────────────────────
 async function doLookup() {
-  const phone = document.getElementById('lu-phone').value.trim();
-  if (phone.length<10) return;
-  currentOffer = null;
-  document.getElementById('lu-result').innerHTML='<div class="lrow"><div class="sp"></div> Looking up...</div>';
-  const d = await api(`${MKT}?action=lookup&phone=${phone}`);
-  if (!d||!d.found) {
-    document.getElementById('lu-result').innerHTML='<div style="padding:14px;background:var(--g100);border-radius:10px;text-align:center;font-size:13px;color:var(--g600)">No active offer found for this number</div>';
-    return;
-  }
-  currentOffer = d.offer;
+  const phone=document.getElementById('lu-phone').value.trim(); if (phone.length<10) return;
+  currentOffer=null; document.getElementById('lu-result').innerHTML='<div class="lrow"><div class="sp"></div> Looking up...</div>';
+  const d=await api(`${MKT}?action=lookup&phone=${phone}`);
+  if (!d||!d.found) { document.getElementById('lu-result').innerHTML='<div style="padding:14px;background:var(--g100);border-radius:10px;text-align:center;font-size:13px;color:var(--g600)">No active offer found for this number</div>'; return; }
+  currentOffer=d.offer;
   const o=d.offer, isFree=o.offer_type==='free_item';
   const hl=isFree?`🎁 Free <strong>${o.offer_item}</strong> on purchase ≥ ₹${o.min_purchase_amount}`:`🏷️ <strong>${o.discount_percent}% off</strong> on purchase ≥ ₹${o.min_purchase_amount}`;
-  document.getElementById('lu-result').innerHTML=`
-    <div style="border:2px solid ${isFree?'#f5c4d0':'#fcd34d'};border-radius:10px;overflow:hidden">
-      <div style="background:${isFree?'var(--pink-l)':'var(--amber-l)'};padding:12px 16px;font-size:15px;font-weight:600">${hl}</div>
-      <div style="padding:12px 16px">
-        <div style="font-size:14px;font-weight:600;margin-bottom:4px">${o.customer_name}</div>
-        <div style="font-size:12px;color:var(--g400);font-family:'DM Mono',monospace;margin-bottom:12px">${phone}</div>
-        <div style="margin-bottom:10px"><label style="font-size:12px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Staff name</label>
-        <input type="text" id="staff-name" placeholder="e.g. Ravi" style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;"></div>
-        <button onclick="doRedeem('${o.id}')" style="width:100%;height:44px;background:var(--green);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">✓ Mark as Redeemed</button>
-      </div>
-    </div>`;
+  document.getElementById('lu-result').innerHTML=`<div style="border:2px solid ${isFree?'#f5c4d0':'#fcd34d'};border-radius:10px;overflow:hidden"><div style="background:${isFree?'var(--pink-l)':'var(--amber-l)'};padding:12px 16px;font-size:15px;font-weight:600">${hl}</div><div style="padding:12px 16px"><div style="font-size:14px;font-weight:600;margin-bottom:4px">${o.customer_name}</div><div style="font-size:12px;color:var(--g400);font-family:'DM Mono',monospace;margin-bottom:12px">${phone}</div><div style="margin-bottom:10px"><label style="font-size:12px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Staff name</label><input type="text" id="staff-name" placeholder="e.g. Ravi" style="width:100%;height:36px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;"></div><button onclick="doRedeem('${o.id}')" style="width:100%;height:44px;background:var(--green);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">✓ Mark as Redeemed</button></div></div>`;
 }
-
 async function doRedeem(id) {
-  const staff = document.getElementById('staff-name')?.value?.trim()||'counter';
-  const btn = document.querySelector('#lu-result button');
-  if (btn) { btn.disabled=true; btn.textContent='Processing…'; }
-  const d = await apiPost(`${MKT}?action=redeem`, { id, staff_name: staff });
-  if (!d) return;
-  if (d.success) {
-    document.getElementById('lu-result').innerHTML=`<div style="background:var(--green-l);border:2px solid #a7f3d0;border-radius:10px;padding:20px;text-align:center"><div style="font-size:32px;margin-bottom:8px">✅</div><div style="font-size:16px;font-weight:600;color:var(--green)">Redeemed!</div><div style="font-size:13px;color:var(--g600);margin-top:4px">Give the customer their ${currentOffer?.offer_type==='free_item'?'free item':'discount'}.</div><button onclick="resetLookup()" style="margin-top:14px;background:white;border:2px solid var(--g200);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Look up another</button></div>`;
-  } else if (d.error==='Already redeemed') {
-    document.getElementById('lu-result').innerHTML=`<div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:10px;padding:16px;text-align:center"><div style="font-size:22px;margin-bottom:6px">⚠️</div><div style="font-size:14px;font-weight:600;color:var(--amber)">Already Redeemed</div><div style="font-size:12px;color:var(--g600);margin-top:4px">Do not give the offer again.</div></div>`;
-  }
+  const staff=document.getElementById('staff-name')?.value?.trim()||'counter';
+  const btn=document.querySelector('#lu-result button'); if(btn){btn.disabled=true;btn.textContent='Processing…';}
+  const d=await apiPost(`${MKT}?action=redeem`,{id,staff_name:staff}); if (!d) return;
+  if (d.success) { document.getElementById('lu-result').innerHTML=`<div style="background:var(--green-l);border:2px solid #a7f3d0;border-radius:10px;padding:20px;text-align:center"><div style="font-size:32px;margin-bottom:8px">✅</div><div style="font-size:16px;font-weight:600;color:var(--green)">Redeemed!</div><div style="font-size:13px;color:var(--g600);margin-top:4px">Give the customer their ${currentOffer?.offer_type==='free_item'?'free item':'discount'}.</div><button onclick="resetLookup()" style="margin-top:14px;background:white;border:2px solid var(--g200);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Look up another</button></div>`; }
+  else if (d.error==='Already redeemed') { document.getElementById('lu-result').innerHTML=`<div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:10px;padding:16px;text-align:center"><div style="font-size:22px;margin-bottom:6px">⚠️</div><div style="font-size:14px;font-weight:600;color:var(--amber)">Already Redeemed</div></div>`; }
 }
 function resetLookup() { document.getElementById('lu-phone').value=''; document.getElementById('lu-result').innerHTML=''; }
 
-
-
 // ── BRAND LOGOS ───────────────────────────────────────────────────────────────
 async function loadBrandLogos() {
-  const r = await fetch(`${SB_URL}/rest/v1/brand_logos?select=id,brand_name,logo_url&order=brand_name`, {headers:{apikey:SB_ANON,...hdr()}});
-  const brands = await r.json();
-  const grid = document.getElementById('brand-logo-grid');
-  if (!grid) return;
-  if (!brands.length) {
-    grid.innerHTML='<div style="font-size:13px;color:var(--g400);padding:12px">No brands added yet.<br><br>Add a supplier above — the brand will automatically appear here for logo upload.</div>';
-    return;
-  }
-  grid.innerHTML = brands.map(b => {
-    const hasLogo = !!b.logo_url;
-    const logoHtml = hasLogo
-      ? `<img src="${b.logo_url}?t=${Date.now()}" style="width:68px;height:68px;object-fit:contain;border-radius:12px;border:1px solid var(--g200);display:block;margin:0 auto 8px">`
-      : `<div style="width:68px;height:68px;border-radius:12px;border:2px dashed var(--g200);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--g400);text-align:center;margin:0 auto 8px;padding:4px">${b.brand_name.split(' ').map(w=>w[0]).join('').slice(0,3)}</div>`;
-    return `<div style="text-align:center;position:relative;padding-top:4px">
-      <button onclick="deleteBrand(${b.id},'${b.brand_name.replace(/'/g,"\\'")}',${hasLogo})"
-        style="position:absolute;top:0;right:0;width:22px;height:22px;background:var(--red-l);color:var(--red);border:1px solid var(--red);border-radius:50%;font-size:13px;line-height:1;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0"
-        title="Delete ${b.brand_name}">×</button>
-      <label style="cursor:pointer;display:block" title="Click to upload logo for ${b.brand_name}">
-        ${logoHtml}
-        <div style="font-size:11px;font-weight:600;color:var(--g900);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${b.brand_name}">${b.brand_name}</div>
-        <div style="font-size:10px;color:${hasLogo?'var(--green)':'var(--pink)'};font-weight:600">${hasLogo?'✓ Logo set':'+ Upload logo'}</div>
-        <input type="file" accept="image/*" style="display:none" onchange="uploadBrandLogo(${b.id}, '${b.brand_name.replace(/'/g,"\\'")}', this)">
-      </label>
-    </div>`;
-  }).join('');
+  const r=await fetch(`${SB_URL}/rest/v1/brand_logos?select=id,brand_name,logo_url&order=brand_name`,{headers:{apikey:SB_ANON,...hdr()}});
+  const brands=await r.json();
+  const grid=document.getElementById('brand-logo-grid'); if (!grid) return;
+  if (!brands.length) { grid.innerHTML='<div style="font-size:13px;color:var(--g400);padding:12px">No brands added yet.</div>'; return; }
+  grid.innerHTML=brands.map(b=>{const hasLogo=!!b.logo_url;const logoHtml=hasLogo?`<img src="${b.logo_url}?t=${Date.now()}" style="width:68px;height:68px;object-fit:contain;border-radius:12px;border:1px solid var(--g200);display:block;margin:0 auto 8px">`:`<div style="width:68px;height:68px;border-radius:12px;border:2px dashed var(--g200);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--g400);text-align:center;margin:0 auto 8px;padding:4px">${b.brand_name.split(' ').map(w=>w[0]).join('').slice(0,3)}</div>`;return `<div style="text-align:center;position:relative;padding-top:4px"><button onclick="deleteBrand(${b.id},'${b.brand_name.replace(/'/g,"\'")}',${hasLogo})" style="position:absolute;top:0;right:0;width:22px;height:22px;background:var(--red-l);color:var(--red);border:1px solid var(--red);border-radius:50%;font-size:13px;line-height:1;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0" title="Delete">×</button><label style="cursor:pointer;display:block">${logoHtml}<div style="font-size:11px;font-weight:600;color:var(--g900);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${b.brand_name}">${b.brand_name}</div><div style="font-size:10px;color:${hasLogo?'var(--green)':'var(--pink)'};font-weight:600">${hasLogo?'✓ Logo set':'+ Upload logo'}</div><input type="file" accept="image/*" style="display:none" onchange="uploadBrandLogo(${b.id},'${b.brand_name.replace(/'/g,"\'")}',this)"></label></div>`;}).join('');
 }
-
-async function deleteBrand(brandId, brandName, hasLogo) {
-  if (!confirm(`Delete brand "${brandName}"?\n\nThis will:\n• Remove it from the brand logos list\n• Hide it from the worker order form\n• Not delete supplier items (re-add anytime)`)) return;
-  await fetch(`${SB_URL}/rest/v1/brand_logos?id=eq.${brandId}`, {
-    method:'DELETE', headers:{apikey:SB_ANON,...hdr()}
-  });
-  loadBrandLogos();
-  populateBrandSelect();
+async function deleteBrand(brandId,brandName,hasLogo) {
+  if (!confirm(`Delete brand "${brandName}"?`)) return;
+  await fetch(`${SB_URL}/rest/v1/brand_logos?id=eq.${brandId}`,{method:'DELETE',headers:{apikey:SB_ANON,...hdr()}});
+  loadBrandLogos(); populateBrandSelect();
 }
-
-async function uploadBrandLogo(brandId, brandName, input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (file.size > 2*1024*1024) { alert('Image too large. Max 2MB.'); return; }
-  const ext  = file.name.split('.').pop().toLowerCase();
-  const slug = brandName.replace(/[^a-z0-9]/gi,'_').toLowerCase();
-  const path = `logos/${slug}.${ext}`;
-
-  const up = await fetch(`${SB_URL}/storage/v1/object/brand-logos/${path}`, {
-    method:'POST',
-    headers:{apikey:SB_ANON,...hdr(),'Content-Type':file.type,'x-upsert':'true'},
-    body:file
-  });
+async function uploadBrandLogo(brandId,brandName,input) {
+  const file=input.files[0]; if (!file) return;
+  if (file.size>2*1024*1024) { alert('Image too large. Max 2MB.'); return; }
+  const ext=file.name.split('.').pop().toLowerCase();
+  const slug=brandName.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  const path=`logos/${slug}.${ext}`;
+  const up=await fetch(`${SB_URL}/storage/v1/object/brand-logos/${path}`,{method:'POST',headers:{apikey:SB_ANON,...hdr(),'Content-Type':file.type,'x-upsert':'true'},body:file});
   if (!up.ok) { alert('Upload failed'); return; }
-
-  const logoUrl = `${SB_URL}/storage/v1/object/public/brand-logos/${path}`;
-  await fetch(`${SB_URL}/rest/v1/brand_logos?id=eq.${brandId}`, {
-    method:'PATCH',
-    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
-    body:JSON.stringify({logo_url:logoUrl})
-  });
-  loadBrandLogos();
-}
-
-async function syncBrandNames() {
-  // Brands are now only added when admin explicitly adds a supplier+brand
-  // No auto-sync from supplier_items — admin controls which brands appear
-  loadBrandLogos();
-  populateBrandSelect();
-}
-
-async function addBrandManually() {
-  const q = document.getElementById('bl-manual-search').value.trim();
-  if (q.length < 2) return;
-  const r = await fetch(`${SB_URL}/rest/v1/kb_item_categories?item_category_name=ilike.*${encodeURIComponent(q)}*&select=item_category_name&limit=8`, {headers:{apikey:SB_ANON,...hdr()}});
-  const cats = await r.json();
-  const res = document.getElementById('bl-manual-results');
-  if (!cats.length) { res.innerHTML='<span style="font-size:12px;color:var(--g400)">No brands found</span>'; return; }
-  res.innerHTML = cats.map(c=>`
-    <button onclick="addBrandLogo('${c.item_category_name.replace(/'/g,"\\'")}')"
-      style="height:28px;padding:0 12px;border:2px solid var(--g200);border-radius:20px;background:white;
-             font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--g600);cursor:pointer;margin:2px">
-      + ${c.item_category_name}
-    </button>`).join('');
-}
-
-async function addBrandLogo(brandName) {
-  await fetch(`${SB_URL}/rest/v1/brand_logos`, {
-    method:'POST',
-    headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates'},
-    body:JSON.stringify({brand_name:brandName})
-  });
-  document.getElementById('bl-manual-search').value = '';
-  document.getElementById('bl-manual-results').innerHTML = '';
+  const logoUrl=`${SB_URL}/storage/v1/object/public/brand-logos/${path}`;
+  await fetch(`${SB_URL}/rest/v1/brand_logos?id=eq.${brandId}`,{method:'PATCH',headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},body:JSON.stringify({logo_url:logoUrl})});
   loadBrandLogos();
 }
 
 // ── ITEM CONFIG ───────────────────────────────────────────────────────────────
-const UNIT_OPTS = ['unit','box','bag','kg','g','ml','l','dozen','carton','strip','piece','pack','can','bottle','jar','pouch','sachet','roll'];
-const ORDER_OPTS = ['box','unit'];
-
-async function populateSupplierSelect() {
-  // Legacy — now superseded by brand select. Keep for backward compat.
-  populateBrandSelect();
-}
-
+const UNIT_OPTS=['unit','box','bag','kg','g','ml','l','dozen','carton','strip','piece','pack','can','bottle','jar','pouch','sachet','roll'];
+const ORDER_OPTS=['box','unit'];
 async function populateBrandSelect() {
-  // Only show brands that are in brand_logos (admin-controlled)
-  const r = await fetch(`${SB_URL}/rest/v1/brand_logos?select=brand_name&order=brand_name`, {headers:{apikey:SB_ANON,...hdr()}});
-  const brands = await r.json();
-  const sel = document.getElementById('ic-brand');
-  if (!sel) return;
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">— Select brand —</option>' +
-    brands.map(b=>`<option value="${b.brand_name}">${b.brand_name}</option>`).join('');
-  if (cur) sel.value = cur;
+  const r=await fetch(`${SB_URL}/rest/v1/brand_logos?select=brand_name&order=brand_name`,{headers:{apikey:SB_ANON,...hdr()}});
+  const brands=await r.json(); const sel=document.getElementById('ic-brand'); if (!sel) return;
+  const cur=sel.value; sel.innerHTML='<option value="">— Select brand —</option>'+brands.map(b=>`<option value="${b.brand_name}">${b.brand_name}</option>`).join('');
+  if (cur) sel.value=cur;
 }
-
 async function loadItemConfig() {
-  const brand = document.getElementById('ic-brand')?.value;
-  const body  = document.getElementById('ic-body');
+  const brand=document.getElementById('ic-brand')?.value; const body=document.getElementById('ic-body');
   if (!brand) { body.innerHTML='<div class="empty" style="padding:16px">Select a brand to configure its items</div>'; return; }
-
-  body.innerHTML = '<div class="lrow"><div class="sp"></div> Loading...</div>';
-
-  // 1. Get category id for this brand
-  const cr = await fetch(`${SB_URL}/rest/v1/kb_item_categories?item_category_name=eq.${encodeURIComponent(brand)}&select=item_category_id`, {headers:{apikey:SB_ANON,...hdr()}});
-  const cats = await cr.json();
-  if (!cats.length) { body.innerHTML=`<div class="empty" style="padding:16px">Category "${brand}" not found in KhataBook.</div>`; return; }
-  const catId = cats[0].item_category_id;
-
-  // 2. Get all active items in this category
-  const ir = await fetch(`${SB_URL}/rest/v1/rpc/get_brand_items_for_order`,{
-    method:'POST', headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
-    body:JSON.stringify({p_brand_name:brand,p_cover_days:14})
+  body.innerHTML='<div class="lrow"><div class="sp"></div> Loading...</div>';
+  const cr=await fetch(`${SB_URL}/rest/v1/kb_item_categories?item_category_name=eq.${encodeURIComponent(brand)}&select=item_category_id`,{headers:{apikey:SB_ANON,...hdr()}});
+  const cats=await cr.json(); if (!cats.length) { body.innerHTML=`<div class="empty">Category not found.</div>`; return; }
+  const ir=await fetch(`${SB_URL}/rest/v1/rpc/get_brand_items_for_order`,{method:'POST',headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},body:JSON.stringify({p_brand_name:brand,p_cover_days:14})});
+  const brandItems=await ir.json().catch(()=>[]); if (!brandItems.length) { body.innerHTML=`<div class="empty">No items found for "${brand}".</div>`; return; }
+  const itemIds=brandItems.map(i=>i.item_id);
+  const sr=await fetch(`${SB_URL}/rest/v1/item_settings?item_id=in.(${itemIds.join(',')})&select=item_id,order_type,units_per_pack,pack_label,unit_label,min_order_qty`,{headers:{apikey:SB_ANON,...hdr()}});
+  const settings=await sr.json().catch(()=>[]); const settingsMap={}; settings.forEach(s=>settingsMap[s.item_id]=s);
+  const or=await fetch(`${SB_URL}/rest/v1/rpc/get_item_order_stats`,{method:'POST',headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},body:JSON.stringify({p_item_ids:itemIds})});
+  const orderStats=await or.json().catch(()=>[]); const statsMap={}; (Array.isArray(orderStats)?orderStats:[]).forEach(s=>statsMap[s.item_id]=s);
+  document.getElementById('ic-count').textContent=`${brandItems.length} items`;
+  let html='<div class="tw"><table style="font-size:13px"><thead><tr><th>Item</th><th>Stock</th><th>Last Purchase Qty</th><th>Avg Purchase Qty</th><th>Order type</th><th>Units/pack</th><th>Pack label</th><th>Min qty</th><th>Unit label</th><th></th></tr></thead><tbody>';
+  brandItems.forEach(item=>{
+    const s=settingsMap[item.item_id]||{},stat=statsMap[item.item_id]||{};
+    const orderType=s.order_type||'unit',unitsPack=s.units_per_pack||1,packLabel=s.pack_label||'box',unitLabel=s.unit_label||'unit',minQty=s.min_order_qty||1;
+    const stock=Number(item.stock||0),stockCol=stock<0?'var(--red)':stock===0?'var(--amber)':'var(--green)';
+    const lastQty=stat.last_purchase_qty!=null?stat.last_purchase_qty:'—',avgQty=stat.avg_purchase_qty!=null?Number(stat.avg_purchase_qty).toFixed(1):'—';
+    const orderSel=ORDER_OPTS.map(o=>`<option value="${o}" ${orderType===o?'selected':''}>${o}</option>`).join('');
+    const unitSel=UNIT_OPTS.map(u=>`<option value="${u}" ${unitLabel===u?'selected':''}>${u}</option>`).join('');
+    const packSel=UNIT_OPTS.map(u=>`<option value="${u}" ${packLabel===u?'selected':''}>${u}</option>`).join('');
+    html+=`<tr id="icr-${item.item_id}"><td style="font-size:12px;font-weight:500;min-width:180px">${item.item_name}</td><td class="mono" style="color:${stockCol};font-weight:600;text-align:center">${stock}</td><td style="text-align:center"><div style="font-size:14px;font-weight:700">${lastQty}</div></td><td style="text-align:center"><div style="font-size:14px;font-weight:700;color:var(--blue)">${avgQty}</div></td><td><select id="ic-otype-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="onOrderTypeChange(${item.item_id})">${orderSel}</select></td><td><input type="number" id="ic-upp-${item.item_id}" value="${unitsPack}" min="1" max="999" style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;" oninput="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}></td><td><select id="ic-plbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}>${packSel}</select></td><td><input type="number" id="ic-moq-${item.item_id}" value="${minQty}" min="1" max="999" style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;" oninput="markDirty(${item.item_id})"></td><td><select id="ic-ulbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})">${unitSel}</select></td><td><button id="ic-save-${item.item_id}" onclick="saveItemConfig(${item.item_id})" style="height:28px;padding:0 10px;background:var(--green);color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;display:none">Save</button><span id="ic-saved-${item.item_id}" style="font-size:11px;color:var(--green);display:none">✓</span></td></tr>`;
   });
-  const brandItems = await ir.json().catch(()=>[]);
-
-  if (!brandItems.length) { body.innerHTML=`<div class="empty" style="padding:16px">No items found for brand "${brand}".</div>`; return; }
-
-  // 3. Get existing settings for these items
-  const itemIds = brandItems.map(i=>i.item_id);
-  const sr = await fetch(`${SB_URL}/rest/v1/item_settings?item_id=in.(${itemIds.join(',')})&select=item_id,order_type,units_per_pack,pack_label,unit_label,min_order_qty`, {headers:{apikey:SB_ANON,...hdr()}});
-  const settings = await sr.json().catch(()=>[]);
-  const settingsMap = {};
-  settings.forEach(s => settingsMap[s.item_id] = s);
-
-  // 4. Get order history stats (last qty + avg qty) for these items
-  const or = await fetch(`${SB_URL}/rest/v1/rpc/get_item_order_stats`, {
-    method:'POST', headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},
-    body: JSON.stringify({p_item_ids: itemIds})
-  });
-  const orderStats = await or.json().catch(()=>[]);
-  const statsMap = {};
-  (Array.isArray(orderStats)?orderStats:[]).forEach(s => statsMap[s.item_id] = s);
-
-  document.getElementById('ic-count').textContent = `${brandItems.length} items`;
-
-  let html = '<div class="tw"><table style="font-size:13px">';
-  html += `<thead><tr>
-    <th>Item</th>
-    <th>Stock</th>
-    <th title="Qty in most recent purchase bill from Vyapar">Last Purchase Qty</th>
-    <th title="Average purchase qty across all bills">Avg Purchase Qty</th>
-    <th>Order type</th>
-    <th style="min-width:75px">Units/pack</th>
-    <th style="min-width:75px">Pack label</th>
-    <th style="min-width:75px">Min qty</th>
-    <th style="min-width:90px">Unit label</th>
-    <th></th>
-  </tr></thead><tbody>`;
-
-  brandItems.forEach(item => {
-    const s    = settingsMap[item.item_id] || {};
-    const stat = statsMap[item.item_id]    || {};
-
-    const orderType = s.order_type    || 'unit';
-    const unitsPack = s.units_per_pack || 1;
-    const packLabel = s.pack_label    || 'box';
-    const unitLabel = s.unit_label    || 'unit';
-    const minQty    = s.min_order_qty  || 1;
-    const stock     = Number(item.stock||0);
-    const stockCol  = stock < 0 ? 'var(--red)' : stock === 0 ? 'var(--amber)' : 'var(--green)';
-
-    // Purchase history from Vyapar (kb_transactions) — read only
-    const lastQty    = stat.last_purchase_qty  != null ? stat.last_purchase_qty  : '—';
-    const avgQty     = stat.avg_purchase_qty   != null ? Number(stat.avg_purchase_qty).toFixed(1) : '—';
-    const lastDate   = stat.last_purchase_date
-      ? `<div style="font-size:10px;color:var(--g400)">${stat.last_purchase_date.slice(0,10)}</div>` : '';
-    const lastSup    = stat.last_supplier
-      ? `<div style="font-size:10px;color:var(--g400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px" title="${stat.last_supplier}">${stat.last_supplier}</div>` : '';
-    const orderCount = stat.purchase_count
-      ? `<div style="font-size:10px;color:var(--g400)">${stat.purchase_count} bill${stat.purchase_count>1?'s':''}</div>` : '';
-
-    const orderSel = ORDER_OPTS.map(o=>`<option value="${o}" ${orderType===o?'selected':''}>${o}</option>`).join('');
-    const unitSel  = UNIT_OPTS.map(u=>`<option value="${u}" ${unitLabel===u?'selected':''}>${u}</option>`).join('');
-    const packSel  = UNIT_OPTS.map(u=>`<option value="${u}" ${packLabel===u?'selected':''}>${u}</option>`).join('');
-
-    html += `<tr id="icr-${item.item_id}">
-      <td style="font-size:12px;font-weight:500;min-width:180px">${item.item_name}</td>
-      <td class="mono" style="color:${stockCol};font-weight:600;text-align:center">${stock}</td>
-      <td style="text-align:center;min-width:80px">
-        <div style="font-size:14px;font-weight:700;color:var(--g900)">${lastQty}</div>
-        ${lastDate}
-        ${lastSup}
-      </td>
-      <td style="text-align:center;min-width:70px">
-        <div style="font-size:14px;font-weight:700;color:var(--blue)">${avgQty}</div>
-        ${orderCount}
-      </td>
-      <td>
-        <select id="ic-otype-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="onOrderTypeChange(${item.item_id})">
-          ${orderSel}
-        </select>
-      </td>
-      <td>
-        <input type="number" id="ic-upp-${item.item_id}" value="${unitsPack}" min="1" max="999"
-          style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;"
-          oninput="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}>
-      </td>
-      <td>
-        <select id="ic-plbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}>
-          ${packSel}
-        </select>
-      </td>
-      <td>
-        <input type="number" id="ic-moq-${item.item_id}" value="${minQty}" min="1" max="999"
-          style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;"
-          oninput="markDirty(${item.item_id})">
-      </td>
-      <td>
-        <select id="ic-ulbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})">
-          ${unitSel}
-        </select>
-      </td>
-      <td>
-        <button id="ic-save-${item.item_id}" onclick="saveItemConfig(${item.item_id})"
-          style="height:28px;padding:0 10px;background:var(--green);color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;display:none">Save</button>
-        <span id="ic-saved-${item.item_id}" style="font-size:11px;color:var(--green);display:none">✓</span>
-      </td>
-    </tr>`;
-  });
-
-  html += '</tbody></table></div>';
-  html += `<div style="margin-top:12px;display:flex;gap:8px;align-items:center">
-    <button onclick="saveAllItems()" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save all changes</button>
-    <span style="font-size:12px;color:var(--g400)">Last Purchase Qty and Avg Purchase Qty are read-only — pulled from Vyapar purchase bills</span>
-  </div>`;
-  body.innerHTML = html;
+  html+='</tbody></table></div><div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button onclick="saveAllItems()" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save all changes</button><span style="font-size:12px;color:var(--g400)">Last/Avg Purchase Qty are read-only from Vyapar bills</span></div>';
+  body.innerHTML=html;
 }
-
-
-function markDirty(itemId) {
-  const saveBtn = document.getElementById(`ic-save-${itemId}`);
-  const savedEl = document.getElementById(`ic-saved-${itemId}`);
-  if (saveBtn) saveBtn.style.display = 'inline-block';
-  if (savedEl) savedEl.style.display = 'none';
-  // Highlight Save All button so user notices unsaved changes
-  const saveAll = document.querySelector('[onclick="saveAllItems()"]');
-  if (saveAll) saveAll.style.background = 'var(--amber)';
-}
-
-function onOrderTypeChange(itemId) {
-  markDirty(itemId);
-  const otype  = document.getElementById(`ic-otype-${itemId}`)?.value;
-  const uppEl  = document.getElementById(`ic-upp-${itemId}`);
-  const plblEl = document.getElementById(`ic-plbl-${itemId}`);
-  if (!uppEl || !plblEl) return;
-  if (otype === 'unit') {
-    uppEl.value = 1; uppEl.disabled = true; plblEl.disabled = true;
-  } else {
-    uppEl.disabled = false; plblEl.disabled = false;
-  }
-}
-
-
+function markDirty(itemId) { const sb=document.getElementById(`ic-save-${itemId}`),sv=document.getElementById(`ic-saved-${itemId}`); if(sb)sb.style.display='inline-block'; if(sv)sv.style.display='none'; const sa=document.querySelector('[onclick="saveAllItems()"]'); if(sa)sa.style.background='var(--amber)'; }
+function onOrderTypeChange(itemId) { markDirty(itemId); const otype=document.getElementById(`ic-otype-${itemId}`)?.value,uppEl=document.getElementById(`ic-upp-${itemId}`),plblEl=document.getElementById(`ic-plbl-${itemId}`); if(!uppEl||!plblEl)return; if(otype==='unit'){uppEl.value=1;uppEl.disabled=true;plblEl.disabled=true;}else{uppEl.disabled=false;plblEl.disabled=false;} }
 async function saveItemConfig(itemId) {
-  const btn   = document.getElementById(`ic-save-${itemId}`);
-  const saved = document.getElementById(`ic-saved-${itemId}`);
-  btn.textContent = '...'; btn.disabled = true;
-
-  const payload = {
-    item_id:       itemId,
-    order_type:    document.getElementById(`ic-otype-${itemId}`).value,
-    units_per_pack:parseInt(document.getElementById(`ic-upp-${itemId}`).value)||1,
-    pack_label:    document.getElementById(`ic-plbl-${itemId}`).value,
-    min_order_qty: parseInt(document.getElementById(`ic-moq-${itemId}`).value)||1,
-    unit_label:    document.getElementById(`ic-ulbl-${itemId}`).value,
-    updated_at:    new Date().toISOString(),
-  };
-
-  // Upsert into item_settings (no supplier link)
-  const authHdr = await freshHdr();
-  const r = await fetch(`${SB_URL}/rest/v1/item_settings`, {
-    method:'POST',
-    headers:{apikey:SB_ANON,...authHdr,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},
-    body: JSON.stringify(payload)
-  });
-
-  if (r.ok) {
-    if (btn) { btn.style.display='none'; btn.disabled=false; btn.textContent='Save'; }
-    if (saved) { saved.style.display='inline'; setTimeout(()=>saved.style.display='none',2000); }
-    return true;
-  } else {
-    if (btn) { btn.textContent='Save'; btn.disabled=false; }
-    console.error('Save failed for item', itemId, await r.text().catch(()=>''));
-    return false;
-  }
+  const btn=document.getElementById(`ic-save-${itemId}`),saved=document.getElementById(`ic-saved-${itemId}`);
+  btn.textContent='...'; btn.disabled=true;
+  const payload={item_id:itemId,order_type:document.getElementById(`ic-otype-${itemId}`).value,units_per_pack:parseInt(document.getElementById(`ic-upp-${itemId}`).value)||1,pack_label:document.getElementById(`ic-plbl-${itemId}`).value,min_order_qty:parseInt(document.getElementById(`ic-moq-${itemId}`).value)||1,unit_label:document.getElementById(`ic-ulbl-${itemId}`).value,updated_at:new Date().toISOString()};
+  const authHdr=await freshHdr();
+  const r=await fetch(`${SB_URL}/rest/v1/item_settings`,{method:'POST',headers:{apikey:SB_ANON,...authHdr,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},body:JSON.stringify(payload)});
+  if (r.ok) { if(btn){btn.style.display='none';btn.disabled=false;btn.textContent='Save';} if(saved){saved.style.display='inline';setTimeout(()=>saved.style.display='none',2000);} return true; }
+  else { if(btn){btn.textContent='Save';btn.disabled=false;} return false; }
 }
-
-
 async function saveAllItems() {
-  const rows = document.querySelectorAll('[id^="icr-"]');
-  if (!rows.length) { alert('No items loaded. Select a brand first.'); return; }
-  const saveBtn = document.querySelector('[onclick="saveAllItems()"]');
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
-  let saved = 0, failed = 0;
-  for (const row of rows) {
-    const itemId = parseInt(row.id.replace('icr-', ''));
-    if (!itemId) continue;
-    const ok = await saveItemConfig(itemId);
-    if (ok) saved++; else failed++;
-  }
-  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save all changes'; saveBtn.style.background = 'var(--pink)'; }
-  alert(failed === 0 ? `✓ Saved ${saved} items.` : `Saved ${saved}, failed ${failed}.`);
+  const rows=document.querySelectorAll('[id^="icr-"]'); if (!rows.length) { alert('No items loaded.'); return; }
+  const saveBtn=document.querySelector('[onclick="saveAllItems()"]'); if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Saving...';}
+  let saved=0,failed=0;
+  for (const row of rows) { const itemId=parseInt(row.id.replace('icr-','')); if(!itemId)continue; const ok=await saveItemConfig(itemId); if(ok)saved++;else failed++; }
+  if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save all changes';saveBtn.style.background='var(--pink)';}
+  alert(failed===0?`✓ Saved ${saved} items.`:`Saved ${saved}, failed ${failed}.`);
 }
 
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('lu-phone').addEventListener('keydown', e => { if(e.key==='Enter') doLookup(); });
-  document.getElementById('lu-phone').addEventListener('input', () => {
-    document.getElementById('lu-phone').value = document.getElementById('lu-phone').value.replace(/\D/g,'').slice(0,10);
-  });
-});
 // ── ORDERS ────────────────────────────────────────────────────────────────────
 async function loadOrders() {
-  document.getElementById('ord-tbody').innerHTML = '<tr><td colspan="8"><div class="lrow"><div class="sp"></div> Loading...</div></td></tr>';
-  document.getElementById('ord-detail').style.display = 'none';
+  document.getElementById('ord-tbody').innerHTML='<tr><td colspan="8"><div class="lrow"><div class="sp"></div> Loading...</div></td></tr>';
+  document.getElementById('ord-detail').style.display='none';
+  const r=await fetch(`${SB_URL}/rest/v1/rpc/get_submitted_orders`,{method:'POST',headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},body:JSON.stringify({p_limit:100})});
+  const orders=await r.json().catch(()=>[]);
+  document.getElementById('ord-count').textContent=`${orders.length} orders`;
+  if (!orders.length) { document.getElementById('ord-tbody').innerHTML='<tr><td colspan="8" class="empty">No orders yet</td></tr>'; return; }
+  document.getElementById('ord-tbody').innerHTML=orders.map(o=>{const date=o.session_date||'—';const val=o.total_value?'₹'+Math.round(o.total_value).toLocaleString('en-IN'):'—';return `<tr><td class="mono" style="font-size:12px">${o.po_number||'—'}</td><td style="font-size:12px">${date}</td><td style="font-size:12px">${o.submitted_by||'—'}</td><td style="font-size:12px;font-weight:600">${o.supplier_name||'—'}</td><td style="font-size:12px;color:var(--g600)">${o.brand||'—'}</td><td class="mono">${o.total_items||0}</td><td class="mono" style="font-weight:600;color:var(--pink)">${val}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button onclick="viewOrder(${o.id},'${(o.po_number||'').replace(/'/g,"\'")}','${(o.supplier_name||'').replace(/'/g,"\'")}','${date}')" style="height:26px;padding:0 8px;border:2px solid var(--blue);border-radius:6px;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer">View</button><button onclick="genPDF(${o.id},'${(o.po_number||'').replace(/'/g,"\'")}',this)" style="height:26px;padding:0 8px;border:2px solid var(--pink);border-radius:6px;background:var(--pink-l);color:var(--pink);font-size:11px;font-weight:600;cursor:pointer">PDF</button></td></tr>`;}).join('');
+}
+async function viewOrder(sessionId,poNum,supplierName,date) {
+  document.getElementById('ord-detail').style.display='block'; document.getElementById('ord-detail-title').textContent=poNum||`Order #${sessionId}`; document.getElementById('ord-detail-sub').textContent=`${supplierName} · ${date}`; document.getElementById('ord-items-tbody').innerHTML='<tr><td colspan="5"><div class="lrow"><div class="sp"></div></div></td></tr>'; document.getElementById('ord-detail-actions').innerHTML='';
+  const r=await fetch(`${SB_URL}/rest/v1/rpc/get_order_items`,{method:'POST',headers:{apikey:SB_ANON,...hdr(),'Content-Type':'application/json'},body:JSON.stringify({p_session_id:sessionId})});
+  const items=await r.json().catch(()=>[]);
+  if (!items.length) { document.getElementById('ord-items-tbody').innerHTML='<tr><td colspan="5" style="padding:16px;color:var(--g400);font-size:13px;text-align:center">No item details.</td></tr>'; return; }
+  const total=items.reduce((s,i)=>s+Number(i.line_total||0),0);
+  document.getElementById('ord-items-tbody').innerHTML=items.map(i=>`<tr><td style="font-size:13px;font-weight:500">${i.item_name}</td><td style="font-size:12px;color:var(--g600)">${i.brand||'—'}</td><td class="mono">${i.ordered_qty}</td><td class="mono">₹${Number(i.purchase_price||0).toFixed(2)}</td><td class="mono" style="font-weight:600">₹${Math.round(i.line_total||0).toLocaleString('en-IN')}</td></tr>`).join('')+`<tr style="border-top:2px solid var(--g200)"><td colspan="4" style="font-weight:700;text-align:right;padding:8px 12px">Total</td><td class="mono" style="font-weight:700;color:var(--pink)">₹${Math.round(total).toLocaleString('en-IN')}</td></tr>`;
+  document.getElementById('ord-detail-actions').innerHTML=`<button onclick="genPDF(${sessionId},'${poNum}',this)" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">📄 Download PDF</button>`;
+  document.getElementById('ord-detail').scrollIntoView({behavior:'smooth'});
+}
+async function genPDF(sessionId,poNum,btn) {
+  const origText=btn.textContent; btn.disabled=true; btn.textContent='Generating...';
+  try {
+    const freshH=await freshHdr();
+    const r=await fetch(`${SB_URL}/functions/v1/generate-order-pdf`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON,...freshH},body:JSON.stringify({session_id:sessionId,worker_mobile:null})});
+    const d=await r.json().catch(()=>({}));
+    if (d.pdf_url) { window.open(d.pdf_url,'_blank'); btn.textContent='✓ Opened'; }
+    else { btn.textContent='Error: '+(d.error||r.status); }
+  } catch(e) { btn.textContent='Network error'; }
+  setTimeout(()=>{ btn.disabled=false; btn.textContent=origText; },4000);
+}
 
-  const r = await fetch(`${SB_URL}/rest/v1/rpc/get_submitted_orders`, {
-    method: 'POST', headers: {apikey: SB_ANON, ...hdr(), 'Content-Type': 'application/json'},
-    body: JSON.stringify({p_limit: 100})
-  });
-  const orders = await r.json().catch(() => []);
-  document.getElementById('ord-count').textContent = `${orders.length} orders`;
+// ── EVENT LISTENERS ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const lp = document.getElementById('lu-phone');
+  if (lp) {
+    lp.addEventListener('keydown', e => { if(e.key==='Enter') doLookup(); });
+    lp.addEventListener('input', () => { lp.value = lp.value.replace(/\D/g,'').slice(0,10); });
+  }
+  const pi = document.getElementById('pf-prob');
+  if (pi) pi.addEventListener('input', updateProbBar);
+  const pc = document.getElementById('pf-color');
+  if (pc) pc.addEventListener('input', function(){ document.getElementById('pf-color-hex').value=this.value; });
+});
 
-  if (!orders.length) {
-    document.getElementById('ord-tbody').innerHTML = '<tr><td colspan="8" class="empty">No orders yet</td></tr>';
+// ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
+const SB_URL_SPIN  = SB_URL;
+const SB_ANON_SPIN = SB_ANON;
+let spinPrizes = [];
+
+
+// ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
+const SB_URL_SPIN  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
+const SB_ANON_SPIN = 'sb_publishable_unOW9_eUhaPki59JWbccgA_Pg4nflGS';
+
+let spinPrizes = [];
+
+async function loadSpinTab() {
+  await Promise.all([loadSpinPrizes(), loadWinners()]);
+  updateSpinKPIs();
+}
+
+// ── Prize CRUD ───────────────────────────────────────────────────────────────
+async function loadSpinPrizes() {
+  const r = await fetch(
+    `${SB_URL_SPIN}/rest/v1/spin_prizes?order=sort_order`,
+    { headers: { apikey: SB_ANON_SPIN, ...hdr() } }
+  );
+  spinPrizes = await r.json().catch(()=>[]);
+  renderPrizesTable();
+  renderWheelPreview();
+  document.getElementById('sp-prizes').textContent = spinPrizes.filter(p=>p.is_active).length;
+}
+
+function renderPrizesTable() {
+  const tbody = document.getElementById('sp-prizes-tbody');
+  if(!spinPrizes.length){
+    tbody.innerHTML='<tr><td colspan="7" class="empty">No prizes yet. Click + Add Prize to begin.</td></tr>';
     return;
   }
+  // Update prob hint
+  const totalProb = spinPrizes.filter(p=>p.is_active).reduce((a,p)=>a+Number(p.probability),0);
+  document.getElementById('sp-total-pct').textContent =
+    `Total active probability weight: ${totalProb.toFixed(1)} (100% = full wheel)`;
 
-  document.getElementById('ord-tbody').innerHTML = orders.map(o => {
-    const date = o.session_date || '—';
-    const val = o.total_value ? '₹' + Math.round(o.total_value).toLocaleString('en-IN') : '—';
-    
-    return `<tr>
-      <td class="mono" style="font-size:12px">${o.po_number||'—'}</td>
-      <td style="font-size:12px">${date}</td>
-      <td style="font-size:12px">${o.submitted_by||'—'}</td>
-      <td style="font-size:12px;font-weight:600">${o.supplier_name||'—'}</td>
-      <td style="font-size:12px;color:var(--g600)">${o.brand||'—'}</td>
-      <td class="mono">${o.total_items||0}</td>
-      <td class="mono" style="font-weight:600;color:var(--pink)">${val}</td>
-      <td style="display:flex;gap:4px;flex-wrap:wrap">
-        <button onclick="viewOrder(${o.id},'${(o.po_number||'').replace(/'/g,"\'")}','${(o.supplier_name||'').replace(/'/g,"\'")}','${date}')"
+  tbody.innerHTML = spinPrizes.map((p,i) => {
+    const pct = totalProb > 0 ? (Number(p.probability)/totalProb*100).toFixed(1) : '0';
+    return `<tr style="${!p.is_active?'opacity:0.45':''}">
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">${p.emoji}</span>
+          <strong style="font-size:13px">${p.label}</strong>
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:20px;height:20px;border-radius:4px;background:${p.color};border:1px solid rgba(0,0,0,0.1)"></div>
+          <span class="mono" style="font-size:11px">${p.color}</span>
+        </div>
+      </td>
+      <td>
+        <div style="font-size:14px;font-weight:700;color:var(--pink)">${Number(p.probability).toFixed(1)}</div>
+        <div style="font-size:10px;color:var(--g400)">${pct}% of wheel</div>
+      </td>
+      <td><span class="badge ${p.prize_type==='product'?'b-blue':p.prize_type==='discount'?'b-amber':'b-purple'}">${p.prize_type}</span></td>
+      <td class="mono">₹${Number(p.min_purchase||1499).toLocaleString('en-IN')}</td>
+      <td>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" ${p.is_active?'checked':''} onchange="togglePrize(${p.id},this.checked)"
+            style="width:16px;height:16px;accent-color:var(--pink)">
+          <span style="font-size:12px;font-weight:600;color:${p.is_active?'var(--green)':'var(--g400)'}">${p.is_active?'Active':'Off'}</span>
+        </label>
+      </td>
+      <td style="display:flex;gap:4px">
+        <button onclick="editPrize(${p.id})"
           style="height:26px;padding:0 8px;border:2px solid var(--blue);border-radius:6px;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer">
-          View
+          Edit
         </button>
-        ${true?`<button onclick="genPDF(${o.id},'${(o.po_number||'').replace(/'/g,"\'")}',this)"
-          style="height:26px;padding:0 8px;border:2px solid var(--pink);border-radius:6px;background:var(--pink-l);color:var(--pink);font-size:11px;font-weight:600;cursor:pointer">
-          PDF
-        </button>`:''}
+        <button onclick="deletePrize(${p.id},'${p.label.replace(/'/g,"\\'")}',${i===0})"
+          style="height:26px;padding:0 8px;border:2px solid var(--red);border-radius:6px;background:var(--red-l);color:var(--red);font-size:11px;font-weight:600;cursor:pointer">
+          Del
+        </button>
       </td>
     </tr>`;
   }).join('');
 }
 
-async function viewOrder(sessionId, poNum, supplierName, date) {
-  document.getElementById('ord-detail').style.display = 'block';
-  document.getElementById('ord-detail-title').textContent = poNum || `Order #${sessionId}`;
-  document.getElementById('ord-detail-sub').textContent = `${supplierName} · ${date}`;
-  document.getElementById('ord-items-tbody').innerHTML = '<tr><td colspan="5"><div class="lrow"><div class="sp"></div></div></td></tr>';
-  document.getElementById('ord-detail-actions').innerHTML = '';
-
-  const r = await fetch(`${SB_URL}/rest/v1/rpc/get_order_items`, {
-    method: 'POST', headers: {apikey: SB_ANON, ...hdr(), 'Content-Type': 'application/json'},
-    body: JSON.stringify({p_session_id: sessionId})
+function renderWheelPreview() {
+  const canvas = document.getElementById('sp-preview');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W=280, H=280, cx=W/2, cy=H/2, R=128;
+  ctx.clearRect(0,0,W,H);
+  const active = spinPrizes.filter(p=>p.is_active);
+  if(!active.length){
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,2*Math.PI);
+    ctx.fillStyle='#f5f5f5'; ctx.fill();
+    ctx.fillStyle='#ccc'; ctx.font='13px DM Sans,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('No active prizes',cx,cy); return;
+  }
+  const total = active.reduce((a,p)=>a+Number(p.probability),0);
+  let start = -Math.PI/2;
+  active.forEach(p => {
+    const slice = (Number(p.probability)/total)*2*Math.PI;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R,start,start+slice); ctx.closePath();
+    ctx.fillStyle=p.color; ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(start+slice/2);
+    ctx.textAlign='right'; ctx.font='bold 10px DM Sans,sans-serif';
+    ctx.fillStyle='#fff'; ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=3;
+    const words=p.label.split(' ');
+    ctx.fillText(words[0],R-8,words.length>1?-4:4);
+    if(words[1]) ctx.fillText(words[1],R-8,10);
+    ctx.restore(); start+=slice;
   });
-  const items = await r.json().catch(() => []);
-  if (!items.length) {
-    document.getElementById('ord-items-tbody').innerHTML =
-      '<tr><td colspan="5" style="padding:16px;color:var(--g400);font-size:13px;text-align:center">' +
-      'No item details for this order.<br><small>Submit a new order to see items here.</small>' +
-      '</td></tr>';
-    document.getElementById('ord-detail-actions').innerHTML =
-      '<button onclick="genPDF(' + sessionId + ','' + poNum + '',this)" ' +
-      'style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">PDF</button>';
-    return;
-  }
-
-  const total = items.reduce((s,i) => s + Number(i.line_total||0), 0);
-  document.getElementById('ord-items-tbody').innerHTML = items.map(i => `<tr>
-    <td style="font-size:13px;font-weight:500">${i.item_name}</td>
-    <td style="font-size:12px;color:var(--g600)">${i.brand||'—'}</td>
-    <td class="mono">${i.ordered_qty}</td>
-    <td class="mono">₹${Number(i.purchase_price||0).toFixed(2)}</td>
-    <td class="mono" style="font-weight:600">₹${Math.round(i.line_total||0).toLocaleString('en-IN')}</td>
-  </tr>`).join('') + `<tr style="border-top:2px solid var(--g200)">
-    <td colspan="4" style="font-weight:700;text-align:right;padding:8px 12px">Total</td>
-    <td class="mono" style="font-weight:700;color:var(--pink)">₹${Math.round(total).toLocaleString('en-IN')}</td>
-  </tr>`;
-
-  document.getElementById('ord-detail-actions').innerHTML = `
-    <button onclick="genPDF(${sessionId},'${poNum}',this)"
-      style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
-      📄 Download PDF for Purchase Entry
-    </button>`;
-
-  document.getElementById('ord-detail').scrollIntoView({behavior:'smooth'});
+  ctx.beginPath(); ctx.arc(cx,cy,24,0,2*Math.PI);
+  ctx.fillStyle='#fff'; ctx.fill();
+  ctx.strokeStyle='#ff1493'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.fillStyle='#ff1493'; ctx.font='bold 8px DM Sans,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.shadowBlur=0;
+  ctx.fillText('SPIN',cx,cy);
 }
 
-async function genPDF(sessionId, poNum, btn) {
-  const origText = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Generating...';
-  try {
-    const freshH = await freshHdr();
-    const r = await fetch(`${SB_URL}/functions/v1/generate-order-pdf`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'apikey': SB_ANON, ...freshH},
-      body: JSON.stringify({session_id: sessionId, worker_mobile: null})
+function openAddPrize() {
+  document.getElementById('pf-id').value='';
+  document.getElementById('pf-label').value='';
+  document.getElementById('pf-emoji').value='🎁';
+  document.getElementById('pf-color').value='#ff1493';
+  document.getElementById('pf-color-hex').value='#ff1493';
+  document.getElementById('pf-prob').value='10';
+  document.getElementById('pf-type').value='product';
+  document.getElementById('pf-minpurchase').value='1499';
+  document.getElementById('prize-form-title').textContent='Add New Prize';
+  document.getElementById('pf-status').style.display='none';
+  document.getElementById('prize-form').style.display='block';
+  updateProbBar();
+  document.getElementById('pf-label').focus();
+}
+
+function editPrize(id) {
+  const p = spinPrizes.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('pf-id').value=p.id;
+  document.getElementById('pf-label').value=p.label;
+  document.getElementById('pf-emoji').value=p.emoji;
+  document.getElementById('pf-color').value=p.color;
+  document.getElementById('pf-color-hex').value=p.color;
+  document.getElementById('pf-prob').value=p.probability;
+  document.getElementById('pf-type').value=p.prize_type||'product';
+  document.getElementById('pf-minpurchase').value=p.min_purchase||1499;
+  document.getElementById('prize-form-title').textContent='Edit Prize';
+  document.getElementById('pf-status').style.display='none';
+  document.getElementById('prize-form').style.display='block';
+  updateProbBar();
+  document.getElementById('pf-label').focus();
+}
+
+function closePrizeForm(){
+  document.getElementById('prize-form').style.display='none';
+}
+
+function syncColorHex(){
+  const hex = document.getElementById('pf-color-hex').value;
+  if(/^#[0-9a-fA-F]{6}$/.test(hex))
+    document.getElementById('pf-color').value=hex;
+}
+
+function updateProbBar(){
+  const val = parseFloat(document.getElementById('pf-prob').value)||0;
+  const total = spinPrizes.reduce((a,p)=>a+Number(p.probability),0);
+  const pct = Math.min((val/Math.max(total,1))*100,100);
+  document.getElementById('pf-prob-fill').style.width=pct+'%';
+  document.getElementById('pf-prob-hint').textContent =
+    total>0 ? `Current total: ${total.toFixed(1)} — this prize = ~${(val/total*100).toFixed(1)}% of wheel` : '';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const pi = document.getElementById('pf-prob');
+  if(pi) pi.addEventListener('input',updateProbBar);
+  const pc = document.getElementById('pf-color');
+  if(pc) pc.addEventListener('input',function(){ document.getElementById('pf-color-hex').value=this.value; });
+});
+
+async function savePrize(){
+  const id    = document.getElementById('pf-id').value;
+  const label = document.getElementById('pf-label').value.trim();
+  const emoji = document.getElementById('pf-emoji').value.trim()||'🎁';
+  const color = document.getElementById('pf-color').value;
+  const prob  = parseFloat(document.getElementById('pf-prob').value)||10;
+  const type  = document.getElementById('pf-type').value;
+  const minp  = parseFloat(document.getElementById('pf-minpurchase').value)||1499;
+  const st    = document.getElementById('pf-status');
+
+  if(!label){ st.innerHTML='<span style="color:var(--red)">Prize label is required</span>'; st.style.display='block'; return; }
+
+  const payload = { label, emoji, color, probability:prob, prize_type:type, min_purchase:minp, updated_at:new Date().toISOString() };
+
+  let r;
+  if(id){
+    r = await fetch(`${SB_URL_SPIN}/rest/v1/spin_prizes?id=eq.${id}`,{
+      method:'PATCH', headers:{apikey:SB_ANON_SPIN,...hdr(),'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
     });
-    const d = await r.json().catch(() => ({}));
-    console.log('[genPDF]', r.status, JSON.stringify(d).slice(0,200));
-    if (d.pdf_url) {
-      window.open(d.pdf_url, '_blank');
-      btn.textContent = '✓ Opened';
-    } else {
-      btn.textContent = 'Error: ' + (d.error || r.status);
-    }
-  } catch(e) {
-    console.error('[genPDF] error:', e);
-    btn.textContent = 'Network error';
+  } else {
+    payload.sort_order = spinPrizes.length+1;
+    r = await fetch(`${SB_URL_SPIN}/rest/v1/spin_prizes`,{
+      method:'POST', headers:{apikey:SB_ANON_SPIN,...hdr(),'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify(payload)
+    });
   }
-  setTimeout(() => { btn.disabled = false; btn.textContent = origText; }, 4000);
+
+  if(r.ok){
+    st.innerHTML=`<span style="color:var(--green)">✓ Prize ${id?'updated':'added'} — wheel updated instantly</span>`;
+    st.style.display='block';
+    await loadSpinPrizes();
+    setTimeout(()=>{ closePrizeForm(); st.style.display='none'; },1800);
+  } else {
+    st.innerHTML='<span style="color:var(--red)">Save failed: '+r.status+'</span>';
+    st.style.display='block';
+  }
+}
+
+async function togglePrize(id, active){
+  await fetch(`${SB_URL_SPIN}/rest/v1/spin_prizes?id=eq.${id}`,{
+    method:'PATCH', headers:{apikey:SB_ANON_SPIN,...hdr(),'Content-Type':'application/json'},
+    body:JSON.stringify({is_active:active})
+  });
+  await loadSpinPrizes();
+}
+
+async function deletePrize(id, label){
+  if(!confirm(`Delete prize "${label}"?\nThis cannot be undone.`)) return;
+  await fetch(`${SB_URL_SPIN}/rest/v1/spin_prizes?id=eq.${id}`,{
+    method:'DELETE', headers:{apikey:SB_ANON_SPIN,...hdr()}
+  });
+  await loadSpinPrizes();
+}
+
+// ── Winners List ─────────────────────────────────────────────────────────────
+async function loadWinners(){
+  const filter = document.getElementById('sp-filter')?.value||'all';
+  let url = `${SB_URL_SPIN}/rest/v1/spin_plays?order=won_at.desc&limit=200`;
+  if(filter==='pending')  url += '&is_redeemed=eq.false';
+  if(filter==='redeemed') url += '&is_redeemed=eq.true';
+
+  const r = await fetch(url, { headers:{apikey:SB_ANON_SPIN,...hdr()} });
+  const winners = await r.json().catch(()=>[]);
+
+  document.getElementById('sp-winners-count').textContent = `${winners.length} records`;
+  updateSpinKPIs(winners);
+
+  const tbody = document.getElementById('sp-winners-tbody');
+  if(!winners.length){
+    tbody.innerHTML='<tr><td colspan="6" class="empty">No spins yet</td></tr>'; return;
+  }
+  tbody.innerHTML = winners.map(w=>`<tr>
+    <td class="mono" style="font-size:13px;font-weight:600">${w.phone}</td>
+    <td>
+      <span style="font-size:16px;margin-right:4px">${w.prize_emoji}</span>
+      <strong style="font-size:12px">${w.prize_label}</strong>
+    </td>
+    <td style="font-size:12px;color:var(--g400)">${fdt(w.won_at)}</td>
+    <td>
+      ${w.is_redeemed
+        ? '<span class="badge b-green">Redeemed</span>'
+        : '<span class="badge b-amber">Pending</span>'}
+    </td>
+    <td style="font-size:12px;color:var(--g400)">
+      ${w.is_redeemed ? fdt(w.redeemed_at)+(w.redeemed_by?`<br><span style="font-size:11px">${w.redeemed_by}</span>`:'') : '—'}
+    </td>
+    <td style="display:flex;gap:4px;flex-wrap:wrap">
+      ${!w.is_redeemed ? `
+        <button onclick="markRedeemed(${w.id},'${w.phone}')"
+          style="height:26px;padding:0 8px;border:2px solid var(--green);border-radius:6px;background:var(--green-l);color:var(--green);font-size:11px;font-weight:600;cursor:pointer">
+          ✓ Redeem
+        </button>
+        ${!w.reminder_sent ? `
+          <button onclick="sendReminder(${w.id},'${w.phone}','${w.prize_label.replace(/'/g,"\\'")}')"
+            style="height:26px;padding:0 8px;border:2px solid var(--blue);border-radius:6px;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer">
+            📲 Remind
+          </button>` : '<span style="font-size:11px;color:var(--g400)">Reminded</span>'}
+      ` : ''}
+    </td>
+  </tr>`).join('');
+}
+
+function updateSpinKPIs(winners){
+  if(!winners) return;
+  document.getElementById('sp-total').textContent    = winners.length;
+  document.getElementById('sp-redeemed').textContent = winners.filter(w=>w.is_redeemed).length;
+  document.getElementById('sp-pending').textContent  = winners.filter(w=>!w.is_redeemed).length;
+}
+
+async function markRedeemed(id, phone){
+  const staff = prompt(`Staff name redeeming for ${phone}:`, 'counter');
+  if(staff===null) return;
+  await fetch(`${SB_URL_SPIN}/rest/v1/spin_plays?id=eq.${id}`,{
+    method:'PATCH', headers:{apikey:SB_ANON_SPIN,...hdr(),'Content-Type':'application/json'},
+    body:JSON.stringify({is_redeemed:true, redeemed_at:new Date().toISOString(), redeemed_by:staff||'counter'})
+  });
+  loadWinners();
+}
+
+async function sendReminder(id, phone, prizeLabel){
+  if(!confirm(`Send WhatsApp reminder to ${phone} about their prize: "${prizeLabel}"?`)) return;
+  // Mark reminder_sent in DB
+  await fetch(`${SB_URL_SPIN}/rest/v1/spin_plays?id=eq.${id}`,{
+    method:'PATCH', headers:{apikey:SB_ANON_SPIN,...hdr(),'Content-Type':'application/json'},
+    body:JSON.stringify({reminder_sent:true, reminder_sent_at:new Date().toISOString()})
+  });
+  // TODO: call MSG91 edge function with template pink_winner_reminder
+  alert(`✓ Reminder marked for ${phone}.\n\nConnect MSG91 pink_winner_reminder template to send WhatsApp automatically.`);
+  loadWinners();
 }
 
 
-
-// Safety: expose critical functions to global scope
-window.signInGoogle = signInGoogle;
-window.doLogout = doLogout;
-window.showPage = showPage;
 </script>
 </body>
 </html>
