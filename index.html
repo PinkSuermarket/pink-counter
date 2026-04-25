@@ -528,7 +528,7 @@ tr:hover td{background:var(--g50);}
 
 <script>
 const SB_URL  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
-const SB_ANON = 'sb_publishable_unOW9_eUhaPki59JWbccgA_Pg4nflGS';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
 const ADMIN   = SB_URL + '/functions/v1/admin-api';
 const MKT     = SB_URL + '/functions/v1/dashboard-api';
 
@@ -540,55 +540,189 @@ let sess = null, booting = false;
 let invAll = [], selectedSup = null, supItems = [], basis = '30', currentOffer = null;
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
-function showLogin(e) {
+// ── AUTH — bulletproof Google OAuth for GitHub Pages ────────────────────────
+// Key insight: onAuthStateChange fires BEFORE DOMContentLoaded on redirect-back.
+// We queue the session and drain it once DOM is ready.
+let _pendingSession = null;
+let _domReady = false;
+
+function showLogin(errMsg) {
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('lload').style.display = 'none';
   document.getElementById('gbtn').disabled = false;
-  if (e) { const el = document.getElementById('lerr'); el.textContent = e; el.style.display = 'block'; }
+  booting = false;
+  if (errMsg) {
+    const el = document.getElementById('lerr');
+    el.textContent = errMsg;
+    el.style.display = 'block';
+  }
 }
+
 function signInGoogle() {
-  document.getElementById('gbtn').disabled = true;
-  document.getElementById('lerr').style.display = 'none';
-  sb.auth.signInWithOAuth({ provider: 'google', options: {
-    redirectTo: location.origin + location.pathname,
-    queryParams: { prompt: 'select_account' }
-  }});
-}
-document.addEventListener('DOMContentLoaded', function() {
   const btn = document.getElementById('gbtn');
-  if (btn) btn.addEventListener('click', signInGoogle);
-});
-function signOut() {
-  sb.auth.signOut().then(() => { sess = null; booting = false; history.replaceState(null,'',location.pathname); showLogin(); });
+  const err = document.getElementById('lerr');
+  btn.disabled = true;
+  err.style.display = 'none';
+  err.textContent = '';
+  // redirectTo must EXACTLY match a URL in Supabase Dashboard > Auth > URL Configuration
+  const redirectTo = location.origin + location.pathname;
+  sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo,
+      queryParams: { prompt: 'select_account', access_type: 'offline' }
+    }
+  }).catch(e => {
+    btn.disabled = false;
+    err.textContent = 'OAuth error: ' + e.message;
+    err.style.display = 'block';
+  });
 }
+
+function signOut() {
+  sb.auth.signOut().then(() => {
+    sess = null; booting = false; _pendingSession = null;
+    history.replaceState(null, '', location.pathname);
+    showLogin();
+  });
+}
+
 async function boot(s) {
-  if (booting) return; booting = true; sess = s;
-  document.getElementById('lload').style.display = 'block';
-  document.getElementById('gbtn').disabled = true;
-  if (location.hash.includes('access_token')) history.replaceState(null,'',location.pathname);
+  if (booting) return;
+  booting = true;
+  sess = s;
+
+  // Clean the URL — remove OAuth hash/params left by Supabase redirect
+  if (location.hash || location.search.includes('code=')) {
+    history.replaceState(null, '', location.pathname);
+  }
+
+  // Show loading state
+  const lload = document.getElementById('lload');
+  const gbtn  = document.getElementById('gbtn');
+  if (lload) lload.style.display = 'block';
+  if (gbtn)  gbtn.disabled = true;
+
+  // Verify the user is in admin_allowed_emails
+  // Use try/catch with timeout — edge function may cold-start
   try {
-    const r = await fetch(SB_URL+'/functions/v1/verify-access', { headers: { Authorization: 'Bearer '+s.access_token } });
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 10000); // 10s timeout
+    const r = await fetch(SB_URL + '/functions/v1/verify-access', {
+      headers: { Authorization: 'Bearer ' + s.access_token },
+      signal: ctrl.signal
+    });
+    clearTimeout(tid);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
-    if (!d.allowed) { await sb.auth.signOut(); booting=false; showLogin('Access denied: '+s.user.email); return; }
-  } catch { booting=false; showLogin('Network error verifying access.'); return; }
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+    if (!d.allowed) {
+      await sb.auth.signOut();
+      booting = false;
+      showLogin('Access denied for ' + s.user.email + '. Contact admin.');
+      return;
+    }
+  } catch (e) {
+    // If verify-access is unreachable, fall back to checking admin_allowed_emails directly
+    console.warn('[Auth] verify-access failed, falling back to direct check:', e.message);
+    try {
+      const r2 = await fetch(
+        SB_URL + '/rest/v1/admin_allowed_emails?email=eq.' + encodeURIComponent(s.user.email) + '&select=email',
+        { headers: { apikey: SB_ANON, Authorization: 'Bearer ' + s.access_token } }
+      );
+      const rows = await r2.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        await sb.auth.signOut();
+        booting = false;
+        showLogin('Access denied for ' + s.user.email);
+        return;
+      }
+    } catch (e2) {
+      booting = false;
+      showLogin('Network error. Check your connection and try again.');
+      return;
+    }
+  }
+
+  // ─── Auth passed — show the app ───────────────────────────────────────────
+  const loginScreen = document.getElementById('login-screen');
+  const appEl       = document.getElementById('app');
+  if (loginScreen) loginScreen.style.display = 'none';
+  if (appEl)       appEl.style.display = 'block';
+
   const nm = s.user.user_metadata?.full_name || s.user.email || 'Admin';
-  document.getElementById('uav').textContent  = nm.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const initials = nm.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  document.getElementById('uav').textContent   = initials;
   document.getElementById('uname').textContent = nm.split(' ')[0];
-  initDates(); loadDash(); loadInventory(); loadReorderAdmin();
+
+  initDates();
+  loadDash();
+  loadInventory();
+  loadReorderAdmin();
+
+  // Auto-refresh token every 50 min (Supabase tokens expire in 60 min)
   setInterval(async () => {
     const { data, error } = await sb.auth.refreshSession();
-    if (error) showLogin('Session expired. Please sign in again.');
-    else if (data?.session) sess = data.session;
+    if (error) {
+      console.warn('[Auth] Refresh failed:', error.message);
+      showLogin('Session expired. Please sign in again.');
+    } else if (data?.session) {
+      sess = data.session;
+      console.log('[Auth] Token refreshed OK');
+    }
   }, 50 * 60 * 1000);
 }
-sb.auth.onAuthStateChange((ev, s) => {
-  if (s) sess = s;
-  if ((ev==='SIGNED_IN'||ev==='TOKEN_REFRESHED') && s && !booting) boot(s);
+
+// ─── Supabase Auth event listener ────────────────────────────────────────────
+sb.auth.onAuthStateChange((event, session) => {
+  console.log('[Auth] event:', event, '| session:', !!session);
+  if (session) sess = session;
+  if (event === 'SIGNED_IN' && session) {
+    if (_domReady) {
+      if (!booting) boot(session);
+    } else {
+      _pendingSession = session; // DOM not ready yet — drain after DOMContentLoaded
+    }
+  }
+  if (event === 'TOKEN_REFRESHED' && session) {
+    sess = session;
+  }
+  if (event === 'SIGNED_OUT') {
+    sess = null; booting = false;
+  }
 });
-sb.auth.getSession().then(({data:{session:s}}) => { if (s && !booting) boot(s); });
+
+// ─── DOMContentLoaded — wire up button + drain pending session ───────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _domReady = true;
+
+  // Wire the Google Sign-In button
+  const gbtn = document.getElementById('gbtn');
+  if (gbtn) gbtn.addEventListener('click', signInGoogle);
+
+  // Wire other inputs
+  const lp = document.getElementById('lu-phone');
+  if (lp) {
+    lp.addEventListener('keydown', e => { if (e.key === 'Enter') doLookup(); });
+    lp.addEventListener('input', () => { lp.value = lp.value.replace(/\D/g, '').slice(0, 10); });
+  }
+  const pi = document.getElementById('pf-prob');
+  if (pi) pi.addEventListener('input', updateProbBar);
+  const pc2 = document.getElementById('pf-color');
+  if (pc2) pc2.addEventListener('input', function() { document.getElementById('pf-color-hex').value = this.value; });
+
+  // Drain session that arrived before DOM was ready
+  if (_pendingSession && !booting) {
+    boot(_pendingSession);
+    _pendingSession = null;
+    return;
+  }
+
+  // Check for existing session (page refresh / already logged in)
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (session && !booting) boot(session);
+  });
+});
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const today = () => new Date().toISOString().slice(0,10);
@@ -947,17 +1081,7 @@ async function genPDF(sessionId,poNum,btn) {
 }
 
 // ── EVENT LISTENERS ───────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  const lp = document.getElementById('lu-phone');
-  if (lp) {
-    lp.addEventListener('keydown', e => { if(e.key==='Enter') doLookup(); });
-    lp.addEventListener('input', () => { lp.value = lp.value.replace(/\D/g,'').slice(0,10); });
-  }
-  const pi = document.getElementById('pf-prob');
-  if (pi) pi.addEventListener('input', updateProbBar);
-  const pc = document.getElementById('pf-color');
-  if (pc) pc.addEventListener('input', function(){ document.getElementById('pf-color-hex').value=this.value; });
-});
+// lu-phone listeners wired in main DOMContentLoaded above;
 
 // ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
 const SB_URL_SPIN  = SB_URL;
@@ -967,7 +1091,7 @@ let spinPrizes = [];
 
 // ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
 const SB_URL_SPIN  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
-const SB_ANON_SPIN = 'sb_publishable_unOW9_eUhaPki59JWbccgA_Pg4nflGS';
+const SB_ANON_SPIN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
 
 let spinPrizes = [];
 
@@ -1131,12 +1255,7 @@ function updateProbBar(){
   document.getElementById('pf-prob-hint').textContent =
     total>0 ? `Current total: ${total.toFixed(1)} — this prize = ~${(val/total*100).toFixed(1)}% of wheel` : '';
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  const pi = document.getElementById('pf-prob');
-  if(pi) pi.addEventListener('input',updateProbBar);
-  const pc = document.getElementById('pf-color');
-  if(pc) pc.addEventListener('input',function(){ document.getElementById('pf-color-hex').value=this.value; });
-});
+// pf-prob and pf-color wired in DOMContentLoaded above
 
 async function savePrize(){
   const id    = document.getElementById('pf-id').value;
