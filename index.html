@@ -1172,10 +1172,9 @@ function renderWheelPreview() {
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('No active prizes',cx,cy); return;
   }
-  const total = active.reduce((a,p)=>a+Number(p.probability),0);
+  const slice = (2*Math.PI)/active.length;
   let start = -Math.PI/2;
   active.forEach(p => {
-    const slice = (Number(p.probability)/total)*2*Math.PI;
     ctx.beginPath(); ctx.moveTo(cx,cy);
     ctx.arc(cx,cy,R,start,start+slice); ctx.closePath();
     ctx.fillStyle=p.color; ctx.fill();
@@ -1299,9 +1298,10 @@ async function togglePrize(id, active){
 
 async function deletePrize(id, label){
   if(!confirm(`Delete prize "${label}"?\nThis cannot be undone.`)) return;
-  await fetch(`${SB_URL_SPIN}/rest/v1/spin_prizes?id=eq.${id}`,{
+  const r = await fetch(`${SB_URL_SPIN}/rest/v1/spin_prizes?id=eq.${id}`,{
     method:'DELETE', headers:{apikey:SB_ANON_SPIN,...hdr()}
   });
+  if(!r.ok){ alert('Delete failed ('+r.status+'). Check Supabase RLS policy allows DELETE.'); return; }
   await loadSpinPrizes();
 }
 
