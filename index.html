@@ -1088,13 +1088,6 @@ const SB_URL_SPIN  = SB_URL;
 const SB_ANON_SPIN = SB_ANON;
 let spinPrizes = [];
 
-
-// ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
-const SB_URL_SPIN  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
-const SB_ANON_SPIN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
-
-let spinPrizes = [];
-
 async function loadSpinTab() {
   await Promise.all([loadSpinPrizes(), loadWinners()]);
   updateSpinKPIs();
