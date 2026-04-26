@@ -401,6 +401,21 @@ tr:hover td{background:var(--g50);}
       </div>
       <div style="padding:12px 0;display:flex;gap:8px;flex-wrap:wrap" id="ord-detail-actions"></div>
     </div>
+
+    <!-- ── Spin Winner Lookup (for billing staff) ── -->
+    <div class="sh" style="margin-top:24px">
+      <div><div class="sh-title">🎰 Spin Winner Lookup</div><div class="sh-sub">Enter customer mobile to check prize &amp; redeem</div></div>
+    </div>
+    <div class="card" style="max-width:500px">
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <input type="tel" id="spin-lookup-phone" inputmode="numeric" placeholder="10-digit mobile number" maxlength="10"
+          style="flex:1;height:46px;border:2px solid var(--g200);border-radius:10px;padding:0 14px;font-size:17px;font-family:'DM Mono',monospace;outline:none;transition:border-color .2s;"
+          onfocus="this.style.borderColor='var(--pink)'" onblur="this.style.borderColor='var(--g200)'"
+          oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)">
+        <button onclick="doSpinLookup()" style="height:46px;padding:0 20px;background:var(--pink);color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Search</button>
+      </div>
+      <div id="spin-lookup-result"></div>
+    </div>
   </div>
 
   <!-- ══════════ SPIN WHEEL ══════════ -->
@@ -1025,7 +1040,7 @@ async function loadItemConfig() {
     const packSel=UNIT_OPTS.map(u=>`<option value="${u}" ${packLabel===u?'selected':''}>${u}</option>`).join('');
     html+=`<tr id="icr-${item.item_id}"><td style="font-size:12px;font-weight:500;min-width:180px">${item.item_name}</td><td class="mono" style="color:${stockCol};font-weight:600;text-align:center">${stock}</td><td style="text-align:center"><div style="font-size:14px;font-weight:700">${lastQty}</div></td><td style="text-align:center"><div style="font-size:14px;font-weight:700;color:var(--blue)">${avgQty}</div></td><td><select id="ic-otype-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="onOrderTypeChange(${item.item_id})">${orderSel}</select></td><td><input type="number" id="ic-upp-${item.item_id}" value="${unitsPack}" min="1" max="999" style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;" oninput="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}></td><td><select id="ic-plbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}>${packSel}</select></td><td><input type="number" id="ic-moq-${item.item_id}" value="${minQty}" min="1" max="999" style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;" oninput="markDirty(${item.item_id})"></td><td><select id="ic-ulbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})">${unitSel}</select></td><td><button id="ic-save-${item.item_id}" onclick="saveItemConfig(${item.item_id})" style="height:28px;padding:0 10px;background:var(--green);color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;display:none">Save</button><span id="ic-saved-${item.item_id}" style="font-size:11px;color:var(--green);display:none">✓</span></td></tr>`;
   });
-  html+='</tbody></table></div><div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button onclick="saveAllItems()" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save all changes</button><span style="font-size:12px;color:var(--g400)">Last/Avg Purchase Qty are read-only from Vyapar bills</span></div>';
+  html+='</tbody></table></div><div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button onclick="saveAllItems()" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save all changes</button><span style="font-size:12px;color:var(--g400)">Last/Avg Purchase Qty are read-only from Vyapar bills</span></div>';
   body.innerHTML=html;
 }
 function markDirty(itemId) { const sb=document.getElementById(`ic-save-${itemId}`),sv=document.getElementById(`ic-saved-${itemId}`); if(sb)sb.style.display='inline-block'; if(sv)sv.style.display='none'; const sa=document.querySelector('[onclick="saveAllItems()"]'); if(sa)sa.style.background='var(--amber)'; }
@@ -1086,6 +1101,13 @@ async function genPDF(sessionId,poNum,btn) {
 // ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
 const SB_URL_SPIN  = SB_URL;
 const SB_ANON_SPIN = SB_ANON;
+let spinPrizes = [];
+
+
+// ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
+const SB_URL_SPIN  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
+const SB_ANON_SPIN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
+
 let spinPrizes = [];
 
 async function loadSpinTab() {
@@ -1168,44 +1190,30 @@ function renderWheelPreview() {
   if(!active.length){
     ctx.beginPath(); ctx.arc(cx,cy,R,0,2*Math.PI);
     ctx.fillStyle='#f5f5f5'; ctx.fill();
-    ctx.fillStyle='#ccc'; ctx.font='13px sans-serif';
+    ctx.fillStyle='#ccc'; ctx.font='13px DM Sans,sans-serif';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('No active prizes',cx,cy); return;
   }
-  const slice = (2*Math.PI)/active.length;
+  const total = active.reduce((a,p)=>a+Number(p.probability),0);
   let start = -Math.PI/2;
-  // Max label chars based on how many prizes (fewer = more space per slice)
-  const maxChars = active.length<=3?16 : active.length<=5?12 : active.length<=7?9 : 7;
   active.forEach(p => {
-    // Draw slice
+    const slice = (Number(p.probability)/total)*2*Math.PI;
     ctx.beginPath(); ctx.moveTo(cx,cy);
     ctx.arc(cx,cy,R,start,start+slice); ctx.closePath();
     ctx.fillStyle=p.color; ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=2; ctx.stroke();
-    // Draw emoji + label along the radius at the slice midpoint
-    ctx.save();
-    ctx.translate(cx,cy);
-    ctx.rotate(start+slice/2);
-    ctx.textBaseline='middle';
-    ctx.shadowColor='rgba(0,0,0,0.4)'; ctx.shadowBlur=2;
-    ctx.fillStyle='#fff';
-    // Emoji icon at inner position
-    ctx.font='15px sans-serif';
-    ctx.textAlign='center';
-    ctx.fillText(p.emoji, R*0.32, 0);
-    // Truncated label starting after emoji
-    const lbl=p.label.length>maxChars ? p.label.slice(0,maxChars-1)+'…' : p.label;
-    ctx.font='bold 9px sans-serif';
-    ctx.textAlign='left';
-    ctx.fillText(lbl, R*0.49, 0);
-    ctx.restore();
-    start+=slice;
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(start+slice/2);
+    ctx.textAlign='right'; ctx.font='bold 10px DM Sans,sans-serif';
+    ctx.fillStyle='#fff'; ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=3;
+    const words=p.label.split(' ');
+    ctx.fillText(words[0],R-8,words.length>1?-4:4);
+    if(words[1]) ctx.fillText(words[1],R-8,10);
+    ctx.restore(); start+=slice;
   });
-  // Center hub
   ctx.beginPath(); ctx.arc(cx,cy,24,0,2*Math.PI);
   ctx.fillStyle='#fff'; ctx.fill();
   ctx.strokeStyle='#ff1493'; ctx.lineWidth=2.5; ctx.stroke();
-  ctx.fillStyle='#ff1493'; ctx.font='bold 8px sans-serif';
+  ctx.fillStyle='#ff1493'; ctx.font='bold 8px DM Sans,sans-serif';
   ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.shadowBlur=0;
   ctx.fillText('SPIN',cx,cy);
 }
@@ -1372,6 +1380,7 @@ async function loadWinners(){
             style="height:26px;padding:0 8px;border:2px solid var(--blue);border-radius:6px;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer">
             📲 Remind
           </button>` : '<span style="font-size:11px;color:var(--g400)">Reminded</span>'}
+        <button onclick="deletePlay(${w.id},'${w.phone}')" style="height:26px;padding:0 8px;border:2px solid var(--red);border-radius:6px;background:var(--red-l);color:var(--red);font-size:11px;font-weight:600;cursor:pointer">🗑 Delete</button>
       ` : ''}
     </td>
   </tr>`).join('');
@@ -1394,6 +1403,81 @@ async function markRedeemed(id, phone){
   });
   if(!r.ok){ alert('Redeem failed: '+r.status); return; }
   loadWinners();
+}
+
+async function deletePlay(id, phone){
+  if(!confirm(`Delete spin record for ${phone}?\nThis lets them spin again (use for testing only).`)) return;
+  const authHdr = await freshHdr();
+  const r = await fetch(`${SB_URL_SPIN}/rest/v1/spin_plays?id=eq.${id}`,{
+    method:'DELETE', headers:{apikey:SB_ANON_SPIN,...authHdr}
+  });
+  if(!r.ok){ alert('Delete failed: '+r.status); return; }
+  loadWinners();
+}
+
+async function doSpinLookup(){
+  const phone = document.getElementById('spin-lookup-phone').value.trim();
+  if(phone.length < 10){ alert('Enter 10-digit number'); return; }
+  const res = document.getElementById('spin-lookup-result');
+  res.innerHTML='<div class="lrow"><div class="sp"></div> Searching...</div>';
+  const r = await fetch(
+    `${SB_URL_SPIN}/rest/v1/spin_plays?phone=eq.${phone}&select=id,phone,prize_label,prize_emoji,won_at,is_redeemed,redeemed_at,redeemed_by`,
+    { headers:{ apikey:SB_ANON_SPIN,...hdr() } }
+  );
+  const rows = await r.json().catch(()=>[]);
+  if(!rows.length){
+    res.innerHTML=`<div style="padding:14px;background:var(--g100);border-radius:10px;text-align:center;font-size:13px;color:var(--g600)">
+      ❌ No spin record found for <strong>${phone}</strong>
+    </div>`; return;
+  }
+  const w = rows[0];
+  if(w.is_redeemed){
+    res.innerHTML=`<div style="background:var(--green-l);border:2px solid var(--green);border-radius:12px;padding:16px">
+      <div style="font-size:15px;font-weight:700;color:var(--green);margin-bottom:6px">✅ Already Redeemed</div>
+      <div style="font-size:14px;font-weight:600">${w.prize_emoji} ${w.prize_label}</div>
+      <div style="font-size:12px;color:var(--g400);margin-top:4px">Phone: ${w.phone} · Redeemed: ${fdt(w.redeemed_at)}${w.redeemed_by?' by '+w.redeemed_by:''}</div>
+    </div>`; return;
+  }
+  res.innerHTML=`<div style="background:var(--pink-l);border:2px solid var(--pink);border-radius:12px;overflow:hidden">
+    <div style="padding:14px 16px;border-bottom:1px solid rgba(232,68,106,0.2)">
+      <div style="font-size:13px;font-weight:600;color:var(--pink-d);margin-bottom:2px">🎁 Prize Won</div>
+      <div style="font-size:18px;font-weight:700">${w.prize_emoji} ${w.prize_label}</div>
+      <div style="font-size:12px;color:var(--g400);margin-top:2px">Phone: ${w.phone} · Won: ${fdt(w.won_at)}</div>
+    </div>
+    <div style="padding:14px 16px">
+      <div style="font-size:12px;color:var(--g600);margin-bottom:10px">Min. purchase ₹1,499 required to claim this prize.</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="spin-staff-name" placeholder="Staff name" value=""
+          style="flex:1;height:38px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <button onclick="doSpinRedeem(${w.id},'${w.phone}')"
+          style="height:38px;padding:0 16px;background:var(--green);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
+          ✓ Mark Redeemed
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function doSpinRedeem(id, phone){
+  const staff = document.getElementById('spin-staff-name')?.value?.trim() || 'counter';
+  const btn = document.querySelector('#spin-lookup-result button:last-child');
+  if(btn){ btn.disabled=true; btn.textContent='Processing...'; }
+  const authHdr = await freshHdr();
+  const r = await fetch(`${SB_URL_SPIN}/rest/v1/spin_plays?id=eq.${id}`,{
+    method:'PATCH', headers:{apikey:SB_ANON_SPIN,...authHdr,'Content-Type':'application/json'},
+    body:JSON.stringify({is_redeemed:true, redeemed_at:new Date().toISOString(), redeemed_by:staff})
+  });
+  if(!r.ok){ alert('Redeem failed: '+r.status); if(btn){btn.disabled=false;btn.textContent='✓ Mark Redeemed';} return; }
+  document.getElementById('spin-lookup-result').innerHTML=`
+    <div style="background:var(--green-l);border:2px solid var(--green);border-radius:12px;padding:20px;text-align:center">
+      <div style="font-size:32px;margin-bottom:8px">✅</div>
+      <div style="font-size:16px;font-weight:700;color:var(--green)">Prize Redeemed!</div>
+      <div style="font-size:13px;color:var(--g600);margin-top:4px">Give the customer their prize. Recorded by: ${staff}</div>
+      <button onclick="document.getElementById('spin-lookup-phone').value='';document.getElementById('spin-lookup-result').innerHTML=''"
+        style="margin-top:14px;background:white;border:2px solid var(--g200);border-radius:8px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
+        Look up another
+      </button>
+    </div>`;
 }
 
 async function sendReminder(id, phone, prizeLabel){

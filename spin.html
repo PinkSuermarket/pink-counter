@@ -112,6 +112,14 @@ canvas#wheel{display:block;border-radius:50%;box-shadow:0 0 0 6px rgba(255,255,2
 .played-prize{background:#fff0f7;border:2px solid #ff69b4;border-radius:12px;padding:10px 14px;color:#ff1493;font-weight:700;font-size:15px;margin:12px 0}
 .played-card p{font-size:13px;color:#888;line-height:1.7;margin-bottom:22px}
 .played-close{width:100%;height:46px;background:#f5f5f5;border:none;border-radius:12px;font-family:'Poppins',sans-serif;font-size:14px;color:#555;cursor:pointer}
+
+/* Prizes Carousel */
+.carousel-wrap{width:100%;margin:18px 0 0;overflow:hidden}
+.carousel-label{text-align:center;font-size:10px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.carousel-track{display:flex;gap:10px;padding:4px 16px 8px;transition:transform 0.6s cubic-bezier(0.4,0,0.2,1);will-change:transform}
+.carousel-item{flex:0 0 120px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);backdrop-filter:blur(8px);border-radius:16px;padding:12px 10px;text-align:center}
+.ci-emoji{font-size:26px;margin-bottom:5px}
+.ci-label{font-size:11px;font-weight:700;color:#fff;line-height:1.3}
 </style>
 </head>
 <body>
@@ -174,6 +182,12 @@ canvas#wheel{display:block;border-radius:50%;box-shadow:0 0 0 6px rgba(255,255,2
       <div class="prize-strip-title">Mr Gold Sunflower Oil<br>5L Can — <em>Absolutely FREE!</em></div>
       <div class="prize-strip-sub">Purchase <strong>&#8377;1,499+</strong> to claim your prize</div>
     </div>
+  </div>
+
+  <!-- Prizes Carousel -->
+  <div class="carousel-wrap" id="carouselWrap" style="display:none">
+    <div class="carousel-label">🎁 Prizes You Can WIN</div>
+    <div class="carousel-track" id="carouselTrack"></div>
   </div>
 
   <div class="footer">
@@ -251,6 +265,44 @@ async function loadPrizes() {
   document.getElementById('wheelLoading').style.display = 'none';
   document.getElementById('wheelWrap').style.display = 'flex';
   resizeCanvas();
+  buildCarousel();
+}
+
+// ── Prizes Carousel ───────────────────────────────────────────────────────────
+function buildCarousel() {
+  if(!prizes.length) return;
+  const wrap  = document.getElementById('carouselWrap');
+  const track = document.getElementById('carouselTrack');
+  wrap.style.display = 'block';
+
+  // Duplicate list 3× for seamless infinite loop
+  const items = [...prizes, ...prizes, ...prizes];
+  track.innerHTML = items.map(p =>
+    `<div class="carousel-item" style="border-color:${p.color}55">
+       <div class="ci-emoji">${p.emoji}</div>
+       <div class="ci-label">${p.label}</div>
+     </div>`
+  ).join('');
+
+  const ITEM_W = 130; // 120px + 10px gap
+  let idx = 0;
+  // Start from middle set so we can loop both ways
+  track.style.transition = 'none';
+  track.style.transform  = `translateX(-${prizes.length * ITEM_W}px)`;
+
+  setInterval(() => {
+    idx++;
+    track.style.transition = 'transform 0.7s cubic-bezier(0.4,0,0.2,1)';
+    track.style.transform  = `translateX(-${(prizes.length + idx) * ITEM_W}px)`;
+    // Reset silently when reaching end of middle set
+    if(idx >= prizes.length) {
+      setTimeout(() => {
+        idx = 0;
+        track.style.transition = 'none';
+        track.style.transform  = `translateX(-${prizes.length * ITEM_W}px)`;
+      }, 750);
+    }
+  }, 2200);
 }
 
 function drawWheel(angle) {
@@ -272,42 +324,51 @@ function drawWheel(angle) {
   // Equal visual slices (probability controls win chance, not visual size)
   const slice = (2*Math.PI) / prizes.length;
   let start = angle - Math.PI/2;
-  const maxChars = prizes.length<=3?16 : prizes.length<=5?12 : prizes.length<=7?9 : 7;
-  const emojiFontSize = Math.max(13, Math.round(R * 0.22));
-  const labelFontSize = Math.max(8, Math.round(R * 0.095));
+
+  // Hub radius — emoji must be placed OUTSIDE this
+  const hubR   = Math.max(18, Math.round(W * 0.082));
+  const emojiX = hubR + Math.round(R * 0.12);  // just outside hub
+  const textX  = emojiX + Math.round(R * 0.16); // label starts after emoji
+  const textEnd= R - 8;
+  const availW = textEnd - textX;
+  const midX   = (textX + textEnd) / 2;
+  const availH = 2 * midX * Math.tan(slice / 2) * 0.70;
+  const emojiSize = Math.max(8, Math.min(13, Math.round(availH * 0.70)));
 
   prizes.forEach(p => {
-    // Slice
     ctx.beginPath(); ctx.moveTo(cx,cy);
     ctx.arc(cx,cy,R,start,start+slice); ctx.closePath();
     ctx.fillStyle = p.color; ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=1.5; ctx.stroke();
 
-    // Text along radius
     ctx.save();
     ctx.translate(cx,cy);
     ctx.rotate(start + slice/2);
     ctx.textBaseline='middle';
-    ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=3;
+    ctx.shadowColor='rgba(0,0,0,0.7)'; ctx.shadowBlur=2;
     ctx.fillStyle='#fff';
 
-    // Emoji at inner area
-    ctx.font=`${emojiFontSize}px sans-serif`;
+    // Emoji — placed outside hub, visible
+    ctx.font=`${emojiSize}px sans-serif`;
     ctx.textAlign='center';
-    ctx.fillText(p.emoji, R*0.30, 0);
+    ctx.fillText(p.emoji, emojiX, 0);
 
-    // Label from center outward
-    const lbl = p.label.length>maxChars ? p.label.slice(0,maxChars-1)+'…' : p.label;
-    ctx.font=`bold ${labelFontSize}px Poppins,sans-serif`;
+    // Full label — auto-shrink to fit, cap at 9px
+    let fs = Math.min(Math.floor(availH * 0.60), 9);
+    fs = Math.max(fs, 5);
+    ctx.font=`bold ${fs}px Poppins,sans-serif`;
+    while(fs > 5 && ctx.measureText(p.label).width > availW) {
+      fs--;
+      ctx.font=`bold ${fs}px Poppins,sans-serif`;
+    }
     ctx.textAlign='left';
-    ctx.fillText(lbl, R*0.48, 0);
+    ctx.fillText(p.label, textX, 0);
 
     ctx.restore();
     start += slice;
   });
 
-  // Center hub
-  const hubR = Math.max(18, Math.round(W * 0.082));
+  // Center hub (hubR already declared above)
   ctx.beginPath(); ctx.arc(cx,cy,hubR,0,2*Math.PI);
   const grad = ctx.createRadialGradient(cx,cy,0,cx,cy,hubR);
   grad.addColorStop(0,'#fff'); grad.addColorStop(1,'#f5f5f5');
@@ -329,8 +390,15 @@ function drawWheel(angle) {
   }
 })();
 
-let audioCtx=null, musicOn=false;
-function initAudio(){ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); }
+let audioCtx=null, musicOn=true;
+document.getElementById('musicBtn').textContent='🔊';
+
+function initAudio(){
+  if(!audioCtx){
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+  }
+}
 function playTone(f,d,v=0.08,t='sine'){
   if(!audioCtx||!musicOn)return;
   const o=audioCtx.createOscillator(),g=audioCtx.createGain();
@@ -341,6 +409,17 @@ function playTone(f,d,v=0.08,t='sine'){
   o.start(); o.stop(audioCtx.currentTime+d);
 }
 function playWin(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,0.3,0.12),i*100)); }
+
+// Auto-start audio on first user touch (browser policy)
+function onFirstTouch(){
+  initAudio();
+  playTone(440,0.25,0.04);
+  document.removeEventListener('touchstart',onFirstTouch);
+  document.removeEventListener('click',onFirstTouch);
+}
+document.addEventListener('touchstart',onFirstTouch,{once:true});
+document.addEventListener('click',onFirstTouch,{once:true});
+
 document.getElementById('musicBtn').onclick=function(){
   initAudio(); musicOn=!musicOn; this.textContent=musicOn?'🔊':'🔇';
   if(musicOn)playTone(440,0.2);
