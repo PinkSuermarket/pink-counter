@@ -254,6 +254,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
     <div class="topbar-right">
       <div class="worker-pill" id="worker-pill"></div>
       <button class="so-btn" title="My Orders" onclick="goOrders()" style="font-size:16px">📋</button>
+      <button class="so-btn" title="Spin Winners" onclick="goSpin()" style="font-size:16px">🎰</button>
       <button class="so-btn" id="install-btn" title="Install App" onclick="handleInstall()" style="font-size:16px;display:none">⬇️</button>
       <button class="so-btn" onclick="doLogout()">⏻</button>
     </div>
@@ -294,6 +295,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--g50);color:var(--g900);}
     <div class="screen hidden-right" id="s-orders">
       <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--g400);margin-bottom:12px">My submitted orders</div>
       <div id="orders-list-body"><div class="lrow"><div class="sp"></div></div></div>
+      <div style="height:80px"></div>
+    </div>
+
+    <!-- S5: SPIN WINNER LOOKUP -->
+    <div class="screen hidden-right" id="s-spin">
+      <!-- Search box -->
+      <div style="background:linear-gradient(135deg,#ff1493,#c8006e);border-radius:16px;padding:18px 16px;margin-bottom:16px">
+        <div style="font-size:18px;font-weight:800;color:white;margin-bottom:2px">🎰 Spin Winner Lookup</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.8);margin-bottom:14px">Enter customer mobile to check &amp; redeem prize</div>
+        <div style="display:flex;gap:8px">
+          <input id="spin-ph" type="tel" inputmode="numeric" maxlength="10" placeholder="98765 43210"
+            style="flex:1;height:48px;border:none;border-radius:12px;padding:0 16px;font-size:18px;font-weight:600;font-family:'DM Mono',monospace;outline:none;color:#1a1a1a;"
+            oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"
+            onkeydown="if(event.key==='Enter')doSpinSearch()">
+          <button onclick="doSpinSearch()"
+            style="height:48px;padding:0 18px;background:white;color:#ff1493;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0">
+            Search
+          </button>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div id="spin-result"></div>
+
+      <!-- Winners list -->
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--g400);margin:16px 0 10px" id="spin-winners-label">Recent Winners</div>
+      <div id="spin-winners-body"><div class="lrow"><div class="sp"></div></div></div>
       <div style="height:80px"></div>
     </div>
   </div>
@@ -396,6 +424,7 @@ function updateTopbar(){
   else if(cur==='s-items'){document.getElementById('topbar-title').textContent=currentBrand||'Items';document.getElementById('topbar-sub').textContent='Tap + to add to cart';}
   else if(cur==='s-cart'){document.getElementById('topbar-title').textContent='Your Cart';document.getElementById('topbar-sub').textContent=cartCount()+' items';}
   else if(cur==='s-orders'){document.getElementById('topbar-title').textContent='My Orders';document.getElementById('topbar-sub').textContent='';}
+  else if(cur==='s-spin'){document.getElementById('topbar-title').textContent='🎰 Spin Winners';document.getElementById('topbar-sub').textContent='Lookup & redeem prizes';}
 }
 
 // ── SUPPLIERS ─────────────────────────────────────────────────────────────────
@@ -945,6 +974,138 @@ async function downloadOrderPDF(sessionId,btn){
     else{btn.textContent='Failed — try again';}
   }catch(e){btn.textContent='Error';}
   setTimeout(()=>{btn.disabled=false;btn.textContent=orig;},3000);
+}
+
+// ── SPIN WINNER ──────────────────────────────────────────────────────────────
+const SB_ANON_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
+const HSpin = {'apikey': SB_ANON_JWT};
+
+function goSpin(){
+  navigate('s-spin');
+  loadSpinWinners();
+}
+
+async function doSpinSearch(){
+  const phone = document.getElementById('spin-ph').value.trim();
+  if(phone.length < 10){ showToast('Enter 10-digit number'); return; }
+  const res = document.getElementById('spin-result');
+  res.innerHTML='<div class="lrow"><div class="sp"></div> Searching...</div>';
+
+  const r = await fetch(
+    `${SB_URL}/rest/v1/spin_plays?phone=eq.${phone}&select=id,phone,prize_label,prize_emoji,won_at,is_redeemed,redeemed_at,redeemed_by`,
+    { headers: HSpin }
+  );
+  const rows = await r.json().catch(()=>[]);
+
+  if(!rows.length){
+    res.innerHTML=`<div style="background:white;border-radius:14px;padding:20px;text-align:center;box-shadow:0 1px 8px rgba(0,0,0,.08)">
+      <div style="font-size:32px;margin-bottom:8px">❌</div>
+      <div style="font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:4px">No spin record found</div>
+      <div style="font-size:13px;color:#9e9b96">${phone} has not played yet</div>
+    </div>`;
+    return;
+  }
+
+  const w = rows[0];
+  const wonDate = w.won_at ? new Date(w.won_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+
+  if(w.is_redeemed){
+    const redDate = w.redeemed_at ? new Date(w.redeemed_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    res.innerHTML=`<div style="background:#e2f5ee;border:2px solid #1a9e6e;border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#1a9e6e;margin-bottom:6px">✅ Already Redeemed</div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px">${w.prize_emoji} ${w.prize_label}</div>
+      <div style="font-size:12px;color:#5c5955">📱 ${w.phone}</div>
+      <div style="font-size:12px;color:#5c5955">🎰 Won: ${wonDate}</div>
+      <div style="font-size:12px;color:#5c5955">✅ Redeemed: ${redDate}${w.redeemed_by?' · by '+w.redeemed_by:''}</div>
+    </div>`;
+    return;
+  }
+
+  // Pending — show redeem card
+  res.innerHTML=`<div style="background:white;border:2px solid #ff1493;border-radius:14px;overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.1)">
+    <div style="background:linear-gradient(135deg,#ff1493,#c8006e);padding:14px 16px">
+      <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">🎁 Prize Won — Pending Claim</div>
+      <div style="font-size:22px;font-weight:800;color:white">${w.prize_emoji} ${w.prize_label}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:4px">📱 ${w.phone} · 🕐 ${wonDate}</div>
+    </div>
+    <div style="padding:14px 16px">
+      <div style="font-size:13px;color:#5c5955;margin-bottom:12px">Minimum purchase <strong>₹1,499</strong> required to claim this prize.</div>
+      <input id="spin-staff" type="text" placeholder="Your name (staff)" autocomplete="off"
+        style="width:100%;height:44px;border:2px solid #e2dfdb;border-radius:12px;padding:0 14px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px"
+        onfocus="this.style.borderColor='#ff1493'" onblur="this.style.borderColor='#e2dfdb'">
+      <button onclick="doSpinRedeem(${w.id},'${w.phone}',this)"
+        style="width:100%;height:50px;background:#1a9e6e;color:white;border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer">
+        ✓ Mark as Redeemed
+      </button>
+    </div>
+  </div>`;
+}
+
+async function doSpinRedeem(id, phone, btn){
+  const staff = document.getElementById('spin-staff')?.value?.trim() || worker?.full_name || 'counter';
+  if(!staff){ showToast('Enter your name first'); return; }
+  btn.disabled = true; btn.textContent = 'Processing...';
+
+  const r = await fetch(`${SB_URL}/rest/v1/spin_plays?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: { ...HSpin, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_redeemed: true, redeemed_at: new Date().toISOString(), redeemed_by: staff })
+  });
+
+  if(!r.ok){
+    showToast('Redeem failed — try again');
+    btn.disabled = false; btn.textContent = '✓ Mark as Redeemed';
+    return;
+  }
+
+  document.getElementById('spin-result').innerHTML=`<div style="background:#e2f5ee;border:2px solid #1a9e6e;border-radius:14px;padding:20px;text-align:center">
+    <div style="font-size:40px;margin-bottom:8px">✅</div>
+    <div style="font-size:18px;font-weight:800;color:#1a9e6e;margin-bottom:4px">Prize Redeemed!</div>
+    <div style="font-size:13px;color:#5c5955">Give the customer their prize.<br>Recorded by: <strong>${staff}</strong></div>
+    <button onclick="document.getElementById('spin-ph').value='';document.getElementById('spin-result').innerHTML='';loadSpinWinners()"
+      style="margin-top:16px;height:44px;padding:0 24px;background:white;border:2px solid #e2dfdb;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;color:#5c5955">
+      Look up another
+    </button>
+  </div>`;
+  showToast('✅ Prize redeemed!');
+  loadSpinWinners();
+}
+
+async function loadSpinWinners(){
+  const body = document.getElementById('spin-winners-body');
+  const label = document.getElementById('spin-winners-label');
+  body.innerHTML='<div class="lrow"><div class="sp"></div></div>';
+
+  const r = await fetch(
+    `${SB_URL}/rest/v1/spin_plays?order=won_at.desc&limit=30&select=id,phone,prize_label,prize_emoji,won_at,is_redeemed,redeemed_by`,
+    { headers: HSpin }
+  );
+  const winners = await r.json().catch(()=>[]);
+
+  const pending = winners.filter(w=>!w.is_redeemed).length;
+  label.textContent = `Recent Winners · ${winners.length} total · ${pending} pending`;
+
+  if(!winners.length){
+    body.innerHTML='<div class="empty">No spins yet</div>';
+    return;
+  }
+
+  body.innerHTML = winners.map(w => {
+    const date = w.won_at ? new Date(w.won_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    const statusColor = w.is_redeemed ? '#1a9e6e' : '#d97706';
+    const statusBg = w.is_redeemed ? '#e2f5ee' : '#fef3c7';
+    const statusText = w.is_redeemed ? '✅ Redeemed' : '⏳ Pending';
+    return `<div style="background:white;border-radius:14px;box-shadow:0 1px 8px rgba(0,0,0,.08);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px"
+      onclick="document.getElementById('spin-ph').value='${w.phone}';doSpinSearch();window.scrollTo(0,0)">
+      <div style="font-size:28px;flex-shrink:0">${w.prize_emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;margin-bottom:2px">${w.prize_label}</div>
+        <div style="font-size:12px;color:#9e9b96;font-family:'DM Mono',monospace">${w.phone}</div>
+        <div style="font-size:11px;color:#9e9b96;margin-top:1px">${date}</div>
+      </div>
+      <div style="background:${statusBg};color:${statusColor};font-size:11px;font-weight:700;padding:4px 8px;border-radius:20px;flex-shrink:0;text-align:center">${statusText}${w.is_redeemed&&w.redeemed_by?'<br><span style="font-size:10px;font-weight:400">'+w.redeemed_by+'</span>':''}</div>
+    </div>`;
+  }).join('');
 }
 
 // ── SHEET ─────────────────────────────────────────────────────────────────────

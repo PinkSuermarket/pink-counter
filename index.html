@@ -1040,7 +1040,7 @@ async function loadItemConfig() {
     const packSel=UNIT_OPTS.map(u=>`<option value="${u}" ${packLabel===u?'selected':''}>${u}</option>`).join('');
     html+=`<tr id="icr-${item.item_id}"><td style="font-size:12px;font-weight:500;min-width:180px">${item.item_name}</td><td class="mono" style="color:${stockCol};font-weight:600;text-align:center">${stock}</td><td style="text-align:center"><div style="font-size:14px;font-weight:700">${lastQty}</div></td><td style="text-align:center"><div style="font-size:14px;font-weight:700;color:var(--blue)">${avgQty}</div></td><td><select id="ic-otype-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="onOrderTypeChange(${item.item_id})">${orderSel}</select></td><td><input type="number" id="ic-upp-${item.item_id}" value="${unitsPack}" min="1" max="999" style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;" oninput="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}></td><td><select id="ic-plbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}>${packSel}</select></td><td><input type="number" id="ic-moq-${item.item_id}" value="${minQty}" min="1" max="999" style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;" oninput="markDirty(${item.item_id})"></td><td><select id="ic-ulbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})">${unitSel}</select></td><td><button id="ic-save-${item.item_id}" onclick="saveItemConfig(${item.item_id})" style="height:28px;padding:0 10px;background:var(--green);color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;display:none">Save</button><span id="ic-saved-${item.item_id}" style="font-size:11px;color:var(--green);display:none">✓</span></td></tr>`;
   });
-  html+='</tbody></table></div><div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button onclick="saveAllItems()" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save all changes</button><span style="font-size:12px;color:var(--g400)">Last/Avg Purchase Qty are read-only from Vyapar bills</span></div>';
+  html+='</tbody></table></div><div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button onclick="saveAllItems()" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save all changes</button><span style="font-size:12px;color:var(--g400)">Last/Avg Purchase Qty are read-only from Vyapar bills</span></div>';
   body.innerHTML=html;
 }
 function markDirty(itemId) { const sb=document.getElementById(`ic-save-${itemId}`),sv=document.getElementById(`ic-saved-${itemId}`); if(sb)sb.style.display='inline-block'; if(sv)sv.style.display='none'; const sa=document.querySelector('[onclick="saveAllItems()"]'); if(sa)sa.style.background='var(--amber)'; }
@@ -1101,13 +1101,6 @@ async function genPDF(sessionId,poNum,btn) {
 // ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
 const SB_URL_SPIN  = SB_URL;
 const SB_ANON_SPIN = SB_ANON;
-let spinPrizes = [];
-
-
-// ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
-const SB_URL_SPIN  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
-const SB_ANON_SPIN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
-
 let spinPrizes = [];
 
 async function loadSpinTab() {
