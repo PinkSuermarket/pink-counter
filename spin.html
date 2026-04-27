@@ -468,13 +468,24 @@ function spinWheel(){
   document.getElementById('spinBtn').disabled=true;
   initAudio();
   const winner = getWinner();
-  // Visual slices are EQUAL (1/N each) — arrow angle must match this
+  // Equal visual slices — N prizes, each slice = 2PI/N
   const slice = (2 * Math.PI) / prizes.length;
   const winnerIdx = prizes.findIndex(p => p.id === winner.id);
-  // Center of winner's visual slice (equal slices start at -PI/2 in drawWheel)
-  const wAngle = winnerIdx * slice + slice / 2;
-  const target=-wAngle+Math.PI*2*8+Math.PI*1.5;
+  // drawWheel draws slice[i] starting at: currentAngle - PI/2 + i*slice
+  // Pointer is at top of canvas = angle -PI/2 in wheel space
+  // For pointer to hit center of winner slice:
+  //   currentAngle - PI/2 + winnerIdx*slice + slice/2 ≡ -PI/2  (mod 2PI)
+  //   currentAngle = -(winnerIdx * slice + slice/2)
+  // Add 8 full rotations for spin drama
+  // target is ABSOLUTE angle the wheel must reach
+  // startA is where wheel currently is
+  // We want final resting angle = -(winnerIdx*slice + slice/2)
+  // Plus enough full rotations so it always spins forward
+  const restAngle = -(winnerIdx * slice + slice / 2);
   const dur=4800,t0=performance.now(),startA=currentAngle;
+  // How many full rotations to add so target > startA by at least 5 full spins
+  const fullSpins = Math.ceil((startA - restAngle) / (Math.PI * 2)) + 6;
+  const target = restAngle + fullSpins * Math.PI * 2;
   let lastTick=0;
   function ease(t){return t<0.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;}
   function anim(now){

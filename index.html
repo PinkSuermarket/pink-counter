@@ -421,22 +421,36 @@ tr:hover td{background:var(--g50);}
   <!-- ══════════ SPIN WHEEL ══════════ -->
   <div class="page" id="page-spin">
 
+  <!-- ── Hero banner ── -->
+  <div style="background:linear-gradient(135deg,#ff1493,#c8006e);border-radius:var(--r);padding:20px 24px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div>
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">🎰 Spin Wheel Campaign</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.8)">May 2026 · Pink Supermarket</div>
+    </div>
+    <a href="spin.html" target="_blank" style="height:38px;padding:0 18px;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+      🔗 Open Spin Page
+    </a>
+  </div>
+
   <!-- ── KPI row ── -->
   <div class="kgrid" style="margin-top:4px">
-    <div class="kcard"><div class="klbl">Total Spins</div><div class="kval c-pink" id="sp-total">—</div><div class="ksub">all time</div></div>
-    <div class="kcard"><div class="klbl">Redeemed</div><div class="kval c-green" id="sp-redeemed">—</div><div class="ksub">at billing</div></div>
-    <div class="kcard"><div class="klbl">Pending</div><div class="kval c-amber" id="sp-pending">—</div><div class="ksub">won, not yet redeemed</div></div>
-    <div class="kcard"><div class="klbl">Active Prizes</div><div class="kval c-blue" id="sp-prizes">—</div><div class="ksub">on the wheel</div></div>
+    <div class="kcard" style="border-top:3px solid var(--pink)"><div class="klbl">Total Spins</div><div class="kval c-pink" id="sp-total">—</div><div class="ksub">all time</div></div>
+    <div class="kcard" style="border-top:3px solid var(--green)"><div class="klbl">Redeemed</div><div class="kval c-green" id="sp-redeemed">—</div><div class="ksub">at billing counter</div></div>
+    <div class="kcard" style="border-top:3px solid var(--amber)"><div class="klbl">Pending</div><div class="kval c-amber" id="sp-pending">—</div><div class="ksub">not yet claimed</div></div>
+    <div class="kcard" style="border-top:3px solid var(--blue)"><div class="klbl">Active Prizes</div><div class="kval c-blue" id="sp-prizes">—</div><div class="ksub">on the wheel</div></div>
   </div>
 
   <!-- ── Prize Config ── -->
-  <div class="sh">
-    <div><div class="sh-title">Prize Configuration</div><div class="sh-sub">Drag to reorder · Changes reflect immediately on spin wheel page</div></div>
-    <button onclick="openAddPrize()" style="height:34px;padding:0 16px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">+ Add Prize</button>
+  <div style="background:white;border-radius:var(--r);box-shadow:var(--sh);padding:14px 18px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div>
+      <div style="font-size:15px;font-weight:700;color:var(--g900);margin-bottom:2px">🎁 Prize Configuration</div>
+      <div style="font-size:12px;color:var(--g400)">Changes reflect immediately on the spin wheel page</div>
+    </div>
+    <button onclick="openAddPrize()" style="height:38px;padding:0 18px;background:linear-gradient(135deg,var(--pink),var(--pink-d));color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(232,68,106,0.35);white-space:nowrap">+ Add Prize</button>
   </div>
 
   <!-- Add/Edit Prize Form (hidden by default) -->
-  <div class="card" id="prize-form" style="display:none;border:2px solid var(--pink-l)">
+  <div class="card" id="prize-form" style="display:none;border:2px solid var(--pink);background:linear-gradient(to bottom,#fff,#fff9fb)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div style="font-size:14px;font-weight:600" id="prize-form-title">Add New Prize</div>
       <button onclick="closePrizeForm()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--g400)">×</button>
@@ -507,25 +521,28 @@ tr:hover td{background:var(--g50);}
   </div>
 
   <!-- Wheel preview -->
-  <div class="sh"><div><div class="sh-title">Live Wheel Preview</div><div class="sh-sub">Reflects current active prizes</div></div></div>
-  <div class="card" style="text-align:center;padding:20px">
-    <canvas id="sp-preview" width="280" height="280" style="border-radius:50%;box-shadow:0 0 0 4px #fff,0 0 0 7px #ff1493,0 6px 24px rgba(255,20,147,0.2)"></canvas>
-    <div style="margin-top:12px;font-size:12px;color:var(--g400)" id="sp-total-pct"></div>
+  <div class="card" style="text-align:center;padding:24px;background:linear-gradient(135deg,#fff,#fff0f7)">
+    <div style="font-size:13px;font-weight:600;color:var(--pink);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px">🎡 Live Wheel Preview</div>
+    <canvas id="sp-preview" width="280" height="280" style="border-radius:50%;box-shadow:0 0 0 5px #fff,0 0 0 9px #ff1493,0 8px 32px rgba(255,20,147,0.25)"></canvas>
+    <div style="margin-top:14px;font-size:12px;color:var(--g400);background:var(--g50);border-radius:8px;padding:8px 12px;display:inline-block" id="sp-total-pct"></div>
   </div>
 
   <!-- ── Winners List ── -->
-  <div class="sh" style="margin-top:8px">
-    <div><div class="sh-title">Winners List</div><div class="sh-sub" id="sp-winners-count">Loading...</div></div>
+  <div style="background:white;border-radius:var(--r);box-shadow:var(--sh);padding:14px 18px;margin-top:8px;margin-bottom:0;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:var(--r) var(--r) 0 0;border-bottom:2px solid var(--g100)">
+    <div>
+      <div style="font-size:15px;font-weight:700;color:var(--g900);margin-bottom:2px">🏆 Winners List</div>
+      <div style="font-size:12px;color:var(--g400)" id="sp-winners-count">Loading...</div>
+    </div>
     <div style="display:flex;gap:6px">
-      <select id="sp-filter" onchange="loadWinners()" style="height:32px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none">
+      <select id="sp-filter" onchange="loadWinners()" style="height:34px;border:2px solid var(--g200);border-radius:8px;padding:0 10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;background:var(--g50)">
         <option value="all">All winners</option>
-        <option value="pending">Pending redemption</option>
-        <option value="redeemed">Redeemed</option>
+        <option value="pending">⏳ Pending</option>
+        <option value="redeemed">✅ Redeemed</option>
       </select>
-      <button onclick="loadWinners()" style="height:32px;padding:0 12px;background:var(--g100);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">↻</button>
+      <button onclick="loadWinners()" style="height:34px;padding:0 12px;background:var(--g100);border:2px solid var(--g200);border-radius:8px;font-size:14px;font-weight:600;cursor:pointer" title="Refresh">↻</button>
     </div>
   </div>
-  <div class="card" style="padding:0;overflow:hidden">
+  <div class="card" style="padding:0;overflow:hidden;border-radius:0 0 var(--r) var(--r);margin-top:0">
     <div class="tw"><table>
       <thead><tr>
         <th>Phone</th><th>Prize Won</th><th>Spun At</th>
@@ -1040,7 +1057,7 @@ async function loadItemConfig() {
     const packSel=UNIT_OPTS.map(u=>`<option value="${u}" ${packLabel===u?'selected':''}>${u}</option>`).join('');
     html+=`<tr id="icr-${item.item_id}"><td style="font-size:12px;font-weight:500;min-width:180px">${item.item_name}</td><td class="mono" style="color:${stockCol};font-weight:600;text-align:center">${stock}</td><td style="text-align:center"><div style="font-size:14px;font-weight:700">${lastQty}</div></td><td style="text-align:center"><div style="font-size:14px;font-weight:700;color:var(--blue)">${avgQty}</div></td><td><select id="ic-otype-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="onOrderTypeChange(${item.item_id})">${orderSel}</select></td><td><input type="number" id="ic-upp-${item.item_id}" value="${unitsPack}" min="1" max="999" style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;" oninput="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}></td><td><select id="ic-plbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})" ${orderType==='unit'?'disabled':''}>${packSel}</select></td><td><input type="number" id="ic-moq-${item.item_id}" value="${minQty}" min="1" max="999" style="width:60px;height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-family:'DM Mono',monospace;font-size:13px;text-align:center;outline:none;" oninput="markDirty(${item.item_id})"></td><td><select id="ic-ulbl-${item.item_id}" style="height:30px;border:2px solid var(--g200);border-radius:6px;padding:0 6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;" onchange="markDirty(${item.item_id})">${unitSel}</select></td><td><button id="ic-save-${item.item_id}" onclick="saveItemConfig(${item.item_id})" style="height:28px;padding:0 10px;background:var(--green);color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;display:none">Save</button><span id="ic-saved-${item.item_id}" style="font-size:11px;color:var(--green);display:none">✓</span></td></tr>`;
   });
-  html+='</tbody></table></div><div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button onclick="saveAllItems()" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save all changes</button><span style="font-size:12px;color:var(--g400)">Last/Avg Purchase Qty are read-only from Vyapar bills</span></div>';
+  html+='</tbody></table></div><div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button onclick="saveAllItems()" style="height:36px;padding:0 18px;background:var(--pink);color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save all changes</button><span style="font-size:12px;color:var(--g400)">Last/Avg Purchase Qty are read-only from Vyapar bills</span></div>';
   body.innerHTML=html;
 }
 function markDirty(itemId) { const sb=document.getElementById(`ic-save-${itemId}`),sv=document.getElementById(`ic-saved-${itemId}`); if(sb)sb.style.display='inline-block'; if(sv)sv.style.display='none'; const sa=document.querySelector('[onclick="saveAllItems()"]'); if(sa)sa.style.background='var(--amber)'; }
@@ -1101,6 +1118,13 @@ async function genPDF(sessionId,poNum,btn) {
 // ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
 const SB_URL_SPIN  = SB_URL;
 const SB_ANON_SPIN = SB_ANON;
+let spinPrizes = [];
+
+
+// ── SPIN WHEEL ADMIN ──────────────────────────────────────────────────────────
+const SB_URL_SPIN  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
+const SB_ANON_SPIN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
+
 let spinPrizes = [];
 
 async function loadSpinTab() {
