@@ -179,7 +179,7 @@ canvas#wheel{display:block;border-radius:50%;box-shadow:0 0 0 6px rgba(255,255,2
     <img class="prize-oil-img" src="MRGOLD.webp" alt="Mr Gold Sunflower Oil 5L">
     <div>
       <div class="prize-strip-label">&#x1F3C6; Grand Prize &mdash; Spin to WIN</div>
-      <div class="prize-strip-title">Mr Gold Sunflower Oil<br>5L Can &mdash; <em>Chance to win!</em></div>
+      <div class="prize-strip-title">Mr Gold Sunflower Oil<br>5L Can &mdash; <em>Chance to win for FREE!</em></div>
       <div class="prize-strip-sub">Purchase <strong>&#8377;1,499+</strong> to claim your prize</div>
     </div>
   </div>
@@ -193,7 +193,7 @@ canvas#wheel{display:block;border-radius:50%;box-shadow:0 0 0 6px rgba(255,255,2
   <div class="footer">
     One spin per WhatsApp number &middot; Valid May 2026 only<br>
     Show your winning screen at the billing counter to claim<br>
-    <strong>Pink Supermarket</strong> &mdash; PONDY MAIN ROAD, KANDAMANGALAM
+    <strong>Pink Supermarket</strong> &mdash; KANDAMANGALAM
   </div>
 </div>
 
@@ -439,9 +439,11 @@ async function handleVerify() {
 }
 
 function getWinner(){
-  const total=prizes.reduce((a,p)=>a+Number(p.probability),0);
-  const r=Math.random()*total; let cum=0;
-  for(const p of prizes){ cum+=Number(p.probability); if(r<=cum) return p; }
+  // Probability weights control who wins
+  const total = prizes.reduce((a,p) => a + Number(p.probability), 0);
+  const r = Math.random() * total;
+  let cum = 0;
+  for(const p of prizes){ cum += Number(p.probability); if(r <= cum) return p; }
   return prizes[prizes.length-1];
 }
 
@@ -465,14 +467,12 @@ function spinWheel(){
   spinning=true;
   document.getElementById('spinBtn').disabled=true;
   initAudio();
-  const winner=getWinner();
-  const total=prizes.reduce((a,p)=>a+Number(p.probability),0);
-  let wAngle=0,cum=0;
-  for(const p of prizes){
-    const s=(Number(p.probability)/total)*2*Math.PI;
-    if(p.id===winner.id){wAngle=cum+s/2;break;}
-    cum+=s;
-  }
+  const winner = getWinner();
+  // Visual slices are EQUAL (1/N each) — arrow angle must match this
+  const slice = (2 * Math.PI) / prizes.length;
+  const winnerIdx = prizes.findIndex(p => p.id === winner.id);
+  // Center of winner's visual slice (equal slices start at -PI/2 in drawWheel)
+  const wAngle = winnerIdx * slice + slice / 2;
   const target=-wAngle+Math.PI*2*8+Math.PI*1.5;
   const dur=4800,t0=performance.now(),startA=currentAngle;
   let lastTick=0;
