@@ -141,8 +141,8 @@ canvas#wheel{display:block;border-radius:50%;box-shadow:0 0 0 6px rgba(255,255,2
       <div class="modal-desc">Enter your WhatsApp number to unlock your free spin.<br>One spin per number &middot; May 2026 only.</div>
       <div class="ph-row">
         <input class="ph-input" id="phoneInput" type="tel" inputmode="numeric" placeholder="98765 43210" maxlength="10">
+        <button class="ph-btn" onclick="handleVerify()">Play &#9654;</button>
       </div>
-      <button class="ph-btn" style="width:100%;margin-bottom:8px" onclick="handleVerify()">Play &#9654;</button>
       <div class="ph-err" id="phoneErr">Please enter a valid 10-digit mobile number</div>
       <p class="modal-terms">By playing you agree to Pink Supermarket's offer terms &amp; conditions</p>
     </div>
@@ -243,7 +243,7 @@ canvas#wheel{display:block;border-radius:50%;box-shadow:0 0 0 6px rgba(255,255,2
 const SB_URL  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
 const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
 
-let prizes = [], currentAngle = 0, spinning = false, verified = false, playedPhone = null;
+let prizes = [], currentAngle = 0, spinning = false, verified = false, playedPhone = null, hasPlayed = false;
 
 const canvas = document.getElementById('wheel');
 const ctx    = canvas.getContext('2d');
@@ -501,13 +501,24 @@ async function savePlay(phone, prize) {
   const claimCode = String(Math.floor(100000 + Math.random() * 900000));
 
   // 1. Save spin record with claim code — return=representation to get the id
+  let playId = null;
   const r = await fetch(`${SB_URL}/rest/v1/spin_plays`,{
     method:'POST',
     headers:{apikey:SB_ANON,'Content-Type':'application/json','Prefer':'return=representation'},
     body:JSON.stringify({phone, prize_id:prize.id, prize_label:prize.label, prize_emoji:prize.emoji, claim_code:claimCode})
   });
-  const rows = await r.json().catch(()=>[]);
-  const playId = Array.isArray(rows) ? rows[0]?.id : rows?.id;
+  if (r.ok) {
+    const rows = await r.json().catch(()=>[]);
+    playId = Array.isArray(rows) ? rows[0]?.id : rows?.id;
+  } else {
+    // Duplicate phone — fetch existing record
+    const existing = await fetch(`${SB_URL}/rest/v1/spin_plays?phone=eq.${phone}&select=id,claim_code`,
+      {headers:{apikey:SB_ANON}}).then(x=>x.json()).catch(()=>[]);
+    if (existing[0]) {
+      playId = existing[0].id;
+      window._claimCode = existing[0].claim_code || claimCode;
+    }
+  }
 
   // Store code globally so win overlay can show it
   window._claimCode = claimCode;
@@ -518,12 +529,18 @@ async function savePlay(phone, prize) {
     headers:{apikey:SB_ANON,'Content-Type':'application/json'},
     body:JSON.stringify({phone, prize_label:prize.label, prize_emoji:prize.emoji, play_id:playId})
   }).catch(e=>console.warn('[spin-notify]',e));
+  // Mark as played to prevent re-spin
+  hasPlayed = true;
+  document.getElementById('spinBtn').disabled = true;
 }
 
 function spinWheel(){
-  if(spinning||!verified||!prizes.length)return;
+  if(spinning||!verified||!prizes.length||hasPlayed)return;
+  // Lock immediately — prevent ANY second call during animation or savePlay
   spinning=true;
+  hasPlayed=true;
   document.getElementById('spinBtn').disabled=true;
+  canvas.style.cursor='default';
   initAudio();
   const winner = getWinner();
   // Equal visual slices — N prizes, each slice = 2PI/N
@@ -554,6 +571,8 @@ function spinWheel(){
     if(t<1){requestAnimationFrame(anim);}
     else{
       spinning=false;
+      hasPlayed=true;
+      document.getElementById('spinBtn').disabled=true;
       savePlay(playedPhone,winner);
       if(musicOn)playWin();
       spawnSparkles();
@@ -593,7 +612,7 @@ loadPrizes();
 
 // Tap wheel center to spin
 canvas.addEventListener('click', function(e) {
-  if (!verified || spinning || prizes.length === 0) return;
+  if (!verified || spinning || prizes.length === 0 || hasPlayed) return;
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left - canvas.width / 2;
   const y = e.clientY - rect.top  - canvas.height / 2;
@@ -601,7 +620,7 @@ canvas.addEventListener('click', function(e) {
   if (Math.sqrt(x*x + y*y) <= hubR) spinWheel();
 });
 canvas.addEventListener('touchend', function(e) {
-  if (!verified || spinning || prizes.length === 0) return;
+  if (!verified || spinning || prizes.length === 0 || hasPlayed) return;
   const t = e.changedTouches[0];
   const rect = canvas.getBoundingClientRect();
   const x = t.clientX - rect.left - canvas.width / 2;
