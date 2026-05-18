@@ -1,158 +1,197 @@
 <!DOCTYPE html>
-<!-- Pink Supermarket · TV Display Client · Portrait 1080×1920 -->
+<!-- Pink Supermarket · TV Display · Portrait on landscape Android TV -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1080, initial-scale=1.0">
+<meta name="viewport" content="width=1920, initial-scale=1.0">
 <title>Pink Display</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    background:#0d0d0d;
-    width:1080px; height:1920px;
-    overflow:hidden;
-    font-family:'DM Sans',system-ui,sans-serif;
-    cursor:none;
+
+  /*
+    Android TV screen is physically LANDSCAPE: 1920×1080px.
+    We want PORTRAIT: 1080×1920px.
+    Strategy:
+      1. Set html/body to the physical landscape size (1920×1080)
+      2. Create #root at portrait size (1080×1920)
+      3. Rotate #root 90° clockwise + translate so it fills the screen
+  */
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: #0d0d0d;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    cursor: none;
   }
 
-  /* ── MEDIA LAYERS ── */
-  #display { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  #root {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1080px;
+    height: 1920px;
+    transform-origin: top left;
+    /* rotate 90° CW, then shift right by 1920px to stay in viewport */
+    transform: rotate(90deg) translateY(-1080px);
+    overflow: hidden;
+    background: #0d0d0d;
+  }
+
+  /* ── DISPLAY AREA ── */
+  #display {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
   #media-img {
-    width:1080px; height:1920px;
-    object-fit:contain; display:none; background:#000;
+    width: 1080px; height: 1920px;
+    object-fit: contain; background: #000;
+    display: none;
   }
   #media-video {
-    width:1080px; height:1920px;
-    object-fit:contain; display:none; background:#000;
+    width: 1080px; height: 1920px;
+    object-fit: contain; background: #000;
+    display: none;
   }
   #media-iframe {
-    width:1080px; height:1920px;
-    border:none; display:none; background:#fff;
+    width: 1080px; height: 1920px;
+    border: none; background: #fff;
+    display: none;
   }
 
   /* ── STANDBY ── */
   #standby {
-    position:absolute; inset:0;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at 50% 42%, #200813 0%, #0d0d0d 60%);
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 42%, #200813 0%, #0d0d0d 60%);
   }
   .sb-ring {
-    width:220px; height:220px; border-radius:50%;
-    border:5px solid #e8446a;
-    display:flex; align-items:center; justify-content:center;
-    position:relative;
-    animation:pulse 4s ease-in-out infinite;
-    margin-bottom:52px;
+    width: 220px; height: 220px; border-radius: 50%;
+    border: 5px solid #e8446a;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    animation: pulse 4s ease-in-out infinite;
+    margin-bottom: 52px;
   }
   .sb-ring::before {
-    content:''; position:absolute; inset:-20px; border-radius:50%;
-    border:2px solid rgba(232,68,106,0.22);
-    animation:pulse 4s ease-in-out infinite 0.7s;
+    content: ''; position: absolute; inset: -20px; border-radius: 50%;
+    border: 2px solid rgba(232,68,106,0.22);
+    animation: pulse 4s ease-in-out infinite 0.7s;
   }
   .sb-ring::after {
-    content:''; position:absolute; inset:-42px; border-radius:50%;
-    border:1px solid rgba(232,68,106,0.08);
-    animation:pulse 4s ease-in-out infinite 1.4s;
+    content: ''; position: absolute; inset: -42px; border-radius: 50%;
+    border: 1px solid rgba(232,68,106,0.08);
+    animation: pulse 4s ease-in-out infinite 1.4s;
   }
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.04)} }
+  .sb-initial { font-size: 88px; font-weight: 800; color: #e8446a; line-height: 1; }
+  .sb-name    { font-size: 48px; font-weight: 700; color: rgba(255,255,255,0.75); margin-bottom: 12px; }
+  .sb-label   { font-size: 18px; color: rgba(255,255,255,0.2); letter-spacing: 8px; text-transform: uppercase; }
 
-  .sb-initial { font-size:88px; font-weight:800; color:#e8446a; line-height:1; }
-  .sb-name    { font-size:48px; font-weight:700; color:rgba(255,255,255,0.75); margin-bottom:12px; letter-spacing:-1px; }
-  .sb-label   { font-size:18px; color:rgba(255,255,255,0.2); letter-spacing:8px; text-transform:uppercase; }
+  /* ── FADE OVERLAY ── */
+  #fade {
+    position: absolute; inset: 0; z-index: 100;
+    background: #0d0d0d; pointer-events: none;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  #fade.on { opacity: 1; }
+
+  /* ── CONTENT LABEL ── */
+  #content-label {
+    position: absolute; top: 44px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(232,68,106,.92); color: #fff;
+    font-size: 22px; font-weight: 700;
+    padding: 12px 36px; border-radius: 50px;
+    letter-spacing: 1px; z-index: 150;
+    opacity: 0; transition: opacity 0.4s;
+    white-space: nowrap; max-width: 900px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  #content-label.show { opacity: 1; }
 
   /* ── STATUS BAR ── */
   #statusbar {
-    position:fixed; bottom:0; left:0; right:0; height:60px;
-    background:rgba(0,0,0,0.88); backdrop-filter:blur(16px);
-    display:flex; align-items:center; justify-content:space-between;
-    padding:0 44px;
-    opacity:0; transition:opacity 0.5s; z-index:200;
+    position: absolute; bottom: 0; left: 0;
+    width: 1080px; height: 60px;
+    background: rgba(0,0,0,0.88); backdrop-filter: blur(16px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 44px; z-index: 200;
+    opacity: 0; transition: opacity 0.5s;
   }
-  #statusbar.show { opacity:1; }
+  #statusbar.show { opacity: 1; }
   .sb-dot {
-    width:12px; height:12px; border-radius:50%; background:#e8446a;
-    animation:blink 2s ease-in-out infinite; margin-right:14px; flex-shrink:0;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #e8446a; flex-shrink: 0; margin-right: 14px;
+    animation: blink 2s ease-in-out infinite;
   }
-  .sb-dot.live  { background:#22c55e; animation:none; }
-  .sb-dot.error { background:#ef4444; animation:none; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.12} }
-  #sb-msg  { font-size:20px; color:rgba(255,255,255,.45); flex:1; }
-  #sb-time { font-size:20px; color:rgba(255,255,255,.2); font-variant-numeric:tabular-nums; }
-
-  /* ── LABEL BADGE ── */
-  #content-label {
-    position:fixed; top:44px; left:50%; transform:translateX(-50%);
-    background:rgba(232,68,106,.92); color:#fff;
-    font-size:22px; font-weight:700; padding:12px 36px; border-radius:50px;
-    letter-spacing:1px; opacity:0; transition:opacity 0.4s; z-index:150;
-    white-space:nowrap; max-width:900px; overflow:hidden; text-overflow:ellipsis;
-  }
-  #content-label.show { opacity:1; }
-
-  /* ── FADE ── */
-  #fade {
-    position:fixed; inset:0; background:#0d0d0d; z-index:100;
-    pointer-events:none; opacity:0; transition:opacity 0.5s;
-  }
-  #fade.on { opacity:1; }
+  .sb-dot.live  { background: #22c55e; animation: none; }
+  .sb-dot.error { background: #ef4444; animation: none; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+  #sb-msg  { font-size: 20px; color: rgba(255,255,255,.45); flex: 1; }
+  #sb-time { font-size: 20px; color: rgba(255,255,255,.2); font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
 
-<div id="fade"></div>
+<div id="root">
 
-<div id="display">
-  <div id="standby">
-    <div class="sb-ring"><span class="sb-initial">P</span></div>
-    <div class="sb-name">Pink Supermarket</div>
-    <div class="sb-label">Display · Ready</div>
+  <div id="fade"></div>
+
+  <div id="display">
+    <div id="standby">
+      <div class="sb-ring"><span class="sb-initial">P</span></div>
+      <div class="sb-name">Pink Supermarket</div>
+      <div class="sb-label">Display · Ready</div>
+    </div>
+    <img   id="media-img" alt="">
+    <video id="media-video" autoplay muted loop playsinline></video>
+    <iframe id="media-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
   </div>
-  <img    id="media-img" alt="">
-  <video  id="media-video" autoplay muted loop playsinline></video>
-  <iframe id="media-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-</div>
 
-<div id="content-label"></div>
+  <div id="content-label"></div>
 
-<div id="statusbar">
-  <span class="sb-dot" id="sb-dot"></span>
-  <span id="sb-msg">Connecting…</span>
-  <span id="sb-time"></span>
-</div>
+  <div id="statusbar">
+    <span class="sb-dot" id="sb-dot"></span>
+    <span id="sb-msg">Connecting…</span>
+    <span id="sb-time"></span>
+  </div>
+
+</div><!-- /#root -->
 
 <script>
-// ── CONFIG ────────────────────────────────────────────
+// ── CONFIG ─────────────────────────────────────────────
 const SUPABASE_URL  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
 const POLL_MS = 5000;
-// ─────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────
 
-let currentId  = null;
-let sbTimer    = null;
-let lblTimer   = null;
+let currentId = null, sbTimer = null, lblTimer = null;
 
-const fade     = document.getElementById('fade');
-const standby  = document.getElementById('standby');
-const imgEl    = document.getElementById('media-img');
-const videoEl  = document.getElementById('media-video');
-const ifrEl    = document.getElementById('media-iframe');
-const statusbar= document.getElementById('statusbar');
-const dotEl    = document.getElementById('sb-dot');
-const msgEl    = document.getElementById('sb-msg');
-const lblEl    = document.getElementById('content-label');
+const fade      = document.getElementById('fade');
+const standby   = document.getElementById('standby');
+const imgEl     = document.getElementById('media-img');
+const videoEl   = document.getElementById('media-video');
+const ifrEl     = document.getElementById('media-iframe');
+const statusbar = document.getElementById('statusbar');
+const dotEl     = document.getElementById('sb-dot');
+const msgEl     = document.getElementById('sb-msg');
+const lblEl     = document.getElementById('content-label');
 
 // Clock
 setInterval(() => {
   document.getElementById('sb-time').textContent =
-    new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 }, 1000);
 
 function showStatus(msg, type) {
-  dotEl.className = 'sb-dot ' + (type||'');
+  dotEl.className = 'sb-dot ' + (type || '');
   msgEl.textContent = msg;
   statusbar.classList.add('show');
   clearTimeout(sbTimer);
@@ -167,17 +206,17 @@ function flashLabel(text) {
 }
 
 function hideAll() {
-  standby.style.display  = 'none';
-  imgEl.style.display    = 'none';
-  videoEl.style.display  = 'none';
-  ifrEl.style.display    = 'none';
+  standby.style.display = 'none';
+  imgEl.style.display   = 'none';
+  videoEl.style.display = 'none';
+  ifrEl.style.display   = 'none';
 }
 
 function showStandby() { hideAll(); standby.style.display = 'flex'; }
 
 async function crossfade(fn) {
   fade.classList.add('on');
-  await new Promise(r => setTimeout(r, 520));
+  await new Promise(r => setTimeout(r, 500));
   fn();
   await new Promise(r => setTimeout(r, 60));
   fade.classList.remove('on');
@@ -188,7 +227,7 @@ function render(row) {
   currentId = row.id;
   crossfade(() => {
     hideAll();
-    if      (row.type === 'image') { imgEl.src = row.url; imgEl.style.display = 'block'; }
+    if      (row.type === 'image') { imgEl.src  = row.url; imgEl.style.display  = 'block'; }
     else if (row.type === 'video') { videoEl.src = row.url; videoEl.style.display = 'block'; videoEl.play().catch(()=>{}); }
     else if (row.type === 'html')  { ifrEl.src  = row.url; ifrEl.style.display  = 'block'; }
     const name = row.label || row.url.split('/').pop().split('?')[0] || row.type;
