@@ -1005,20 +1005,24 @@ async function tvInsert({type,url,label}){
 
 async function tvUploadFile(file){
   const prog=document.getElementById('tv-progress'),bar=document.getElementById('tv-progress-bar');
-  prog.classList.add('active'); bar.style.width='8%';
-  const ext=file.name.split('.').pop().toLowerCase(),slug=file.name.replace(/[^a-z0-9._-]/gi,'_').toLowerCase(),path=`uploads/${Date.now()}-${slug}`,type=tvDetectType(file);
-  await new Promise((resolve,reject)=>{
-    const xhr=new XMLHttpRequest();
-    xhr.upload.onprogress=e=>{if(e.lengthComputable)bar.style.width=(e.loaded/e.total*80)+'%';};
-    xhr.onload=()=>(xhr.status>=200&&xhr.status<300)?resolve():reject('Upload HTTP '+xhr.status);
-    xhr.onerror=()=>reject('Network error');
-    xhr.open('POST',`${SB_URL}/storage/v1/object/${TV_BUCKET}/${path}`);
-    xhr.setRequestHeader('apikey',SB_ANON);
-    if(sess) xhr.setRequestHeader('Authorization','Bearer '+sess.access_token);
-    xhr.setRequestHeader('Content-Type',file.type||'application/octet-stream');
-    xhr.send(file);
+  prog.classList.add('active'); bar.style.width='20%';
+  const ext=file.name.split('.').pop().toLowerCase();
+  const slug=file.name.replace(/[^a-z0-9._-]/gi,'_').toLowerCase();
+  const path=`uploads/${Date.now()}-${slug}`;
+  const type=tvDetectType(file);
+  const authHdr=await freshHdr();
+  bar.style.width='40%';
+  const up=await fetch(`${SB_URL}/storage/v1/object/${TV_BUCKET}/${path}`,{
+    method:'POST',
+    headers:{apikey:SB_ANON,...authHdr,'Content-Type':file.type||'application/octet-stream','x-upsert':'true'},
+    body:file
   });
-  bar.style.width='90%';
+  if(!up.ok){
+    const errText=await up.text().catch(()=>up.status);
+    prog.classList.remove('active'); bar.style.width='0%';
+    throw new Error('Storage '+up.status+': '+errText);
+  }
+  bar.style.width='80%';
   const publicUrl=`${SB_URL}/storage/v1/object/public/${TV_BUCKET}/${path}`;
   await tvInsert({type,url:publicUrl,label:file.name});
   bar.style.width='100%';
