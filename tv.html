@@ -1,44 +1,262 @@
 <!DOCTYPE html>
+<!-- Pink Supermarket · TV Display · Portrait 541×962 on Android TV -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TV Debug</title>
+<title>Pink Display</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#111; color:#fff; font-family:monospace; display:flex; align-items:center; justify-content:center; width:100vw; height:100vh; }
-  .box { background:#222; border:2px solid #e8446a; border-radius:16px; padding:40px; text-align:center; }
-  h1 { font-size:28px; color:#e8446a; margin-bottom:20px; }
-  .row { font-size:22px; margin:10px 0; }
-  .val { color:#4ade80; font-weight:bold; }
+
+  html, body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: #000;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    cursor: none;
+  }
+
+  /*
+    Actual browser viewport = 962 × 541 (landscape)
+    Portrait = 541 wide × 962 tall
+    Rotate 90° CW:
+      width  = 100vh = 541
+      height = 100vw = 962
+      transform: rotate(90deg) translateY(-100vh)
+  */
+  #root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vh;    /* 541px — portrait width  */
+    height: 100vw;   /* 962px — portrait height */
+    transform-origin: top left;
+    transform: rotate(90deg) translateY(-100vh);
+    overflow: hidden;
+    background: #000;
+  }
+
+  /* All layers: absolute, full size, stacked */
+  #standby,
+  #media-img,
+  #media-video,
+  #media-iframe,
+  #fade {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── STANDBY ── */
+  #standby {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 50% 42%, #200813 0%, #0d0d0d 60%);
+    z-index: 1;
+  }
+  .sb-ring {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    border: 4px solid #e8446a;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    animation: pulse 4s ease-in-out infinite;
+    margin-bottom: 28px;
+  }
+  .sb-ring::before {
+    content: ''; position: absolute; inset: -12px; border-radius: 50%;
+    border: 2px solid rgba(232,68,106,0.22);
+    animation: pulse 4s ease-in-out infinite 0.7s;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.04)} }
+  .sb-initial { font-size: 48px; font-weight: 800; color: #e8446a; }
+  .sb-name    { font-size: 24px; font-weight: 700; color: rgba(255,255,255,.75); margin-bottom: 8px; }
+  .sb-label   { font-size: 11px; color: rgba(255,255,255,.2); letter-spacing: 5px; text-transform: uppercase; }
+
+  /* ── IMAGE — cover full portrait screen ── */
+  #media-img {
+    object-fit: cover;
+    object-position: center center;
+    display: none;
+    z-index: 2;
+  }
+
+  /* ── VIDEO ── */
+  #media-video {
+    object-fit: cover;
+    object-position: center center;
+    display: none;
+    z-index: 2;
+  }
+
+  /* ── IFRAME ── */
+  #media-iframe {
+    border: none;
+    display: none;
+    z-index: 2;
+  }
+
+  /* ── FADE ── */
+  #fade {
+    background: #000;
+    opacity: 0;
+    transition: opacity 0.5s;
+    pointer-events: none;
+    z-index: 50;
+  }
+  #fade.on { opacity: 1; }
+
+  /* ── LABEL ── */
+  #content-label {
+    position: absolute;
+    top: 16px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(232,68,106,.92); color: #fff;
+    font-size: 13px; font-weight: 700;
+    padding: 6px 20px; border-radius: 50px;
+    z-index: 60; opacity: 0; transition: opacity 0.4s;
+    white-space: nowrap; max-width: 80%;
+    overflow: hidden; text-overflow: ellipsis;
+    pointer-events: none;
+  }
+  #content-label.show { opacity: 1; }
+
+  /* ── STATUS BAR ── */
+  #statusbar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 36px;
+    background: rgba(0,0,0,.88);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; z-index: 60;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  #statusbar.show { opacity: 1; }
+  .sb-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #e8446a; flex-shrink: 0; margin-right: 8px;
+    animation: blink 2s ease-in-out infinite;
+  }
+  .sb-dot.live  { background: #22c55e; animation: none; }
+  .sb-dot.error { background: #ef4444; animation: none; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+  #sb-msg  { font-size: 11px; color: rgba(255,255,255,.45); flex: 1; }
+  #sb-time { font-size: 11px; color: rgba(255,255,255,.2); font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
-<div class="box">
-  <h1>📺 Screen Debug</h1>
-  <div class="row">window.innerWidth: <span class="val" id="iw">—</span></div>
-  <div class="row">window.innerHeight: <span class="val" id="ih">—</span></div>
-  <div class="row">screen.width: <span class="val" id="sw">—</span></div>
-  <div class="row">screen.height: <span class="val" id="sh">—</span></div>
-  <div class="row">devicePixelRatio: <span class="val" id="dpr">—</span></div>
-  <div class="row">orientation: <span class="val" id="ori">—</span></div>
-  <div class="row">100vw × 100vh: <span class="val" id="vwvh">—</span></div>
-</div>
-<script>
-  document.getElementById('iw').textContent  = window.innerWidth;
-  document.getElementById('ih').textContent  = window.innerHeight;
-  document.getElementById('sw').textContent  = screen.width;
-  document.getElementById('sh').textContent  = screen.height;
-  document.getElementById('dpr').textContent = window.devicePixelRatio;
-  document.getElementById('ori').textContent = screen.orientation?.type || 'unknown';
+<div id="root">
 
-  // measure actual vw/vh via element
-  const d = document.createElement('div');
-  d.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;';
-  document.body.appendChild(d);
-  const r = d.getBoundingClientRect();
-  document.getElementById('vwvh').textContent = Math.round(r.width) + ' × ' + Math.round(r.height);
-  document.body.removeChild(d);
+  <div id="standby">
+    <div class="sb-ring"><span class="sb-initial">P</span></div>
+    <div class="sb-name">Pink Supermarket</div>
+    <div class="sb-label">Display · Ready</div>
+  </div>
+
+  <img   id="media-img" alt="">
+  <video id="media-video" autoplay muted loop playsinline></video>
+  <iframe id="media-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+
+  <div id="fade"></div>
+  <div id="content-label"></div>
+
+  <div id="statusbar">
+    <span class="sb-dot" id="sb-dot"></span>
+    <span id="sb-msg">Connecting…</span>
+    <span id="sb-time"></span>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
+const POLL_MS = 5000;
+
+let currentId = null, sbTimer = null, lblTimer = null;
+const fadeEl    = document.getElementById('fade');
+const standby   = document.getElementById('standby');
+const imgEl     = document.getElementById('media-img');
+const videoEl   = document.getElementById('media-video');
+const ifrEl     = document.getElementById('media-iframe');
+const statusbar = document.getElementById('statusbar');
+const dotEl     = document.getElementById('sb-dot');
+const msgEl     = document.getElementById('sb-msg');
+const lblEl     = document.getElementById('content-label');
+
+setInterval(() => {
+  document.getElementById('sb-time').textContent =
+    new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}, 1000);
+
+function showStatus(msg, type) {
+  dotEl.className = 'sb-dot ' + (type || '');
+  msgEl.textContent = msg;
+  statusbar.classList.add('show');
+  clearTimeout(sbTimer);
+  sbTimer = setTimeout(() => statusbar.classList.remove('show'), 5000);
+}
+
+function flashLabel(text) {
+  lblEl.textContent = text;
+  lblEl.classList.add('show');
+  clearTimeout(lblTimer);
+  lblTimer = setTimeout(() => lblEl.classList.remove('show'), 3500);
+}
+
+function hideAll() {
+  standby.style.display = 'none';
+  imgEl.style.display   = 'none';
+  videoEl.style.display = 'none';
+  ifrEl.style.display   = 'none';
+}
+
+function showStandby() { hideAll(); standby.style.display = 'flex'; }
+
+async function crossfade(fn) {
+  fadeEl.classList.add('on');
+  await new Promise(r => setTimeout(r, 500));
+  fn();
+  await new Promise(r => setTimeout(r, 60));
+  fadeEl.classList.remove('on');
+}
+
+function render(row) {
+  if (row.id === currentId) return;
+  currentId = row.id;
+  crossfade(() => {
+    hideAll();
+    if      (row.type === 'image') { imgEl.src  = row.url; imgEl.style.display  = 'block'; }
+    else if (row.type === 'video') { videoEl.src = row.url; videoEl.style.display = 'block'; videoEl.play().catch(()=>{}); }
+    else if (row.type === 'html')  { ifrEl.src  = row.url; ifrEl.style.display  = 'block'; }
+    const name = row.label || row.url.split('/').pop().split('?')[0] || row.type;
+    showStatus(name + ' · now playing', 'live');
+    flashLabel(row.label || name);
+  });
+}
+
+async function poll() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/tv_content?select=*&is_active=eq.true&order=pushed_at.desc&limit=1`,
+      { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = await res.json();
+    if (rows.length) render(rows[0]);
+    else if (!currentId) showStandby();
+  } catch(e) {
+    showStatus('Connection error — retrying', 'error');
+  }
+}
+
+showStandby();
+poll();
+setInterval(poll, POLL_MS);
 </script>
 </body>
 </html>
