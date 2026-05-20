@@ -2,47 +2,62 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
 <title>Pink Display</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
+
   html, body {
-    width: 100vw; height: 100vh;
-    overflow: hidden; background: #000;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: #000;
     font-family: 'DM Sans', system-ui, sans-serif;
     cursor: none;
   }
 
   /*
-    Landscape viewport: 961 × 541
-    Portrait target:    541 × 961
+    Physical TV: 1920 × 1080 landscape
+    Portrait canvas: 1080 wide × 1920 tall
     
-    #root = 541px wide × 961px tall
-    rotate(90deg) = pivots at top-left, element goes UP off screen
-    translateY(-541px) = shifts it back down into viewport
+    #root sits at top-left, sized 1080 × 1920
+    rotate(90deg) around top-left corner moves it off screen to the right
+    translateX(1920px) OR translateY(-1080px) brings it back
+    
+    After rotate(90deg) from top-left:
+      - old top-left  stays at (0,0)
+      - old top-right goes to (0, -1080)  ← goes up
+      - old bot-left  goes to (1920, 0)
+    
+    So we need: rotate(90deg) + shift down by 0, shift right by 0
+    Wait — correct formula:
+      transform: rotate(90deg) translateY(-1080px)
+    This rotates 90deg CW then shifts the element up by its own height (1080)
+    which places it perfectly in the 1920×1080 viewport.
   */
   #root {
     position: fixed;
-    top: 0; left: 0;
-    width: 541px;
-    height: 961px;
-    transform-origin: 0 0;
-    transform: rotate(90deg) translateY(-541px);
+    top: 0;
+    left: 0;
+    width: 1080px;
+    height: 1920px;
+    transform-origin: top left;
+    transform: rotate(90deg) translateY(-1080px);
     overflow: hidden;
     background: #000;
   }
 
-  /* All layers fill #root completely */
+  /* All layers fill #root */
   #standby,
   #media-img,
   #media-video,
   #media-iframe,
   #fade {
     position: absolute;
-    top: 0; left: 0;
-    width: 541px;
-    height: 961px;
+    inset: 0;
+    width: 1080px;
+    height: 1920px;
   }
 
   /* ── STANDBY ── */
@@ -53,25 +68,32 @@
     z-index: 1;
   }
   .sb-ring {
-    width: 100px; height: 100px; border-radius: 50%;
-    border: 4px solid #e8446a;
+    width: 200px; height: 200px; border-radius: 50%;
+    border: 5px solid #e8446a;
     display: flex; align-items: center; justify-content: center;
     position: relative;
     animation: pulse 4s ease-in-out infinite;
-    margin-bottom: 24px;
+    margin-bottom: 48px;
+  }
+  .sb-ring::before {
+    content:''; position:absolute; inset:-18px; border-radius:50%;
+    border:2px solid rgba(232,68,106,.2);
+    animation: pulse 4s ease-in-out infinite .7s;
   }
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.04)} }
-  .sb-initial { font-size: 42px; font-weight: 800; color: #e8446a; }
-  .sb-name    { font-size: 20px; font-weight: 700; color: rgba(255,255,255,.75); margin-bottom: 6px; }
-  .sb-label   { font-size: 10px; color: rgba(255,255,255,.2); letter-spacing: 4px; text-transform: uppercase; }
+  .sb-initial { font-size:80px; font-weight:800; color:#e8446a; }
+  .sb-name    { font-size:42px; font-weight:700; color:rgba(255,255,255,.75); margin-bottom:10px; }
+  .sb-label   { font-size:18px; color:rgba(255,255,255,.2); letter-spacing:8px; text-transform:uppercase; }
 
   /* ── MEDIA ── */
   #media-img {
-    object-fit: cover; object-position: center;
+    object-fit: cover;
+    object-position: center;
     display: none; z-index: 2;
   }
   #media-video {
-    object-fit: cover; object-position: center;
+    object-fit: cover;
+    object-position: center;
     display: none; z-index: 2;
   }
   #media-iframe {
@@ -88,13 +110,13 @@
 
   /* ── LABEL ── */
   #content-label {
-    position: absolute; top: 12px; left: 50%;
+    position: absolute; top: 32px; left: 50%;
     transform: translateX(-50%);
     background: rgba(232,68,106,.92); color: #fff;
-    font-size: 12px; font-weight: 700;
-    padding: 5px 18px; border-radius: 50px;
+    font-size: 22px; font-weight: 700;
+    padding: 10px 32px; border-radius: 50px;
     z-index: 60; opacity: 0; transition: opacity 0.4s;
-    white-space: nowrap; max-width: 460px;
+    white-space: nowrap; max-width: 900px;
     overflow: hidden; text-overflow: ellipsis;
     pointer-events: none;
   }
@@ -103,23 +125,23 @@
   /* ── STATUS BAR ── */
   #statusbar {
     position: absolute; bottom: 0; left: 0;
-    width: 541px; height: 32px;
+    width: 1080px; height: 52px;
     background: rgba(0,0,0,.9);
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 14px; z-index: 60;
+    padding: 0 32px; z-index: 60;
     opacity: 0; transition: opacity 0.5s;
   }
   #statusbar.show { opacity: 1; }
   .sb-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: #e8446a; flex-shrink: 0; margin-right: 8px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #e8446a; flex-shrink: 0; margin-right: 12px;
     animation: blink 2s ease-in-out infinite;
   }
   .sb-dot.live  { background: #22c55e; animation: none; }
   .sb-dot.error { background: #ef4444; animation: none; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
-  #sb-msg  { font-size: 10px; color: rgba(255,255,255,.4); flex: 1; }
-  #sb-time { font-size: 10px; color: rgba(255,255,255,.2); }
+  #sb-msg  { font-size: 18px; color: rgba(255,255,255,.4); flex: 1; }
+  #sb-time { font-size: 18px; color: rgba(255,255,255,.2); font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
