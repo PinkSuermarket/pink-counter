@@ -6,40 +6,65 @@
 <title>TV Size Debug</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body {
+  html, body { width:100vw; height:100vh; overflow:hidden; background:#000; font-family:monospace; cursor:none; }
+
+  #root {
+    position: fixed;
+    top: 0; left: 0;
+    transform-origin: 0 0;
     background: #000;
-    color: #fff;
-    font-family: monospace;
-    font-size: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100vw;
-    height: 100vh;
   }
+
   .box {
     background: #111;
     border: 3px solid #e8446a;
     border-radius: 20px;
     padding: 40px 60px;
     text-align: center;
-    line-height: 2;
+    line-height: 2.2;
+    font-size: 28px;
+    color: #fff;
   }
-  span { color: #4ade80; font-size: 36px; font-weight: bold; }
+  .val { color: #4ade80; font-size: 36px; font-weight: bold; display: block; }
+  h2 { color: #e8446a; font-size: 32px; margin-bottom: 16px; }
 </style>
 </head>
 <body>
-<div class="box">
-  <div>innerWidth: <span id="w">—</span></div>
-  <div>innerHeight: <span id="h">—</span></div>
-  <div>Portrait would be:</div>
-  <div>W=<span id="pw">—</span> H=<span id="ph">—</span></div>
+<div id="root">
+  <div class="box">
+    <h2>📺 Screen Debug (Portrait)</h2>
+    <div>Landscape W × H</div>
+    <span class="val" id="lnd">—</span>
+    <div>Portrait W × H (after rotate)</div>
+    <span class="val" id="prt">—</span>
+    <div>#root size</div>
+    <span class="val" id="rts">—</span>
+  </div>
 </div>
+
 <script>
-  document.getElementById('w').textContent  = window.innerWidth;
-  document.getElementById('h').textContent  = window.innerHeight;
-  document.getElementById('pw').textContent = window.innerHeight;
-  document.getElementById('ph').textContent = window.innerWidth;
+function applyPortrait() {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const root = document.getElementById('root');
+
+  // Portrait: swap W and H
+  root.style.width  = H + 'px';
+  root.style.height = W + 'px';
+
+  // Rotate 90deg CW: after rotation, move left by H px to stay in viewport
+  root.style.transform = `rotate(90deg) translateY(-${H}px)`;
+
+  document.getElementById('lnd').textContent = W + ' × ' + H;
+  document.getElementById('prt').textContent = H + ' × ' + W;
+  document.getElementById('rts').textContent = root.offsetWidth + ' × ' + root.offsetHeight;
+}
+
+applyPortrait();
+window.addEventListener('resize', applyPortrait);
 </script>
 </body>
 </html>
