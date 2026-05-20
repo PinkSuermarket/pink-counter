@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Pink Supermarket · TV Display · Portrait 541×962 on Android TV -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -8,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-
   html, body {
     width: 100vw;
     height: 100vh;
@@ -19,26 +17,38 @@
   }
 
   /*
-    Actual browser viewport = 962 × 541 (landscape)
-    Portrait = 541 wide × 962 tall
-    Rotate 90° CW:
-      width  = 100vh = 541
-      height = 100vw = 962
-      transform: rotate(90deg) translateY(-100vh)
+    Viewport = 962 × 541 (landscape)
+    We want portrait = 541 × 962
+    
+    Step 1: #root is 541px wide × 962px tall (portrait size)
+    Step 2: rotate(90deg) — pivots around top-left corner
+            After rotation, top-left stays at (0,0)
+            The element now occupies x:[0..962], y:[-541..0]
+            (it went UP above the viewport)
+    Step 3: translateX(0) translateY(541px) — shift it DOWN back into view
+            OR use: rotate(90deg) translateX(0) translateY(-541px) 
+            
+    Correct transform: rotate(90deg) translateY(-100%)
+    where 100% = height of #root = 962px... NO
+    
+    Actually the cleanest:
+    - translate AFTER rotate in the element's NEW coordinate system
+    - After rotate(90deg), the element's Y axis points LEFT on screen
+    - translateY(-100%) moves it 962px in that direction = 962px LEFT
+    
+    SIMPLEST WORKING APPROACH:
+    Don't rotate. Instead use writing-mode or just use JS to set exact px.
   */
+
+  /* No rotation tricks — use JS to set exact dimensions after measuring */
   #root {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vh;    /* 541px — portrait width  */
-    height: 100vw;   /* 962px — portrait height */
-    transform-origin: top left;
-    transform: rotate(90deg) translateY(-100vh);
+    top: 0; left: 0;
+    transform-origin: 0 0;
     overflow: hidden;
     background: #000;
   }
 
-  /* All layers: absolute, full size, stacked */
   #standby,
   #media-img,
   #media-video,
@@ -50,7 +60,6 @@
     height: 100%;
   }
 
-  /* ── STANDBY ── */
   #standby {
     display: flex;
     flex-direction: column;
@@ -60,76 +69,42 @@
     z-index: 1;
   }
   .sb-ring {
-    width: 120px; height: 120px;
-    border-radius: 50%;
+    width: 120px; height: 120px; border-radius: 50%;
     border: 4px solid #e8446a;
     display: flex; align-items: center; justify-content: center;
     position: relative;
     animation: pulse 4s ease-in-out infinite;
     margin-bottom: 28px;
   }
-  .sb-ring::before {
-    content: ''; position: absolute; inset: -12px; border-radius: 50%;
-    border: 2px solid rgba(232,68,106,0.22);
-    animation: pulse 4s ease-in-out infinite 0.7s;
-  }
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.04)} }
   .sb-initial { font-size: 48px; font-weight: 800; color: #e8446a; }
-  .sb-name    { font-size: 24px; font-weight: 700; color: rgba(255,255,255,.75); margin-bottom: 8px; }
+  .sb-name    { font-size: 22px; font-weight: 700; color: rgba(255,255,255,.75); margin-bottom: 8px; }
   .sb-label   { font-size: 11px; color: rgba(255,255,255,.2); letter-spacing: 5px; text-transform: uppercase; }
 
-  /* ── IMAGE — cover full portrait screen ── */
-  #media-img {
-    object-fit: cover;
-    object-position: center center;
-    display: none;
-    z-index: 2;
-  }
+  #media-img   { object-fit: cover; object-position: center; display: none; z-index: 2; }
+  #media-video { object-fit: cover; object-position: center; display: none; z-index: 2; }
+  #media-iframe{ border: none; display: none; z-index: 2; }
 
-  /* ── VIDEO ── */
-  #media-video {
-    object-fit: cover;
-    object-position: center center;
-    display: none;
-    z-index: 2;
-  }
-
-  /* ── IFRAME ── */
-  #media-iframe {
-    border: none;
-    display: none;
-    z-index: 2;
-  }
-
-  /* ── FADE ── */
   #fade {
-    background: #000;
-    opacity: 0;
-    transition: opacity 0.5s;
-    pointer-events: none;
-    z-index: 50;
+    background: #000; opacity: 0;
+    transition: opacity 0.5s; pointer-events: none; z-index: 50;
   }
   #fade.on { opacity: 1; }
 
-  /* ── LABEL ── */
   #content-label {
-    position: absolute;
-    top: 16px; left: 50%;
+    position: absolute; top: 16px; left: 50%;
     transform: translateX(-50%);
     background: rgba(232,68,106,.92); color: #fff;
     font-size: 13px; font-weight: 700;
     padding: 6px 20px; border-radius: 50px;
     z-index: 60; opacity: 0; transition: opacity 0.4s;
     white-space: nowrap; max-width: 80%;
-    overflow: hidden; text-overflow: ellipsis;
-    pointer-events: none;
+    overflow: hidden; text-overflow: ellipsis; pointer-events: none;
   }
   #content-label.show { opacity: 1; }
 
-  /* ── STATUS BAR ── */
   #statusbar {
-    position: absolute;
-    bottom: 0; left: 0; right: 0; height: 36px;
+    position: absolute; bottom: 0; left: 0; right: 0; height: 36px;
     background: rgba(0,0,0,.88);
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 16px; z-index: 60;
@@ -145,34 +120,48 @@
   .sb-dot.error { background: #ef4444; animation: none; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
   #sb-msg  { font-size: 11px; color: rgba(255,255,255,.45); flex: 1; }
-  #sb-time { font-size: 11px; color: rgba(255,255,255,.2); font-variant-numeric: tabular-nums; }
+  #sb-time { font-size: 11px; color: rgba(255,255,255,.2); }
 </style>
 </head>
 <body>
 <div id="root">
-
   <div id="standby">
     <div class="sb-ring"><span class="sb-initial">P</span></div>
     <div class="sb-name">Pink Supermarket</div>
     <div class="sb-label">Display · Ready</div>
   </div>
-
   <img   id="media-img" alt="">
   <video id="media-video" autoplay muted loop playsinline></video>
   <iframe id="media-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-
   <div id="fade"></div>
   <div id="content-label"></div>
-
   <div id="statusbar">
     <span class="sb-dot" id="sb-dot"></span>
     <span id="sb-msg">Connecting…</span>
     <span id="sb-time"></span>
   </div>
-
 </div>
 
 <script>
+// ── PORTRAIT ROTATION via JS (uses exact measured pixels) ──────────────────
+function applyPortrait() {
+  const W = window.innerWidth;   // landscape width  e.g. 962
+  const H = window.innerHeight;  // landscape height e.g. 541
+  const root = document.getElementById('root');
+
+  // Portrait: width=H, height=W  (e.g. 541 × 962)
+  root.style.width  = H + 'px';
+  root.style.height = W + 'px';
+
+  // Rotate 90° CW around top-left, then shift right by H px
+  // so the rotated box sits exactly in the viewport top-left corner
+  root.style.transform = `rotate(90deg) translateY(-${H}px)`;
+}
+
+applyPortrait();
+window.addEventListener('resize', applyPortrait);
+
+// ── SUPABASE POLL ──────────────────────────────────────────────────────────
 const SUPABASE_URL  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
 const POLL_MS = 5000;
@@ -230,9 +219,9 @@ function render(row) {
   currentId = row.id;
   crossfade(() => {
     hideAll();
-    if      (row.type === 'image') { imgEl.src  = row.url; imgEl.style.display  = 'block'; }
-    else if (row.type === 'video') { videoEl.src = row.url; videoEl.style.display = 'block'; videoEl.play().catch(()=>{}); }
-    else if (row.type === 'html')  { ifrEl.src  = row.url; ifrEl.style.display  = 'block'; }
+    if      (row.type === 'image') { imgEl.src   = row.url; imgEl.style.display   = 'block'; }
+    else if (row.type === 'video') { videoEl.src  = row.url; videoEl.style.display  = 'block'; videoEl.play().catch(()=>{}); }
+    else if (row.type === 'html')  { ifrEl.src   = row.url; ifrEl.style.display   = 'block'; }
     const name = row.label || row.url.split('/').pop().split('?')[0] || row.type;
     showStatus(name + ' · now playing', 'live');
     flashLabel(row.label || name);
