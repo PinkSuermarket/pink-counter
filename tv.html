@@ -3,68 +3,232 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TV Size Debug</title>
+<title>Pink Display</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { width:100vw; height:100vh; overflow:hidden; background:#000; font-family:monospace; cursor:none; }
+  html, body {
+    width: 100vw; height: 100vh;
+    overflow: hidden; background: #000;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    cursor: none;
+  }
 
+  /*
+    Landscape viewport: 961 × 541
+    Portrait target:    541 × 961
+    
+    #root = 541px wide × 961px tall
+    rotate(90deg) = pivots at top-left, element goes UP off screen
+    translateY(-541px) = shifts it back down into viewport
+  */
   #root {
     position: fixed;
     top: 0; left: 0;
+    width: 541px;
+    height: 961px;
     transform-origin: 0 0;
+    transform: rotate(90deg) translateY(-541px);
+    overflow: hidden;
     background: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
-  .box {
-    background: #111;
-    border: 3px solid #e8446a;
-    border-radius: 20px;
-    padding: 40px 60px;
-    text-align: center;
-    line-height: 2.2;
-    font-size: 28px;
-    color: #fff;
+  /* All layers fill #root completely */
+  #standby,
+  #media-img,
+  #media-video,
+  #media-iframe,
+  #fade {
+    position: absolute;
+    top: 0; left: 0;
+    width: 541px;
+    height: 961px;
   }
-  .val { color: #4ade80; font-size: 36px; font-weight: bold; display: block; }
-  h2 { color: #e8446a; font-size: 32px; margin-bottom: 16px; }
+
+  /* ── STANDBY ── */
+  #standby {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 42%, #200813 0%, #0d0d0d 60%);
+    z-index: 1;
+  }
+  .sb-ring {
+    width: 100px; height: 100px; border-radius: 50%;
+    border: 4px solid #e8446a;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    animation: pulse 4s ease-in-out infinite;
+    margin-bottom: 24px;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.04)} }
+  .sb-initial { font-size: 42px; font-weight: 800; color: #e8446a; }
+  .sb-name    { font-size: 20px; font-weight: 700; color: rgba(255,255,255,.75); margin-bottom: 6px; }
+  .sb-label   { font-size: 10px; color: rgba(255,255,255,.2); letter-spacing: 4px; text-transform: uppercase; }
+
+  /* ── MEDIA ── */
+  #media-img {
+    object-fit: cover; object-position: center;
+    display: none; z-index: 2;
+  }
+  #media-video {
+    object-fit: cover; object-position: center;
+    display: none; z-index: 2;
+  }
+  #media-iframe {
+    border: none; display: none; z-index: 2;
+  }
+
+  /* ── FADE ── */
+  #fade {
+    background: #000; opacity: 0;
+    transition: opacity 0.5s;
+    pointer-events: none; z-index: 50;
+  }
+  #fade.on { opacity: 1; }
+
+  /* ── LABEL ── */
+  #content-label {
+    position: absolute; top: 12px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(232,68,106,.92); color: #fff;
+    font-size: 12px; font-weight: 700;
+    padding: 5px 18px; border-radius: 50px;
+    z-index: 60; opacity: 0; transition: opacity 0.4s;
+    white-space: nowrap; max-width: 460px;
+    overflow: hidden; text-overflow: ellipsis;
+    pointer-events: none;
+  }
+  #content-label.show { opacity: 1; }
+
+  /* ── STATUS BAR ── */
+  #statusbar {
+    position: absolute; bottom: 0; left: 0;
+    width: 541px; height: 32px;
+    background: rgba(0,0,0,.9);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; z-index: 60;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  #statusbar.show { opacity: 1; }
+  .sb-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #e8446a; flex-shrink: 0; margin-right: 8px;
+    animation: blink 2s ease-in-out infinite;
+  }
+  .sb-dot.live  { background: #22c55e; animation: none; }
+  .sb-dot.error { background: #ef4444; animation: none; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+  #sb-msg  { font-size: 10px; color: rgba(255,255,255,.4); flex: 1; }
+  #sb-time { font-size: 10px; color: rgba(255,255,255,.2); }
 </style>
 </head>
 <body>
 <div id="root">
-  <div class="box">
-    <h2>📺 Screen Debug (Portrait)</h2>
-    <div>Landscape W × H</div>
-    <span class="val" id="lnd">—</span>
-    <div>Portrait W × H (after rotate)</div>
-    <span class="val" id="prt">—</span>
-    <div>#root size</div>
-    <span class="val" id="rts">—</span>
+  <div id="standby">
+    <div class="sb-ring"><span class="sb-initial">P</span></div>
+    <div class="sb-name">Pink Supermarket</div>
+    <div class="sb-label">Display · Ready</div>
+  </div>
+
+  <img   id="media-img" alt="">
+  <video id="media-video" autoplay muted loop playsinline></video>
+  <iframe id="media-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+
+  <div id="fade"></div>
+  <div id="content-label"></div>
+
+  <div id="statusbar">
+    <span class="sb-dot" id="sb-dot"></span>
+    <span id="sb-msg">Connecting…</span>
+    <span id="sb-time"></span>
   </div>
 </div>
 
 <script>
-function applyPortrait() {
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-  const root = document.getElementById('root');
+const SUPABASE_URL  = 'https://gllmdqytlgcozrpsusvt.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbG1kcXl0bGdjb3pycHN1c3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE1ODIsImV4cCI6MjA4NzU1NzU4Mn0.VDOsR8-8VRcXZ5wxUMS5u6FrT1WwcUT-LtKcAYztGZM';
+const POLL_MS = 5000;
 
-  // Portrait: swap W and H
-  root.style.width  = H + 'px';
-  root.style.height = W + 'px';
+let currentId = null, sbTimer = null, lblTimer = null;
+const fadeEl    = document.getElementById('fade');
+const standby   = document.getElementById('standby');
+const imgEl     = document.getElementById('media-img');
+const videoEl   = document.getElementById('media-video');
+const ifrEl     = document.getElementById('media-iframe');
+const statusbar = document.getElementById('statusbar');
+const dotEl     = document.getElementById('sb-dot');
+const msgEl     = document.getElementById('sb-msg');
+const lblEl     = document.getElementById('content-label');
 
-  // Rotate 90deg CW: after rotation, move left by H px to stay in viewport
-  root.style.transform = `rotate(90deg) translateY(-${H}px)`;
+setInterval(() => {
+  document.getElementById('sb-time').textContent =
+    new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}, 1000);
 
-  document.getElementById('lnd').textContent = W + ' × ' + H;
-  document.getElementById('prt').textContent = H + ' × ' + W;
-  document.getElementById('rts').textContent = root.offsetWidth + ' × ' + root.offsetHeight;
+function showStatus(msg, type) {
+  dotEl.className = 'sb-dot ' + (type || '');
+  msgEl.textContent = msg;
+  statusbar.classList.add('show');
+  clearTimeout(sbTimer);
+  sbTimer = setTimeout(() => statusbar.classList.remove('show'), 5000);
 }
 
-applyPortrait();
-window.addEventListener('resize', applyPortrait);
+function flashLabel(text) {
+  lblEl.textContent = text;
+  lblEl.classList.add('show');
+  clearTimeout(lblTimer);
+  lblTimer = setTimeout(() => lblEl.classList.remove('show'), 3500);
+}
+
+function hideAll() {
+  standby.style.display = 'none';
+  imgEl.style.display   = 'none';
+  videoEl.style.display = 'none';
+  ifrEl.style.display   = 'none';
+}
+
+function showStandby() { hideAll(); standby.style.display = 'flex'; }
+
+async function crossfade(fn) {
+  fadeEl.classList.add('on');
+  await new Promise(r => setTimeout(r, 500));
+  fn();
+  await new Promise(r => setTimeout(r, 60));
+  fadeEl.classList.remove('on');
+}
+
+function render(row) {
+  if (row.id === currentId) return;
+  currentId = row.id;
+  crossfade(() => {
+    hideAll();
+    if      (row.type === 'image') { imgEl.src  = row.url; imgEl.style.display  = 'block'; }
+    else if (row.type === 'video') { videoEl.src = row.url; videoEl.style.display = 'block'; videoEl.play().catch(()=>{}); }
+    else if (row.type === 'html')  { ifrEl.src  = row.url; ifrEl.style.display  = 'block'; }
+    const name = row.label || row.url.split('/').pop().split('?')[0] || row.type;
+    showStatus(name + ' · now playing', 'live');
+    flashLabel(row.label || name);
+  });
+}
+
+async function poll() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/tv_content?select=*&is_active=eq.true&order=pushed_at.desc&limit=1`,
+      { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = await res.json();
+    if (rows.length) render(rows[0]);
+    else if (!currentId) showStandby();
+  } catch(e) {
+    showStatus('Connection error — retrying', 'error');
+  }
+}
+
+showStandby();
+poll();
+setInterval(poll, POLL_MS);
 </script>
 </body>
 </html>
